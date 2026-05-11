@@ -45,7 +45,7 @@ export function exportToPdf(
   autoTable(doc, {
     startY: 34,
     head: [columns],
-    body: rows as string[][],
+    body: rows as unknown as string[][],
     theme: 'striped',
     headStyles: { fillColor: [22, 101, 52], textColor: 255, fontStyle: 'bold', fontSize: 9 },
     bodyStyles: { fontSize: 8.5, textColor: [55, 65, 81] },

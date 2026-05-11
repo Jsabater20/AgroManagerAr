@@ -112,7 +112,7 @@ export default function RentabilidadPage() {
                 <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false}
                   tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} />
                 <Tooltip
-                  formatter={(v: number) => [fmtARS(v), 'Margen']}
+                  formatter={(v) => [fmtARS(Number(v) || 0), 'Margen']}
                   contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }}
                 />
                 <Bar dataKey="margen" radius={[4, 4, 0, 0]}>
@@ -173,7 +173,7 @@ export default function RentabilidadPage() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {campaniasData.map(({ camp, kgProducidos, ingresos, egresos, margen, rentabilidad, movs }) => (
+            {campaniasData.map(({ camp, kgProducidos, egresos, margen, rentabilidad, movs }) => (
               <div key={camp.id}>
                 {/* Fila resumen */}
                 <button

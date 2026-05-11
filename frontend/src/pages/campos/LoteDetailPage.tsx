@@ -146,7 +146,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
   const items: TimelineItem[] = [
     {
       date: siembra.fechaSiembra,
-      type: 'siembra',
+      type: 'siembra' as const,
       label: `Siembra de ${siembra.tipoCultivo.nombre}`,
       sub: siembra.densidad ? `Densidad: ${siembra.densidad} kg/ha` : 'Sin densidad registrada',
       icon: Sprout,
