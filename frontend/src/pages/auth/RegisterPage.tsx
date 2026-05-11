@@ -1,0 +1,218 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Sprout, Eye, EyeOff, Check, X, Leaf } from 'lucide-react';
+import { api } from '../../api/client';
+import { useAuthStore } from '../../store/auth.store';
+import toast from 'react-hot-toast';
+
+const rules = [
+  { label: 'Al menos 8 caracteres', test: (p: string) => p.length >= 8 },
+  { label: 'Una mayúscula',          test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'Una minúscula',          test: (p: string) => /[a-z]/.test(p) },
+  { label: 'Un número',              test: (p: string) => /\d/.test(p) },
+];
+
+export default function RegisterPage() {
+  const [form, setForm] = useState({ nombre: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const { setAuth } = useAuthStore();
+  const navigate = useNavigate();
+
+  const allValid = rules.every((r) => r.test(form.password));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTouched(true);
+    if (!allValid) return;
+    if (!acceptTerms) {
+      toast.error('Debés aceptar los términos y condiciones para continuar.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/register', form);
+      setAuth(data.usuario, data.token);
+      toast.success(`¡Bienvenido, ${data.usuario.nombre}!`);
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })
+        ?.response?.data?.message;
+      toast.error(Array.isArray(msg) ? msg[0] : (msg || 'Error al registrarse'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Panel izquierdo — branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-green-950 via-green-900 to-emerald-800 flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full" />
+        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-white/5 rounded-full" />
+        <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl" />
+
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="bg-white/10 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+            <Sprout size={28} className="text-emerald-300" />
+          </div>
+          <div>
+            <span className="text-white font-bold text-xl tracking-tight">AgroManager</span>
+            <span className="text-emerald-400 font-bold text-xl"> AR</span>
+          </div>
+        </div>
+
+        {/* Contenido central */}
+        <div className="relative">
+          <div className="bg-white/8 backdrop-blur-sm rounded-3xl p-8 border border-white/10 mb-8">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="bg-emerald-500/20 p-2.5 rounded-xl">
+                <Leaf size={20} className="text-emerald-300" />
+              </div>
+              <p className="text-white font-semibold">Empezá hoy, es gratis</p>
+            </div>
+            <ul className="space-y-3">
+              {[
+                'Registrá campos, lotes y cultivos',
+                'Llevá el control de tu rodeo ganadero',
+                'Planificá tareas y actividades del campo',
+                'Accedé desde cualquier dispositivo',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-green-200/80 text-sm">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <Check size={11} className="text-emerald-300" />
+                  </div>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <h2 className="text-3xl font-bold text-white leading-tight">
+            El ERP agrícola<br />
+            <span className="text-emerald-400">hecho para Argentina.</span>
+          </h2>
+        </div>
+
+        <p className="relative text-green-400/50 text-xs">© 2026 AgroManager AR — Mercado argentino</p>
+      </div>
+
+      {/* Panel derecho — formulario */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+        <div className="w-full max-w-sm">
+          {/* Logo mobile */}
+          <div className="flex items-center gap-2.5 mb-8 lg:hidden">
+            <div className="bg-green-700 p-2.5 rounded-xl">
+              <Sprout size={22} className="text-white" />
+            </div>
+            <span className="font-bold text-gray-900 text-lg">AgroManager AR</span>
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Creá tu cuenta</h1>
+          <p className="text-gray-500 text-sm mb-8">Completá los datos para comenzar</p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre completo</label>
+              <input
+                type="text"
+                required
+                value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-colors shadow-sm"
+                placeholder="Juan Pérez"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-colors shadow-sm"
+                placeholder="tu@email.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={form.password}
+                  onChange={(e) => { setForm({ ...form, password: e.target.value }); setTouched(true); }}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-colors shadow-sm"
+                  placeholder="Mínimo 8 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+
+              {(touched || form.password.length > 0) && (
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
+                  {rules.map((rule) => {
+                    const ok = rule.test(form.password);
+                    return (
+                      <div key={rule.label} className={`flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 ${ok ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                        {ok ? <Check size={12} /> : <X size={12} />}
+                        {rule.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer mt-0.5 shrink-0"
+              />
+              <span className="text-sm text-gray-600 leading-snug">
+                Acepto los{' '}
+                <Link to="/terminos" target="_blank" className="text-green-700 font-medium hover:underline">
+                  términos y condiciones
+                </Link>{' '}
+                y la{' '}
+                <Link to="/privacidad" target="_blank" className="text-green-700 font-medium hover:underline">
+                  política de privacidad
+                </Link>
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-700 hover:bg-green-800 active:bg-green-900 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors text-sm shadow-lg shadow-green-700/20 mt-1"
+            >
+              {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+            </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+            <p className="text-sm text-gray-500">
+              ¿Ya tenés cuenta?{' '}
+              <Link to="/login" className="text-green-700 font-semibold hover:text-green-800 transition-colors">
+                Ingresá acá
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

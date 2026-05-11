@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* ── Dark mode via .dark class on <html> ─────────────────────────────────── */
+@variant dark (&:where(.dark, .dark *));
+
+/* ── Base reset — dentro de @layer base para no ganar al cascade de utilities ── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #f9fafb;
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html.dark body {
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
+}
+
+/* ── Component helpers ───────────────────────────────────────────────────── */
+@layer components {
+  .input {
+    @apply w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-900 bg-white
+           focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+           dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400;
+  }
+}
+
+/* ── Global dark-mode surface overrides ──────────────────────────────────── */
+/*
+ * Higher specificity (0-2-1) than Tailwind dark: utilities (0-1-0 via :where),
+ * so these apply to ALL components without per-file dark: variants.
+ */
+html.dark {
+  /* White surfaces → dark card */
+  & .bg-white { background-color: #1f2937; }       /* gray-800 */
+
+  /* Borders */
+  & .border-gray-100,
+  & .border-gray-200 { border-color: #374151; }    /* gray-700 */
+
+  /* Text hierarchy */
+  & .text-gray-900 { color: #f1f5f9; }             /* gray-100  */
+  & .text-gray-700 { color: #d1d5db; }             /* gray-300  */
+  & .text-gray-600 { color: #9ca3af; }             /* gray-400  */
+  & .text-gray-500 { color: #9ca3af; }             /* gray-400  */
+
+  /* Subtle backgrounds */
+  & .bg-gray-50  { background-color: #111827; }    /* gray-900 — table headers, strips */
+  & .bg-gray-100 { background-color: #374151; }    /* gray-700 — badges, icon chips    */
+
+  /* Dividers (divide-y) */
+  & .divide-gray-100 > :not(:last-child),
+  & .divide-gray-200 > :not(:last-child) { border-color: #374151; } /* gray-700 */
+
+  /* Hover states */
+  & .hover\:bg-gray-100:hover { background-color: #374151; } /* gray-700 */
+  & .hover\:bg-gray-50:hover  { background-color: #1f2937; } /* gray-800 */
+  & .hover\:text-gray-700:hover { color: #d1d5db; }          /* gray-300 */
+}
