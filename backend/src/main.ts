@@ -8,9 +8,11 @@ async function bootstrap() {
 
   const allowedOrigins = (
     process.env.FRONTEND_URL ?? 'http://localhost:5173,http://localhost:5174'
-  ).split(',').map((o) => o.trim());
+  )
+    .split(',')
+    .map((o) => o.trim());
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
         callback(null, true);
       } else {
