@@ -15,6 +15,7 @@ import { FinanzasModule } from './finanzas/finanzas.module';
 import { CampaniasModule } from './campanias/campanias.module';
 import { AiModule } from './ai/ai.module';
 import { PlanModule } from './plan/plan.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PlanModule } from './plan/plan.module';
     PrismaModule,
     AuthModule,
     PlanModule,
+    UsersModule,
     CamposModule,
     CultivosModule,
     SiembrasModule,

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Zap } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Zap, User, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 
 const navItems = [
@@ -101,6 +101,32 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </div>
           <p className="text-sm text-green-200 truncate flex-1">{usuario?.nombre}</p>
         </div>
+        {/* Perfil */}
+        <NavLink
+          to="/perfil"
+          onClick={onClose}
+          className={({ isActive }) =>
+            `flex items-center gap-2 text-sm rounded-lg p-2 w-full transition-all
+            ${isActive ? 'bg-white/15 text-white' : 'text-green-400 hover:text-white hover:bg-white/10'}`
+          }
+        >
+          <User size={15} />
+          <span>Mi perfil</span>
+        </NavLink>
+        {/* Admin panel */}
+        {usuario?.rol === 'ADMIN' && (
+          <NavLink
+            to="/admin"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-2 text-sm rounded-lg p-2 w-full transition-all
+              ${isActive ? 'bg-white/15 text-white' : 'text-yellow-400 hover:text-white hover:bg-white/10'}`
+            }
+          >
+            <ShieldCheck size={15} />
+            <span>Panel admin</span>
+          </NavLink>
+        )}
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 text-green-400 hover:text-red-300 hover:bg-white/10 transition-all rounded-lg p-2 w-full"
