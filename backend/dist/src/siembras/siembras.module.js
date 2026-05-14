@@ -10,11 +10,13 @@ exports.SiembrasModule = void 0;
 const common_1 = require("@nestjs/common");
 const siembras_service_1 = require("./siembras.service");
 const siembras_controller_1 = require("./siembras.controller");
+const plan_module_1 = require("../plan/plan.module");
 let SiembrasModule = class SiembrasModule {
 };
 exports.SiembrasModule = SiembrasModule;
 exports.SiembrasModule = SiembrasModule = __decorate([
     (0, common_1.Module)({
+        imports: [plan_module_1.PlanModule],
         providers: [siembras_service_1.SiembrasService],
         controllers: [siembras_controller_1.SiembrasController],
     })

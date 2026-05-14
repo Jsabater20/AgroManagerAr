@@ -2,7 +2,7 @@
 
 ERP agrícola integral para el mercado argentino. Gestión de campos, cultivos, ganadería, tareas, finanzas y campañas desde una sola plataforma, con asistente de IA incluido.
 
-**Demo en vivo → [agromanager-ar.vercel.app](https://agromanager-ar.vercel.app)**
+**Demo en vivo → [agromanager-ar.vercel.app](https://agro-manager-ar-px8f.vercel.app/login)**
 
 > Credenciales de demo: `demo@agromanager.ar` / `Demo1234`
 

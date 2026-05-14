@@ -4,6 +4,8 @@ import { Wheat, Plus, Pencil, Trash2, X, ChevronDown, ChevronUp, CheckSquare, Sq
 import toast from 'react-hot-toast';
 import { campaniasApi } from '../../api/campanias.api';
 import { siembrasApi } from '../../api/siembras.api';
+import { useAuthStore } from '../../store/auth.store';
+import { PlanBanner } from '../../components/ui/PlanBanner';
 import type { CreateCampaniaDto, Siembra } from '../../api/types';
 
 const fmtDate = (d?: string) =>
@@ -18,7 +20,7 @@ const ESTADO_LABEL: Record<string, string> = {
 
 const EMPTY: CreateCampaniaDto = { nombre: '', fechaInicio: new Date().toISOString().slice(0, 10), fechaFin: '', descripcion: '' };
 
-export default function CampaniasPage() {
+export function CampaniasContent() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
@@ -300,4 +302,10 @@ export default function CampaniasPage() {
       )}
     </div>
   );
+}
+
+export default function CampaniasPage() {
+  const isPro = useAuthStore((s) => s.isPro());
+  if (!isPro) return <PlanBanner feature="Campañas agrícolas" description="Gestioná campañas completas, asigná siembras y hacé seguimiento de cada ciclo productivo. Disponible en Pro." />;
+  return <CampaniasContent />;
 }

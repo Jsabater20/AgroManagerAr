@@ -10,11 +10,13 @@ exports.GanadoModule = void 0;
 const common_1 = require("@nestjs/common");
 const ganado_controller_1 = require("./ganado.controller");
 const ganado_service_1 = require("./ganado.service");
+const plan_module_1 = require("../plan/plan.module");
 let GanadoModule = class GanadoModule {
 };
 exports.GanadoModule = GanadoModule;
 exports.GanadoModule = GanadoModule = __decorate([
     (0, common_1.Module)({
+        imports: [plan_module_1.PlanModule],
         controllers: [ganado_controller_1.GanadoController],
         providers: [ganado_service_1.GanadoService],
     })

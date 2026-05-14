@@ -48,7 +48,7 @@ export class AuthService {
         nombre: dto.nombre,
         password: hash,
       },
-      select: { id: true, email: true, nombre: true, rol: true, createdAt: true },
+      select: { id: true, email: true, nombre: true, rol: true, plan: true, createdAt: true },
     });
 
     // Email de bienvenida (best-effort, no bloquea el registro)
@@ -72,6 +72,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { email: dto.email },
+      select: { id: true, email: true, nombre: true, password: true, rol: true, plan: true },
     });
     if (!usuario) {
       throw new UnauthorizedException('Credenciales inválidas');

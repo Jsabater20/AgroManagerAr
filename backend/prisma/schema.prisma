@@ -18,6 +18,9 @@ model Usuario {
   nombre    String
   password  String
   rol       Rol      @default(OPERADOR)
+  plan      PlanTipo @default(FREE)
+  planExpira      DateTime?
+  mpSuscripcionId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -34,6 +37,11 @@ model Usuario {
 enum Rol {
   ADMIN
   OPERADOR
+}
+
+enum PlanTipo {
+  FREE
+  PRO
 }
 
 // ─── MÓDULO 1: GESTIÓN DE CULTIVOS ────────────────────────────────────────────

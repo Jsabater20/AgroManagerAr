@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CamposService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const plan_service_1 = require("../plan/plan.service");
 let CamposService = class CamposService {
     prisma;
-    constructor(prisma) {
+    planService;
+    constructor(prisma, planService) {
         this.prisma = prisma;
+        this.planService = planService;
     }
     async findAll(usuarioId) {
         return this.prisma.campo.findMany({
@@ -45,6 +48,7 @@ let CamposService = class CamposService {
         return campo;
     }
     async create(dto, usuarioId) {
+        await this.planService.checkCamposLimit(usuarioId);
         return this.prisma.campo.create({
             data: { ...dto, usuarioId },
             include: { lotes: true },
@@ -64,6 +68,7 @@ let CamposService = class CamposService {
     }
     async addLote(campoId, dto, usuarioId) {
         await this.findOne(campoId, usuarioId);
+        await this.planService.checkLotesLimit(campoId, usuarioId);
         return this.prisma.lote.create({
             data: { ...dto, campoId },
         });
@@ -72,6 +77,7 @@ let CamposService = class CamposService {
 exports.CamposService = CamposService;
 exports.CamposService = CamposService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        plan_service_1.PlanService])
 ], CamposService);
 //# sourceMappingURL=campos.service.js.map

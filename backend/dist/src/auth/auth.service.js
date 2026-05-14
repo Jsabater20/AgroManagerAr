@@ -75,7 +75,7 @@ let AuthService = class AuthService {
                 nombre: dto.nombre,
                 password: hash,
             },
-            select: { id: true, email: true, nombre: true, rol: true, createdAt: true },
+            select: { id: true, email: true, nombre: true, rol: true, plan: true, createdAt: true },
         });
         if (this.resend) {
             this.resend.emails
@@ -94,6 +94,7 @@ let AuthService = class AuthService {
     async login(dto) {
         const usuario = await this.prisma.usuario.findUnique({
             where: { email: dto.email },
+            select: { id: true, email: true, nombre: true, password: true, rol: true, plan: true },
         });
         if (!usuario) {
             throw new common_1.UnauthorizedException('Credenciales inválidas');

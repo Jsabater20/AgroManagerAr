@@ -12,11 +12,13 @@ import { campaniasApi } from '../../api/campanias.api';
 import { finanzasApi } from '../../api/finanzas.api';
 import { siembrasApi } from '../../api/siembras.api';
 import { StatCardSkeleton } from '../../components/ui/Skeleton';
+import { useAuthStore } from '../../store/auth.store';
+import { PlanBanner } from '../../components/ui/PlanBanner';
 
 const fmtARS = (n: number) =>
   `$${Math.abs(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-export default function RentabilidadPage() {
+function RentabilidadContent() {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const { data: campanias, isLoading: lCamp } = useQuery({ queryKey: ['campanias'], queryFn: campaniasApi.getAll });
@@ -45,7 +47,7 @@ export default function RentabilidadPage() {
     // Ingresos por cosecha (categoría COSECHA) y egresos por insumo (categoría INSUMO)
     // en el rango de fechas de la campaña
     const inicio = new Date(camp.fechaInicio).getTime();
-    const fin    = camp.fechaFin ? new Date(camp.fechaFin).getTime() : Date.now();
+    const fin    = camp.fechaFin ? new Date(camp.fechaFin).getTime() : new Date().getTime();
     const movs   = (finanzas ?? []).filter((f) => {
       const t = new Date(f.fecha).getTime();
       return t >= inicio && t <= fin;
@@ -308,4 +310,10 @@ function EmptyChart({ label }: { label: string }) {
       <span>{label}</span>
     </div>
   );
+}
+
+export default function RentabilidadPage() {
+  const isPro = useAuthStore((s) => s.isPro());
+  if (!isPro) return <PlanBanner feature="Analytics y rentabilidad" description="Visualizá la rentabilidad de cada campaña, comparativos y métricas de rentabilidad por hectárea. Disponible en Pro." />;
+  return <RentabilidadContent />;
 }

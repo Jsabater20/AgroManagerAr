@@ -23,6 +23,7 @@ const tareas_module_1 = require("./tareas/tareas.module");
 const finanzas_module_1 = require("./finanzas/finanzas.module");
 const campanias_module_1 = require("./campanias/campanias.module");
 const ai_module_1 = require("./ai/ai.module");
+const plan_module_1 = require("./plan/plan.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -40,6 +41,7 @@ exports.AppModule = AppModule = __decorate([
             ]),
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
+            plan_module_1.PlanModule,
             campos_module_1.CamposModule,
             cultivos_module_1.CultivosModule,
             siembras_module_1.SiembrasModule,

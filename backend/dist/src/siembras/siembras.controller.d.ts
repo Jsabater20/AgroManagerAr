@@ -9,206 +9,206 @@ export declare class SiembrasController {
     private siembrasService;
     constructor(siembrasService: SiembrasService);
     findAll(req: AuthRequest): Promise<({
-        tipoCultivo: {
-            nombre: string;
-            createdAt: Date;
-            id: number;
-            descripcion: string | null;
-        };
         lote: {
             campo: {
+                id: number;
                 nombre: string;
                 createdAt: Date;
                 updatedAt: Date;
-                id: number;
                 hectareas: number;
                 ubicacion: string | null;
                 propietario: string | null;
                 usuarioId: number;
             };
         } & {
+            id: number;
             nombre: string;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
             hectareas: number;
             campoId: number;
         };
+        tipoCultivo: {
+            id: number;
+            nombre: string;
+            createdAt: Date;
+            descripcion: string | null;
+        };
         cosechas: {
+            id: number;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
             observaciones: string | null;
+            siembraId: number;
             fechaCosecha: Date;
             rendimientoKgHa: number;
             totalKg: number;
             humedad: number | null;
-            siembraId: number;
         }[];
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
+        loteId: number;
+        tipoCultivoId: number;
         fechaSiembra: Date;
         densidad: number | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoSiembra;
-        loteId: number;
-        tipoCultivoId: number;
         campaniaId: number | null;
     })[]>;
     findOne(id: number, req: AuthRequest): Promise<{
-        tipoCultivo: {
-            nombre: string;
-            createdAt: Date;
-            id: number;
-            descripcion: string | null;
-        };
-        aplicaciones: ({
-            insumo: {
+        lote: {
+            campo: {
+                id: number;
                 nombre: string;
                 createdAt: Date;
                 updatedAt: Date;
+                hectareas: number;
+                ubicacion: string | null;
+                propietario: string | null;
+                usuarioId: number;
+            };
+        } & {
+            id: number;
+            nombre: string;
+            createdAt: Date;
+            updatedAt: Date;
+            hectareas: number;
+            campoId: number;
+        };
+        tipoCultivo: {
+            id: number;
+            nombre: string;
+            createdAt: Date;
+            descripcion: string | null;
+        };
+        cosechas: {
+            id: number;
+            createdAt: Date;
+            updatedAt: Date;
+            observaciones: string | null;
+            siembraId: number;
+            fechaCosecha: Date;
+            rendimientoKgHa: number;
+            totalKg: number;
+            humedad: number | null;
+        }[];
+        aplicaciones: ({
+            insumo: {
                 id: number;
+                nombre: string;
+                createdAt: Date;
+                updatedAt: Date;
                 descripcion: string | null;
                 tipo: import(".prisma/client").$Enums.TipoInsumo;
                 unidad: string;
             };
         } & {
+            id: number;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
-            unidad: string;
             observaciones: string | null;
             siembraId: number;
+            unidad: string;
             insumoId: number;
             fecha: Date;
             cantidad: number;
         })[];
-        lote: {
-            campo: {
-                nombre: string;
-                createdAt: Date;
-                updatedAt: Date;
-                id: number;
-                hectareas: number;
-                ubicacion: string | null;
-                propietario: string | null;
-                usuarioId: number;
-            };
-        } & {
-            nombre: string;
-            createdAt: Date;
-            updatedAt: Date;
-            id: number;
-            hectareas: number;
-            campoId: number;
-        };
-        cosechas: {
-            createdAt: Date;
-            updatedAt: Date;
-            id: number;
-            observaciones: string | null;
-            fechaCosecha: Date;
-            rendimientoKgHa: number;
-            totalKg: number;
-            humedad: number | null;
-            siembraId: number;
-        }[];
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
+        loteId: number;
+        tipoCultivoId: number;
         fechaSiembra: Date;
         densidad: number | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoSiembra;
-        loteId: number;
-        tipoCultivoId: number;
         campaniaId: number | null;
     }>;
     create(dto: CreateSiembraDto, req: AuthRequest): Promise<{
-        tipoCultivo: {
-            nombre: string;
-            createdAt: Date;
-            id: number;
-            descripcion: string | null;
-        };
         lote: {
+            id: number;
             nombre: string;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
             hectareas: number;
             campoId: number;
         };
+        tipoCultivo: {
+            id: number;
+            nombre: string;
+            createdAt: Date;
+            descripcion: string | null;
+        };
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
+        loteId: number;
+        tipoCultivoId: number;
         fechaSiembra: Date;
         densidad: number | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoSiembra;
-        loteId: number;
-        tipoCultivoId: number;
         campaniaId: number | null;
     }>;
     update(id: number, dto: UpdateSiembraDto, req: AuthRequest): Promise<{
-        tipoCultivo: {
-            nombre: string;
-            createdAt: Date;
-            id: number;
-            descripcion: string | null;
-        };
         lote: {
+            id: number;
             nombre: string;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
             hectareas: number;
             campoId: number;
         };
+        tipoCultivo: {
+            id: number;
+            nombre: string;
+            createdAt: Date;
+            descripcion: string | null;
+        };
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
+        loteId: number;
+        tipoCultivoId: number;
         fechaSiembra: Date;
         densidad: number | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoSiembra;
-        loteId: number;
-        tipoCultivoId: number;
         campaniaId: number | null;
     }>;
     addCosecha(siembraId: number, dto: CreateCosechaDto, req: AuthRequest): Promise<{
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         observaciones: string | null;
+        siembraId: number;
         fechaCosecha: Date;
         rendimientoKgHa: number;
         totalKg: number;
         humedad: number | null;
-        siembraId: number;
     }>;
     addAplicacion(siembraId: number, dto: CreateAplicacionDto, req: AuthRequest): Promise<{
         insumo: {
+            id: number;
             nombre: string;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
             descripcion: string | null;
             tipo: import(".prisma/client").$Enums.TipoInsumo;
             unidad: string;
         };
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        unidad: string;
         observaciones: string | null;
         siembraId: number;
+        unidad: string;
         insumoId: number;
         fecha: Date;
         cantidad: number;

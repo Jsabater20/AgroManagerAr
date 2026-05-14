@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Zap } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 
 const navItems = [
@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { usuario, logout } = useAuthStore();
+  const { usuario, logout, isPro } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -80,6 +80,21 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-3 border-t border-white/10">
+        {/* Plan badge */}
+        <NavLink
+          to="/precios"
+          onClick={onClose}
+          className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+        >
+          <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${isPro() ? 'bg-yellow-400 text-yellow-900' : 'bg-green-700 text-green-200'}`}>
+            {isPro() ? '⚡ Pro' : 'Free'}
+          </div>
+          {!isPro() && (
+            <span className="text-xs text-green-400 flex items-center gap-1">
+              <Zap size={11} /> Actualizar a Pro
+            </span>
+          )}
+        </NavLink>
         <div className="flex items-center gap-2.5 mb-3 px-1">
           <div className="w-8 h-8 rounded-full bg-green-700 flex items-center justify-center text-xs font-bold text-green-100 shrink-0">
             {initials}

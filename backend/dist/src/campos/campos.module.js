@@ -10,11 +10,13 @@ exports.CamposModule = void 0;
 const common_1 = require("@nestjs/common");
 const campos_service_1 = require("./campos.service");
 const campos_controller_1 = require("./campos.controller");
+const plan_module_1 = require("../plan/plan.module");
 let CamposModule = class CamposModule {
 };
 exports.CamposModule = CamposModule;
 exports.CamposModule = CamposModule = __decorate([
     (0, common_1.Module)({
+        imports: [plan_module_1.PlanModule],
         providers: [campos_service_1.CamposService],
         controllers: [campos_controller_1.CamposController],
     })

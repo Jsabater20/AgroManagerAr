@@ -24,6 +24,7 @@ import FinanzasPage from './pages/finanzas/FinanzasPage';
 import CampaniasPage from './pages/campanias/CampaniasPage';
 import RentabilidadPage from './pages/rentabilidad/RentabilidadPage';
 import ClimaPage from './pages/clima/ClimaPage';
+import PreciosPage from './pages/precios/PreciosPage';
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="/campanias" element={<CampaniasPage />} />
               <Route path="/rentabilidad" element={<RentabilidadPage />} />
               <Route path="/clima" element={<ClimaPage />} />
+              <Route path="/precios" element={<PreciosPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />

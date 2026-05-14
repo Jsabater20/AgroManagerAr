@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlanService } from '../plan/plan.service';
 import {
   CreateSiembraDto,
   UpdateSiembraDto,
@@ -13,7 +14,10 @@ import {
 
 @Injectable()
 export class SiembrasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private planService: PlanService,
+  ) {}
 
   async findAll(usuarioId: number) {
     return this.prisma.siembra.findMany({
@@ -55,6 +59,8 @@ export class SiembrasService {
     });
     if (!lote) throw new NotFoundException('Lote no encontrado');
     if (lote.campo.usuarioId !== usuarioId) throw new ForbiddenException();
+
+    await this.planService.checkSiembrasLimit(usuarioId);
 
     return this.prisma.siembra.create({
       data: {

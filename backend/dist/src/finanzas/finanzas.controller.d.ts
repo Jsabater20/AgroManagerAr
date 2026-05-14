@@ -10,8 +10,8 @@ export declare class FinanzasController {
     constructor(finanzasService: FinanzasService);
     findAll(req: AuthRequest): import(".prisma/client").Prisma.PrismaPromise<({
         campo: {
-            nombre: string;
             id: number;
+            nombre: string;
         } | null;
         siembra: {
             id: number;
@@ -20,16 +20,16 @@ export declare class FinanzasController {
             };
         } | null;
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         usuarioId: number;
         campoId: number | null;
         observaciones: string | null;
         siembraId: number | null;
-        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
+        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         fecha: Date;
+        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
         concepto: string;
         monto: number;
     })[]>;
@@ -39,63 +39,63 @@ export declare class FinanzasController {
         saldo: number;
     }>;
     findOne(id: number, req: AuthRequest): Promise<{
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         usuarioId: number;
         campoId: number | null;
         observaciones: string | null;
         siembraId: number | null;
-        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
+        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         fecha: Date;
+        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
         concepto: string;
         monto: number;
     }>;
     create(dto: CreateMovimientoDto, req: AuthRequest): import(".prisma/client").Prisma.Prisma__MovimientoFinancieroClient<{
         campo: {
-            nombre: string;
             id: number;
+            nombre: string;
         } | null;
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         usuarioId: number;
         campoId: number | null;
         observaciones: string | null;
         siembraId: number | null;
-        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
+        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         fecha: Date;
+        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
         concepto: string;
         monto: number;
     }, never, import("@prisma/client/runtime/library").DefaultArgs>;
     update(id: number, dto: UpdateMovimientoDto, req: AuthRequest): Promise<{
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         usuarioId: number;
         campoId: number | null;
         observaciones: string | null;
         siembraId: number | null;
-        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
+        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         fecha: Date;
+        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
         concepto: string;
         monto: number;
     }>;
     remove(id: number, req: AuthRequest): Promise<{
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         usuarioId: number;
         campoId: number | null;
         observaciones: string | null;
         siembraId: number | null;
-        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
+        tipo: import(".prisma/client").$Enums.TipoMovimiento;
         fecha: Date;
+        categoria: import(".prisma/client").$Enums.CategoriaMovimiento;
         concepto: string;
         monto: number;
     }>;

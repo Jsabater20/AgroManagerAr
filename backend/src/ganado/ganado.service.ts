@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlanService } from '../plan/plan.service';
 import {
   CreateAnimalDto,
   UpdateAnimalDto,
@@ -23,7 +24,10 @@ const GESTATION_DAYS: Record<string, number> = {
 
 @Injectable()
 export class GanadoService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private planService: PlanService,
+  ) {}
 
   findAll(usuarioId: number) {
     return this.prisma.animal.findMany({
@@ -43,7 +47,8 @@ export class GanadoService {
     return animal;
   }
 
-  create(dto: CreateAnimalDto, usuarioId: number) {
+  async create(dto: CreateAnimalDto, usuarioId: number) {
+    await this.planService.checkAnimalesLimit(usuarioId);
     return this.prisma.animal.create({
       data: {
         nombre: dto.nombre,

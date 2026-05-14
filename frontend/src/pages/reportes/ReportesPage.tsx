@@ -7,6 +7,8 @@ import { insumosApi } from '../../api/insumos.api';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 import { exportToExcel, exportToPdf } from '../../utils/export';
+import { useAuthStore } from '../../store/auth.store';
+import { PlanBanner } from '../../components/ui/PlanBanner';
 import type { Siembra, Insumo, Animal, TareaRural } from '../../api/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -35,7 +37,7 @@ type Tab = typeof TABS[number]['key'];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ReportesPage() {
+function ReportesContent() {
   const [tab, setTab] = useState<Tab>('siembras');
 
   const { data: campos }   = useQuery({ queryKey: ['campos'],   queryFn: camposApi.getAll });
@@ -564,4 +566,10 @@ function TareasReport({ tareas }: { tareas: TareaRural[] }) {
       )}
     </div>
   );
+}
+
+export default function ReportesPage() {
+  const isPro = useAuthStore((s) => s.isPro());
+  if (!isPro) return <PlanBanner feature="Reportes avanzados" description="Exportá tus datos en Excel y PDF: siembras, insumos, ganado y tareas. Disponible en Pro." />;
+  return <ReportesContent />;
 }

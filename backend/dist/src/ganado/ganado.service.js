@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GanadoService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const plan_service_1 = require("../plan/plan.service");
 const GESTATION_DAYS = {
     BOVINO: 283,
     PORCINO: 114,
@@ -22,8 +23,10 @@ const GESTATION_DAYS = {
 };
 let GanadoService = class GanadoService {
     prisma;
-    constructor(prisma) {
+    planService;
+    constructor(prisma, planService) {
         this.prisma = prisma;
+        this.planService = planService;
     }
     findAll(usuarioId) {
         return this.prisma.animal.findMany({
@@ -43,7 +46,8 @@ let GanadoService = class GanadoService {
             throw new common_1.ForbiddenException();
         return animal;
     }
-    create(dto, usuarioId) {
+    async create(dto, usuarioId) {
+        await this.planService.checkAnimalesLimit(usuarioId);
         return this.prisma.animal.create({
             data: {
                 nombre: dto.nombre,
@@ -147,6 +151,7 @@ let GanadoService = class GanadoService {
 exports.GanadoService = GanadoService;
 exports.GanadoService = GanadoService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        plan_service_1.PlanService])
 ], GanadoService);
 //# sourceMappingURL=ganado.service.js.map

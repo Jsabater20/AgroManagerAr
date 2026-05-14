@@ -10,118 +10,118 @@ export declare class TareasController {
     constructor(tareasService: TareasService);
     findAll(req: AuthRequest): import(".prisma/client").Prisma.PrismaPromise<({
         campo: {
-            nombre: string;
             id: number;
+            nombre: string;
         } | null;
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        descripcion: string | null;
-        tipo: import(".prisma/client").$Enums.TipoTarea;
         usuarioId: number;
         campoId: number | null;
+        descripcion: string | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoTarea;
-        fechaCompletada: Date | null;
+        tipo: import(".prisma/client").$Enums.TipoTarea;
         titulo: string;
         prioridad: import(".prisma/client").$Enums.Prioridad;
         fechaProgramada: Date;
+        fechaCompletada: Date | null;
     })[]>;
     findOne(id: number, req: AuthRequest): Promise<{
         campo: {
-            nombre: string;
             id: number;
+            nombre: string;
         } | null;
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        descripcion: string | null;
-        tipo: import(".prisma/client").$Enums.TipoTarea;
         usuarioId: number;
         campoId: number | null;
+        descripcion: string | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoTarea;
-        fechaCompletada: Date | null;
+        tipo: import(".prisma/client").$Enums.TipoTarea;
         titulo: string;
         prioridad: import(".prisma/client").$Enums.Prioridad;
         fechaProgramada: Date;
+        fechaCompletada: Date | null;
     }>;
     create(dto: CreateTareaDto, req: AuthRequest): import(".prisma/client").Prisma.Prisma__TareaRuralClient<{
         campo: {
-            nombre: string;
             id: number;
+            nombre: string;
         } | null;
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        descripcion: string | null;
-        tipo: import(".prisma/client").$Enums.TipoTarea;
         usuarioId: number;
         campoId: number | null;
+        descripcion: string | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoTarea;
-        fechaCompletada: Date | null;
+        tipo: import(".prisma/client").$Enums.TipoTarea;
         titulo: string;
         prioridad: import(".prisma/client").$Enums.Prioridad;
         fechaProgramada: Date;
+        fechaCompletada: Date | null;
     }, never, import("@prisma/client/runtime/library").DefaultArgs>;
     update(id: number, dto: UpdateTareaDto, req: AuthRequest): Promise<{
         campo: {
-            nombre: string;
             id: number;
+            nombre: string;
         } | null;
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        descripcion: string | null;
-        tipo: import(".prisma/client").$Enums.TipoTarea;
         usuarioId: number;
         campoId: number | null;
+        descripcion: string | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoTarea;
-        fechaCompletada: Date | null;
+        tipo: import(".prisma/client").$Enums.TipoTarea;
         titulo: string;
         prioridad: import(".prisma/client").$Enums.Prioridad;
         fechaProgramada: Date;
+        fechaCompletada: Date | null;
     }>;
     updateEstado(id: number, dto: UpdateTareaEstadoDto, req: AuthRequest): Promise<{
         campo: {
-            nombre: string;
             id: number;
+            nombre: string;
         } | null;
     } & {
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        descripcion: string | null;
-        tipo: import(".prisma/client").$Enums.TipoTarea;
         usuarioId: number;
         campoId: number | null;
+        descripcion: string | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoTarea;
-        fechaCompletada: Date | null;
+        tipo: import(".prisma/client").$Enums.TipoTarea;
         titulo: string;
         prioridad: import(".prisma/client").$Enums.Prioridad;
         fechaProgramada: Date;
+        fechaCompletada: Date | null;
     }>;
     remove(id: number, req: AuthRequest): Promise<{
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        descripcion: string | null;
-        tipo: import(".prisma/client").$Enums.TipoTarea;
         usuarioId: number;
         campoId: number | null;
+        descripcion: string | null;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoTarea;
-        fechaCompletada: Date | null;
+        tipo: import(".prisma/client").$Enums.TipoTarea;
         titulo: string;
         prioridad: import(".prisma/client").$Enums.Prioridad;
         fechaProgramada: Date;
+        fechaCompletada: Date | null;
     }>;
 }
 export {};

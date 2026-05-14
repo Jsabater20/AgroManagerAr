@@ -4,46 +4,46 @@ export declare class InsumosController {
     private insumosService;
     constructor(insumosService: InsumosService);
     findAll(): import(".prisma/client").Prisma.PrismaPromise<{
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         descripcion: string | null;
         tipo: import(".prisma/client").$Enums.TipoInsumo;
         unidad: string;
     }[]>;
     findOne(id: number): Promise<{
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         descripcion: string | null;
         tipo: import(".prisma/client").$Enums.TipoInsumo;
         unidad: string;
     }>;
     create(dto: CreateInsumoDto): import(".prisma/client").Prisma.Prisma__InsumoClient<{
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         descripcion: string | null;
         tipo: import(".prisma/client").$Enums.TipoInsumo;
         unidad: string;
     }, never, import("@prisma/client/runtime/library").DefaultArgs>;
     update(id: number, dto: UpdateInsumoDto): Promise<{
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         descripcion: string | null;
         tipo: import(".prisma/client").$Enums.TipoInsumo;
         unidad: string;
     }>;
     remove(id: number): Promise<{
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         descripcion: string | null;
         tipo: import(".prisma/client").$Enums.TipoInsumo;
         unidad: string;

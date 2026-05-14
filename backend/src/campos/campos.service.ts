@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlanService } from '../plan/plan.service';
 import {
   CreateCampoDto,
   UpdateCampoDto,
@@ -12,7 +13,10 @@ import {
 
 @Injectable()
 export class CamposService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private planService: PlanService,
+  ) {}
 
   async findAll(usuarioId: number) {
     return this.prisma.campo.findMany({
@@ -42,6 +46,7 @@ export class CamposService {
   }
 
   async create(dto: CreateCampoDto, usuarioId: number) {
+    await this.planService.checkCamposLimit(usuarioId);
     return this.prisma.campo.create({
       data: { ...dto, usuarioId },
       include: { lotes: true },
@@ -64,6 +69,7 @@ export class CamposService {
 
   async addLote(campoId: number, dto: CreateLoteDto, usuarioId: number) {
     await this.findOne(campoId, usuarioId);
+    await this.planService.checkLotesLimit(campoId, usuarioId);
     return this.prisma.lote.create({
       data: { ...dto, campoId },
     });

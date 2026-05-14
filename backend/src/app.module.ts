@@ -14,6 +14,7 @@ import { TareasModule } from './tareas/tareas.module';
 import { FinanzasModule } from './finanzas/finanzas.module';
 import { CampaniasModule } from './campanias/campanias.module';
 import { AiModule } from './ai/ai.module';
+import { PlanModule } from './plan/plan.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AiModule } from './ai/ai.module';
     ]),
     PrismaModule,
     AuthModule,
+    PlanModule,
     CamposModule,
     CultivosModule,
     SiembrasModule,

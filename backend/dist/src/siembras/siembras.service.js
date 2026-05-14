@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SiembrasService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const plan_service_1 = require("../plan/plan.service");
 let SiembrasService = class SiembrasService {
     prisma;
-    constructor(prisma) {
+    planService;
+    constructor(prisma, planService) {
         this.prisma = prisma;
+        this.planService = planService;
     }
     async findAll(usuarioId) {
         return this.prisma.siembra.findMany({
@@ -58,6 +61,7 @@ let SiembrasService = class SiembrasService {
             throw new common_1.NotFoundException('Lote no encontrado');
         if (lote.campo.usuarioId !== usuarioId)
             throw new common_1.ForbiddenException();
+        await this.planService.checkSiembrasLimit(usuarioId);
         return this.prisma.siembra.create({
             data: {
                 loteId: dto.loteId,
@@ -111,6 +115,7 @@ let SiembrasService = class SiembrasService {
 exports.SiembrasService = SiembrasService;
 exports.SiembrasService = SiembrasService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        plan_service_1.PlanService])
 ], SiembrasService);
 //# sourceMappingURL=siembras.service.js.map

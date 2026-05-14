@@ -10,20 +10,20 @@ export declare class GanadoController {
     constructor(ganadoService: GanadoService);
     findAll(req: AuthRequest): import(".prisma/client").Prisma.PrismaPromise<({
         preneces: {
+            id: number;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
-            fechaInicio: Date;
             observaciones: string | null;
             estado: import(".prisma/client").$Enums.EstadoPrenez;
+            fechaInicio: Date;
             fechaEstimadaParto: Date;
             animalId: number;
         }[];
     } & {
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         usuarioId: number;
         observaciones: string | null;
         especie: import(".prisma/client").$Enums.Especie;
@@ -34,20 +34,20 @@ export declare class GanadoController {
     })[]>;
     findOne(id: number, req: AuthRequest): Promise<{
         preneces: {
+            id: number;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
-            fechaInicio: Date;
             observaciones: string | null;
             estado: import(".prisma/client").$Enums.EstadoPrenez;
+            fechaInicio: Date;
             fechaEstimadaParto: Date;
             animalId: number;
         }[];
     } & {
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         usuarioId: number;
         observaciones: string | null;
         especie: import(".prisma/client").$Enums.Especie;
@@ -56,22 +56,22 @@ export declare class GanadoController {
         peso: number | null;
         fechaNacimiento: Date | null;
     }>;
-    create(dto: CreateAnimalDto, req: AuthRequest): import(".prisma/client").Prisma.Prisma__AnimalClient<{
+    create(dto: CreateAnimalDto, req: AuthRequest): Promise<{
         preneces: {
+            id: number;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
-            fechaInicio: Date;
             observaciones: string | null;
             estado: import(".prisma/client").$Enums.EstadoPrenez;
+            fechaInicio: Date;
             fechaEstimadaParto: Date;
             animalId: number;
         }[];
     } & {
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         usuarioId: number;
         observaciones: string | null;
         especie: import(".prisma/client").$Enums.Especie;
@@ -79,23 +79,23 @@ export declare class GanadoController {
         categoria: import(".prisma/client").$Enums.CategoriaAnimal;
         peso: number | null;
         fechaNacimiento: Date | null;
-    }, never, import("@prisma/client/runtime/library").DefaultArgs>;
+    }>;
     update(id: number, dto: UpdateAnimalDto, req: AuthRequest): Promise<{
         preneces: {
+            id: number;
             createdAt: Date;
             updatedAt: Date;
-            id: number;
-            fechaInicio: Date;
             observaciones: string | null;
             estado: import(".prisma/client").$Enums.EstadoPrenez;
+            fechaInicio: Date;
             fechaEstimadaParto: Date;
             animalId: number;
         }[];
     } & {
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         usuarioId: number;
         observaciones: string | null;
         especie: import(".prisma/client").$Enums.Especie;
@@ -105,10 +105,10 @@ export declare class GanadoController {
         fechaNacimiento: Date | null;
     }>;
     remove(id: number, req: AuthRequest): Promise<{
+        id: number;
         nombre: string;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
         usuarioId: number;
         observaciones: string | null;
         especie: import(".prisma/client").$Enums.Especie;
@@ -118,47 +118,47 @@ export declare class GanadoController {
         fechaNacimiento: Date | null;
     }>;
     addPrenez(animalId: number, dto: CreatePrenezDto, req: AuthRequest): Promise<{
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        fechaInicio: Date;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoPrenez;
+        fechaInicio: Date;
         fechaEstimadaParto: Date;
         animalId: number;
     }>;
     updatePrenezEstado(prenezId: number, dto: UpdatePrenezEstadoDto, req: AuthRequest): Promise<{
+        id: number;
         createdAt: Date;
         updatedAt: Date;
-        id: number;
-        fechaInicio: Date;
         observaciones: string | null;
         estado: import(".prisma/client").$Enums.EstadoPrenez;
+        fechaInicio: Date;
         fechaEstimadaParto: Date;
         animalId: number;
     }>;
     getPesos(id: number, req: AuthRequest): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         observaciones: string | null;
-        peso: number;
         fecha: Date;
+        peso: number;
         animalId: number;
     }[]>;
     addPeso(animalId: number, dto: CreateRegistroPesoDto, req: AuthRequest): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         observaciones: string | null;
-        peso: number;
         fecha: Date;
+        peso: number;
         animalId: number;
     }>;
     removePeso(pesoId: number, req: AuthRequest): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         observaciones: string | null;
-        peso: number;
         fecha: Date;
+        peso: number;
         animalId: number;
     }>;
 }

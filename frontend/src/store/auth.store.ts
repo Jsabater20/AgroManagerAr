@@ -5,6 +5,7 @@ interface Usuario {
   email: string;
   nombre: string;
   rol: string;
+  plan: 'FREE' | 'PRO';
 }
 
 interface AuthState {
@@ -13,6 +14,7 @@ interface AuthState {
   setAuth: (usuario: Usuario, token: string) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
+  isPro: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -30,4 +32,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   isAuthenticated: () => !!get().token,
+  isPro: () => get().usuario?.plan === 'PRO',
 }));
