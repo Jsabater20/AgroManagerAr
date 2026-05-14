@@ -1,8 +1,8 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm install && npx prisma generate && npm run build"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
     "startCommand": "node -e \"const {execSync}=require('child_process');try{execSync('npx prisma migrate deploy',{stdio:'inherit'})}catch(e){console.error('Migration failed, continuing...',e.message)} \" && npm run start:prod",
