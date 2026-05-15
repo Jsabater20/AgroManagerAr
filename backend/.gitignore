@@ -4,3 +4,5 @@ dist/
 .env
 
 /generated/prisma
+# accidental nested generate
+generated/generated/
