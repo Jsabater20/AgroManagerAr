@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD, APP_FILTER } from '@nestjs/core';
-import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
+import { APP_GUARD } from '@nestjs/core';
+// import { APP_FILTER } from '@nestjs/core';
+// import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup'; // disabled for diagnostics
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CamposModule } from './campos/campos.module';
@@ -19,7 +20,7 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    SentryModule.forRoot(),
+    // SentryModule.forRoot(), // disabled for diagnostics
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([
       {
@@ -47,10 +48,7 @@ import { UsersModule } from './users/users.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
-    {
-      provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
-    },
+    // { provide: APP_FILTER, useClass: SentryGlobalFilter }, // disabled for diagnostics
   ],
 })
 export class AppModule {}
