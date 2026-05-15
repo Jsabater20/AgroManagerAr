@@ -35,10 +35,10 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  const port = process.env.PORT ?? 3001;
-  console.log(`[BOOT] Listening on port ${port}...`);
-  await app.listen(port);
-  console.log(`🚀 AgroManager API corriendo en http://localhost:${port}/api`);
+  const port = parseInt(process.env.PORT || '3001', 10);
+  console.log(`[BOOT] Listening on port ${port} (0.0.0.0)...`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 AgroManager API corriendo en http://0.0.0.0:${port}/api`);
 }
 void bootstrap().catch((err) => {
   console.error('[FATAL] Bootstrap crashed:', err);
