@@ -1,0 +1,360 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  nombre          String
+  password        String
+  rol             Rol       @default(OPERADOR)
+  plan            PlanTipo  @default(FREE)
+  planExpira      DateTime?
+  mpSuscripcionId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  resetToken       String?
+  resetTokenExpiry DateTime?
+
+  campos      Campo[]
+  animales    Animal[]
+  tareas      TareaRural[]
+  movimientos MovimientoFinanciero[]
+  campanias   Campania[]
+}
+
+enum Rol {
+  ADMIN
+  OPERADOR
+}
+
+enum PlanTipo {
+  FREE
+  PRO
+}
+
+// ─── MÓDULO 1: GESTIÓN DE CULTIVOS ────────────────────────────────────────────
+
+model Campo {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  hectareas   Float
+  ubicacion   String?
+  propietario String?
+  usuarioId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  usuario    Usuario                @relation(fields: [usuarioId], references: [id])
+  lotes      Lote[]
+  tareas     TareaRural[]
+  movimentos MovimientoFinanciero[]
+}
+
+model Lote {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  hectareas Float
+  campoId   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campo    Campo     @relation(fields: [campoId], references: [id])
+  siembras Siembra[]
+}
+
+model TipoCultivo {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique
+  descripcion String?
+  createdAt   DateTime @default(now())
+
+  siembras Siembra[]
+}
+
+model Siembra {
+  id            Int           @id @default(autoincrement())
+  loteId        Int
+  tipoCultivoId Int
+  fechaSiembra  DateTime
+  densidad      Float?
+  observaciones String?
+  estado        EstadoSiembra @default(EN_CURSO)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  lote         Lote                   @relation(fields: [loteId], references: [id])
+  tipoCultivo  TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
+  cosechas     Cosecha[]
+  aplicaciones AplicacionInsumo[]
+  movimentos   MovimientoFinanciero[]
+  campania     Campania?              @relation(fields: [campaniaId], references: [id])
+  campaniaId   Int?
+}
+
+enum EstadoSiembra {
+  EN_CURSO
+  COSECHADA
+  PERDIDA
+}
+
+model Cosecha {
+  id              Int      @id @default(autoincrement())
+  siembraId       Int
+  fechaCosecha    DateTime
+  rendimientoKgHa Float
+  totalKg         Float
+  humedad         Float?
+  observaciones   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  siembra Siembra @relation(fields: [siembraId], references: [id])
+}
+
+model Insumo {
+  id          Int        @id @default(autoincrement())
+  nombre      String
+  tipo        TipoInsumo
+  unidad      String
+  descripcion String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  aplicaciones AplicacionInsumo[]
+}
+
+enum TipoInsumo {
+  FERTILIZANTE
+  HERBICIDA
+  FUNGICIDA
+  INSECTICIDA
+  SEMILLA
+  OTRO
+}
+
+model AplicacionInsumo {
+  id            Int      @id @default(autoincrement())
+  siembraId     Int
+  insumoId      Int
+  fecha         DateTime
+  cantidad      Float
+  unidad        String
+  observaciones String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  siembra Siembra @relation(fields: [siembraId], references: [id])
+  insumo  Insumo  @relation(fields: [insumoId], references: [id])
+}
+
+// ─── MÓDULO 2: GANADERÍA ──────────────────────────────────────────────────────
+
+model Animal {
+  id              Int             @id @default(autoincrement())
+  usuarioId       Int
+  nombre          String
+  especie         Especie
+  sexo            Sexo
+  categoria       CategoriaAnimal
+  peso            Float?
+  fechaNacimiento DateTime?
+  observaciones   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  usuario  Usuario        @relation(fields: [usuarioId], references: [id])
+  preneces Prenez[]
+  pesos    RegistroPeso[]
+}
+
+model Prenez {
+  id                 Int          @id @default(autoincrement())
+  animalId           Int
+  fechaInicio        DateTime
+  fechaEstimadaParto DateTime
+  estado             EstadoPrenez @default(EN_CURSO)
+  observaciones      String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
+
+enum Especie {
+  BOVINO
+  PORCINO
+  EQUINO
+  OVINO
+  CAPRINO
+  AVIAR
+}
+
+enum Sexo {
+  MACHO
+  HEMBRA
+}
+
+enum CategoriaAnimal {
+  // Bovino
+  VACA
+  VAQUILLONA
+  TERNERA
+  TORO
+  NOVILLO
+  TERNERO
+  // Porcino
+  CERDA
+  VERRACO
+  LECHON
+  // Equino
+  YEGUA
+  POTRANCA
+  PADRILLO
+  POTRO
+  // Ovino
+  OVEJA
+  BORREGA
+  CARNERO
+  CORDERO
+  // Caprino
+  CABRA
+  CABRIO
+  CABRITO
+  // Aviar
+  GALLINA
+  GALLO
+  POLLO
+  POLLA
+}
+
+enum EstadoPrenez {
+  EN_CURSO
+  COMPLETADA
+  PERDIDA
+}
+
+// ─── MÓDULO 3: TAREAS RURALES ─────────────────────────────────────────────────
+
+model TareaRural {
+  id              Int         @id @default(autoincrement())
+  usuarioId       Int
+  titulo          String
+  descripcion     String?
+  tipo            TipoTarea
+  estado          EstadoTarea @default(PENDIENTE)
+  prioridad       Prioridad   @default(MEDIA)
+  fechaProgramada DateTime
+  fechaCompletada DateTime?
+  campoId         Int?
+  observaciones   String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  campo   Campo?  @relation(fields: [campoId], references: [id])
+}
+
+enum TipoTarea {
+  SIEMBRA
+  COSECHA
+  FUMIGACION
+  FERTILIZACION
+  RIEGO
+  MANTENIMIENTO
+  VETERINARIA
+  OTRO
+}
+
+enum EstadoTarea {
+  PENDIENTE
+  EN_CURSO
+  COMPLETADA
+  CANCELADA
+}
+
+enum Prioridad {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+// ─── MÓDULO 4: FINANZAS ───────────────────────────────────────────────────────
+
+model MovimientoFinanciero {
+  id            Int                 @id @default(autoincrement())
+  usuarioId     Int
+  tipo          TipoMovimiento
+  concepto      String
+  monto         Float
+  fecha         DateTime
+  categoria     CategoriaMovimiento
+  campoId       Int?
+  siembraId     Int?
+  observaciones String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  usuario Usuario  @relation(fields: [usuarioId], references: [id])
+  campo   Campo?   @relation(fields: [campoId], references: [id])
+  siembra Siembra? @relation(fields: [siembraId], references: [id])
+}
+
+enum TipoMovimiento {
+  INGRESO
+  EGRESO
+}
+
+enum CategoriaMovimiento {
+  COSECHA
+  VENTA_ANIMAL
+  INSUMO
+  SERVICIO
+  MANTENIMIENTO
+  VETERINARIA
+  COMBUSTIBLE
+  MANO_DE_OBRA
+  OTRO
+}
+
+// ─── MÓDULO 5: CAMPAÑAS AGRÍCOLAS ─────────────────────────────────────────────
+
+model Campania {
+  id          Int       @id @default(autoincrement())
+  usuarioId   Int
+  nombre      String
+  fechaInicio DateTime
+  fechaFin    DateTime?
+  descripcion String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  usuario  Usuario   @relation(fields: [usuarioId], references: [id])
+  siembras Siembra[]
+}
+
+// ─── MÓDULO 6: HISTORIAL DE PESOS ─────────────────────────────────────────────
+
+model RegistroPeso {
+  id            Int      @id @default(autoincrement())
+  animalId      Int
+  peso          Float
+  fecha         DateTime
+  observaciones String?
+  createdAt     DateTime @default(now())
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
