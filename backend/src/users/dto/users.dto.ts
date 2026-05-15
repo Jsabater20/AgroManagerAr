@@ -10,11 +10,11 @@ export class UpdateProfileDto {
 export class ChangePasswordDto {
   @IsString()
   @MinLength(1)
-  passwordActual: string;
+  passwordActual!: string;
 
   @IsString()
   @MinLength(8)
-  passwordNueva: string;
+  passwordNueva!: string;
 }
 
 export class UpdateUserPlanDto {

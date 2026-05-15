@@ -3,7 +3,7 @@
  * Ejecutar: npm run seed
  *
  * Crea datos realistas de dos campos argentinos con:
- * - 1 usuario demo (demo@agromanager.ar / Demo1234)
+ * - 1 usuario admin (joaquingsabater@gmail.com / Demo1234)
  * - 2 campos, 5 lotes
  * - 4 tipos de cultivo, 8 insumos
  * - 2 campañas, 5 siembras (3 cosechadas + 2 en curso)
@@ -42,7 +42,7 @@ async function main() {
   const hash = await bcrypt.hash('Demo1234', 10);
   const usuario = await prisma.usuario.create({
     data: {
-      email: 'demo@agromanager.ar',
+      email: 'joaquingsabater@gmail.com',
       nombre: 'Joaquín Sabater',
       password: hash,
       rol: 'ADMIN',
@@ -360,7 +360,7 @@ async function main() {
   console.log('\n✅ Seed completado exitosamente!');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🔑 Acceso demo:');
-  console.log('   Email:    demo@agromanager.ar');
+  console.log('   Email:    joaquingsabater@gmail.com');
   console.log('   Password: Demo1234');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
