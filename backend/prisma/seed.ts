@@ -43,7 +43,7 @@ async function main() {
   const usuario = await prisma.usuario.create({
     data: {
       email: 'demo@agromanager.ar',
-      nombre: 'Juan Pérez',
+      nombre: 'Joaquín Sabater',
       password: hash,
       rol: 'ADMIN',
     },
