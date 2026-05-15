@@ -19,10 +19,10 @@ export class ChangePasswordDto {
 
 export class UpdateUserPlanDto {
   @IsIn(['FREE', 'PRO'])
-  plan: 'FREE' | 'PRO';
+  plan!: 'FREE' | 'PRO';
 }
 
 export class UpdateUserRolDto {
   @IsIn(['ADMIN', 'OPERADOR'])
-  rol: 'ADMIN' | 'OPERADOR';
+  rol!: 'ADMIN' | 'OPERADOR';
 }
