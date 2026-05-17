@@ -12,8 +12,9 @@ import {
 import { InsumosService } from './insumos.service';
 import { CreateInsumoDto, UpdateInsumoDto } from './dto/insumos.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('insumos')
 export class InsumosController {
   constructor(private insumosService: InsumosService) {}

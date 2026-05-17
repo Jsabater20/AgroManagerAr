@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 import { UsersService } from './users.service';
 import {
   UpdateProfileDto,
@@ -22,7 +23,7 @@ interface AuthRequest {
   user: { id: number; email: string; nombre: string; rol: string };
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}

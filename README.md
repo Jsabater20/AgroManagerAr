@@ -4,7 +4,9 @@ ERP agrícola integral para el mercado argentino. Gestión de campos, cultivos, 
 
 **Demo en vivo → [agromanager-ar.vercel.app](https://agro-manager-ar-px8f.vercel.app/login)**
 
-> Credenciales de demo: `demo@agromanager.ar` / `Demo1234`
+> **Cuenta demo:** `demo@agromanager.ar` / `Demo1234`
+>
+> **Administrador:** `joaquingsabater@gmail.com` / `Jsadmin1234`
 
 ---
 

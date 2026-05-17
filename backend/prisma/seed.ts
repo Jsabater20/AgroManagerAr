@@ -3,7 +3,8 @@
  * Ejecutar: npm run seed
  *
  * Crea datos realistas de dos campos argentinos con:
- * - 1 usuario admin (joaquingsabater@gmail.com / jsadmin1234)
+ * - 1 usuario ADMIN (joaquingsabater@gmail.com / Jsadmin1234)  ← acceso total + panel admin
+ * - 1 usuario DEMO  (demo@agromanager.ar / Demo1234)           ← solo lectura, para clientes
  * - 2 campos, 5 lotes
  * - 4 tipos de cultivo, 8 insumos
  * - 2 campañas, 5 siembras (3 cosechadas + 2 en curso)
@@ -38,17 +39,29 @@ async function main() {
 
   console.log('🗑️  Tablas limpias');
 
-  // ─── Usuario demo ──────────────────────────────────────────────────────────
-  const hash = await bcrypt.hash('jsadmin1234', 10);
+  // ─── Usuario ADMIN ─────────────────────────────────────────────────────────
+  const hashAdmin = await bcrypt.hash('Jsadmin1234', 10);
   const usuario = await prisma.usuario.create({
     data: {
       email: 'joaquingsabater@gmail.com',
       nombre: 'Joaquín Sabater',
-      password: hash,
+      password: hashAdmin,
       rol: 'ADMIN',
     },
   });
-  console.log(`👤 Usuario: ${usuario.email}`);
+  console.log(`👤 Admin: ${usuario.email}`);
+
+  // ─── Usuario DEMO (solo lectura) ───────────────────────────────────────────
+  const hashDemo = await bcrypt.hash('Demo1234', 10);
+  const usuarioDemo = await prisma.usuario.create({
+    data: {
+      email: 'demo@agromanager.ar',
+      nombre: 'Usuario Demo',
+      password: hashDemo,
+      rol: 'OPERADOR',
+    },
+  });
+  console.log(`👁️  Demo: ${usuarioDemo.email} (solo lectura via DemoGuard)`);
 
   // ─── Tipos de cultivo ──────────────────────────────────────────────────────
   const [soja, maiz, trigo, girasol] = await Promise.all([
@@ -358,11 +371,15 @@ async function main() {
   console.log('💰 Movimientos financieros creados');
 
   console.log('\n✅ Seed completado exitosamente!');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔑 Acceso demo:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔐 ADMINISTRADOR (acceso total + panel admin)');
   console.log('   Email:    joaquingsabater@gmail.com');
-  console.log('   Password: jsadmin1234');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('   Password: Jsadmin1234');
+  console.log('');
+  console.log('👁️  DEMO (solo lectura — para clientes potenciales)');
+  console.log('   Email:    demo@agromanager.ar');
+  console.log('   Password: Demo1234');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 
 main()

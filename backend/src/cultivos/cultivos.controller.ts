@@ -12,8 +12,9 @@ import {
 import { CultivosService } from './cultivos.service';
 import { CreateTipoCultivoDto, UpdateTipoCultivoDto } from './dto/cultivos.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('cultivos')
 export class CultivosController {
   constructor(private cultivosService: CultivosService) {}

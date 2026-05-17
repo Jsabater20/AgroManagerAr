@@ -19,12 +19,13 @@ import {
   CreateRegistroPesoDto,
 } from './dto/ganado.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 
 interface AuthRequest {
   user: { id: number };
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('ganado')
 export class GanadoController {
   constructor(private ganadoService: GanadoService) {}

@@ -17,12 +17,13 @@ import {
   CreateLoteDto,
 } from './dto/campos.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 
 interface AuthRequest {
   user: { id: number; email: string; nombre: string; rol: string };
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('campos')
 export class CamposController {
   constructor(private camposService: CamposService) {}

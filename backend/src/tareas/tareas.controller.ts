@@ -17,12 +17,13 @@ import {
   UpdateTareaEstadoDto,
 } from './dto/tareas.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 
 interface AuthRequest {
   user: { id: number };
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('tareas')
 export class TareasController {
   constructor(private tareasService: TareasService) {}

@@ -17,12 +17,13 @@ import {
   CreateAplicacionDto,
 } from './dto/siembras.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 
 interface AuthRequest {
   user: { id: number };
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('siembras')
 export class SiembrasController {
   constructor(private siembrasService: SiembrasService) {}

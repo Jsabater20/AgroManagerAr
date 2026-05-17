@@ -11,12 +11,13 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 import { CampaniasService } from './campanias.service';
 import { CreateCampaniaDto, UpdateCampaniaDto } from './dto/campanias.dto';
 
 type AuthRequest = { user: { id: number } };
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('campanias')
 export class CampaniasController {
   constructor(private campaniasService: CampaniasService) {}

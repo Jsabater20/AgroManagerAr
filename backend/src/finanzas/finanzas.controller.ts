@@ -11,12 +11,13 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DemoGuard } from '../auth/demo.guard';
 import { FinanzasService } from './finanzas.service';
 import { CreateMovimientoDto, UpdateMovimientoDto } from './dto/finanzas.dto';
 
 type AuthRequest = { user: { id: number } };
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DemoGuard)
 @Controller('finanzas')
 export class FinanzasController {
   constructor(private finanzasService: FinanzasService) {}
