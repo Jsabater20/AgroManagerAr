@@ -13,6 +13,9 @@ RUN npm ci
 COPY . .
 RUN npx prisma generate && npm run build
 
+# Verify the build output exists
+RUN ls -la /app/dist/main.js && echo "BUILD OK: dist/main.js found"
+
 EXPOSE 3001
 
-CMD set -x && node -e "const {execSync}=require('child_process');try{execSync('npx prisma migrate deploy',{stdio:'inherit',timeout:30000})}catch(e){console.error('Migration failed:',e.message)}" && echo "=== Starting node dist/main ===" && node dist/main
+CMD ["/bin/sh", "/app/start.sh"]
