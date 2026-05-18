@@ -17,6 +17,12 @@ interface AuthRequest {
 export class PlanController {
   constructor(private planService: PlanService) {}
 
+  // Público: información de precios para la página /precios
+  @Get('precios')
+  getPrecios() {
+    return this.planService.getPrecios();
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get()
   getPlan(@Request() req: AuthRequest) {

@@ -10,9 +10,21 @@ const LIMITES_FREE = {
 };
 
 const PRECIOS = {
-  mensual: { monto: 13990, frecuencia: 1, label: 'AgroManager AR Pro Mensual' },
-  anual:   { monto: 153890, frecuencia: 12, label: 'AgroManager AR Pro Anual' },
+  mensual: {
+    monto: 13990,
+    frecuencia: 1,
+    label: 'AgroManager AR Pro Mensual',
+    descuento: null,
+  },
+  anual: {
+    monto: 153890,
+    frecuencia: 12,
+    label: 'AgroManager AR Pro Anual',
+    descuento: 'Ahorrá un 16% con el plan anual',
+  },
 };
+
+const TRIAL_DIAS = 14;
 
 @Injectable()
 export class PlanService {
@@ -28,6 +40,24 @@ export class PlanService {
 
   getLimitesFree() {
     return LIMITES_FREE;
+  }
+
+  getPrecios() {
+    return {
+      free: { precio: 0, label: 'Gratis', trial: null },
+      mensual: {
+        precio: PRECIOS.mensual.monto,
+        label: 'Pro Mensual',
+        descuento: PRECIOS.mensual.descuento,
+        trialDias: TRIAL_DIAS,
+      },
+      anual: {
+        precio: PRECIOS.anual.monto,
+        label: 'Pro Anual',
+        descuento: PRECIOS.anual.descuento,
+        trialDias: TRIAL_DIAS,
+      },
+    };
   }
 
   async getUsuarioPlan(usuarioId: number) {
@@ -96,7 +126,11 @@ export class PlanService {
     }
   }
 
-  async crearCheckout(usuarioId: number, email: string, tipo: 'mensual' | 'anual') {
+  async crearCheckout(
+    usuarioId: number,
+    email: string,
+    tipo: 'mensual' | 'anual',
+  ) {
     const p = PRECIOS[tipo];
     const client = this.getMPClient();
     const preApproval = new PreApproval(client);
@@ -104,12 +138,17 @@ export class PlanService {
       body: {
         reason: p.label,
         payer_email: email,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         auto_recurring: {
           frequency: p.frecuencia,
           frequency_type: 'months',
           transaction_amount: p.monto,
           currency_id: 'ARS',
-        },
+          free_trial: {
+            frequency: TRIAL_DIAS,
+            frequency_type: 'days',
+          },
+        } as any,
         back_url: `${this.frontendUrl}/precios?status=success`,
         external_reference: `${usuarioId}:${tipo}`,
         status: 'pending',
@@ -128,7 +167,9 @@ export class PlanService {
     const preApproval = new PreApproval(client);
     const suscripcion = await preApproval.get({ id: suscripcionId });
 
-    const [refId, tipo] = (suscripcion.external_reference ?? '0:mensual').split(':');
+    const [refId, tipo] = (suscripcion.external_reference ?? '0:mensual').split(
+      ':',
+    );
     const usuarioId = parseInt(refId);
     if (!usuarioId) return { ok: true };
 
@@ -173,5 +214,4 @@ export class PlanService {
     });
     return { ok: true };
   }
-
 }
