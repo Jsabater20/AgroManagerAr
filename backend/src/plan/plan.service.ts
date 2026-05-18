@@ -1,5 +1,6 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { MercadoPagoConfig, PreApproval, PreApprovalPlan } from 'mercadopago';
+import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 
 const LIMITES_FREE = {
@@ -155,7 +156,11 @@ export class PlanService {
       expira.setDate(expira.getDate() + 35);
       await this.prisma.usuario.update({
         where: { id: usuarioId },
-        data: { plan: 'PRO', planExpira: expira, mpSuscripcionId: suscripcionId },
+        data: {
+          plan: 'PRO',
+          planExpira: expira,
+          mpSuscripcionId: suscripcionId,
+        },
       });
     } else if (status === 'cancelled' || status === 'paused') {
       await this.prisma.usuario.update({
@@ -178,6 +183,101 @@ export class PlanService {
         id: u.mpSuscripcionId,
         body: { status: 'cancelled' },
       });
+    }
+    await this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { plan: 'FREE', planExpira: null, mpSuscripcionId: null },
+    });
+    return { ok: true };
+  }
+
+  // ─── Stripe ────────────────────────────────────────────────────────────────
+
+  private getStripe() {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) throw new Error('STRIPE_SECRET_KEY no configurado');
+    return new Stripe(key);
+  }
+
+  async crearCheckoutStripe(usuarioId: number, email: string) {
+    const stripe = this.getStripe();
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer_email: email,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            unit_amount: 1200, // $12.00
+            recurring: { interval: 'month' },
+            product_data: { name: 'AgroManager AR Pro' },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: { userId: String(usuarioId) },
+      success_url: `${this.frontendUrl}/precios?status=success`,
+      cancel_url: `${this.frontendUrl}/precios?status=cancel`,
+    });
+    return { url: session.url };
+  }
+
+  async procesarWebhookStripe(payload: Buffer, signature: string) {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) throw new Error('STRIPE_WEBHOOK_SECRET no configurado');
+
+    const stripe = this.getStripe();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let event: any;
+    try {
+      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } catch {
+      throw new BadRequestException('Webhook signature inválida');
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const userId = parseInt(session.metadata?.userId ?? '0');
+      if (userId && session.subscription) {
+        const expira = new Date();
+        expira.setDate(expira.getDate() + 35);
+        await this.prisma.usuario.update({
+          where: { id: userId },
+          data: {
+            plan: 'PRO',
+            planExpira: expira,
+            mpSuscripcionId: String(session.subscription),
+          },
+        });
+      }
+    } else if (event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object;
+      await this.prisma.usuario.updateMany({
+        where: { mpSuscripcionId: sub.id },
+        data: { plan: 'FREE', planExpira: null, mpSuscripcionId: null },
+      });
+    } else if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object;
+      if (invoice.subscription) {
+        await this.prisma.usuario.updateMany({
+          where: { mpSuscripcionId: String(invoice.subscription) },
+          data: { plan: 'FREE', planExpira: null },
+        });
+      }
+    }
+
+    return { ok: true };
+  }
+
+  async cancelarSuscripcionStripe(usuarioId: number) {
+    const u = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { mpSuscripcionId: true },
+    });
+    if (u?.mpSuscripcionId?.startsWith('sub_')) {
+      const stripe = this.getStripe();
+      await stripe.subscriptions.cancel(u.mpSuscripcionId);
     }
     await this.prisma.usuario.update({
       where: { id: usuarioId },

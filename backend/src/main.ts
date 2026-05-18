@@ -15,6 +15,7 @@ process.on('unhandledRejection', (reason) => {
 async function bootstrap() {
   console.log('[BOOT] Creating NestJS app...');
   const app = await NestFactory.create(AppModule, {
+    rawBody: true,
     cors: {
       origin: '*',
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
