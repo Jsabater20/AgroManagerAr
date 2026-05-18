@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Body,
@@ -76,5 +77,10 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.usersService.deleteUser(req.user.id, id);
+  }
+
+  @Post('admin/seed-demo')
+  seedDemo(@Request() req: AuthRequest) {
+    return this.usersService.seedDemoData(req.user.id);
   }
 }
