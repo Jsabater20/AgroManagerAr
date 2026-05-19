@@ -22,10 +22,8 @@ export class AuthService {
   private resend = process.env.RESEND_API_KEY
     ? new Resend(process.env.RESEND_API_KEY)
     : null;
-  private fromEmail =
-    process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanager.ar';
-  private frontendUrl =
-    process.env.FRONTEND_URL ?? 'http://localhost:5174';
+  private fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanager.ar';
+  private frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
 
   constructor(
     private prisma: PrismaService,
@@ -41,38 +39,50 @@ export class AuthService {
     }
 
     const hash = await bcrypt.hash(dto.password, 10);
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     const usuario = await this.prisma.usuario.create({
       data: {
         email: dto.email,
         nombre: dto.nombre,
         password: hash,
+        emailVerificado: false,
+        emailVerifToken: tokenHash,
       },
-      select: { id: true, email: true, nombre: true, rol: true, plan: true, createdAt: true },
+      select: { id: true, email: true, nombre: true },
     });
 
-    // Email de bienvenida (best-effort, no bloquea el registro)
+    const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;
     if (this.resend) {
       this.resend.emails
         .send({
           from: this.fromEmail,
           to: usuario.email,
-          subject: '¡Bienvenido a AgroManager AR!',
-          html: this.buildWelcomeEmail(usuario.nombre),
+          subject: 'Verificá tu cuenta — AgroManager AR',
+          html: this.buildVerifyEmail(usuario.nombre, verifyUrl),
         })
-        .catch(() => {
-          // silencioso — no falla el registro si el email falla
-        });
+        .catch(() => {});
     }
 
-    const token = this.generarToken(usuario.id, usuario.email);
-    return { usuario, token };
+    return {
+      message:
+        'Registrado. Revisá tu email para verificar tu cuenta antes de ingresar.',
+    };
   }
 
   async login(dto: LoginDto) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { email: dto.email },
-      select: { id: true, email: true, nombre: true, password: true, rol: true, plan: true },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        password: true,
+        rol: true,
+        plan: true,
+        emailVerificado: true,
+      },
     });
     if (!usuario) {
       throw new UnauthorizedException('Credenciales inválidas');
@@ -83,9 +93,30 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    if (!usuario.emailVerificado) {
+      throw new UnauthorizedException(
+        'Verificación pendiente. Revisá tu email y hacé clic en el enlace de verificación.',
+      );
+    }
+
     const token = this.generarToken(usuario.id, usuario.email);
-    const { password: _, ...usuarioSinPassword } = usuario;
+    const { password: _, emailVerificado: __, ...usuarioSinPassword } = usuario;
     return { usuario: usuarioSinPassword, token };
+  }
+
+  async verifyEmail(token: string) {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const usuario = await this.prisma.usuario.findFirst({
+      where: { emailVerifToken: tokenHash },
+    });
+    if (!usuario) {
+      throw new BadRequestException('El enlace de verificación es inválido o ya fue usado.');
+    }
+    await this.prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { emailVerificado: true, emailVerifToken: null },
+    });
+    return { message: 'Email verificado correctamente. Ya podés iniciar sesión.' };
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
@@ -267,5 +298,56 @@ export class AuthService {
         <p style="color:#9ca3af;font-size:12px;text-align:center;">AgroManager AR — Gestión agrícola para Argentina</p>
       </div>
     `;
+  }
+
+  private buildVerifyEmail(nombre: string, verifyUrl: string): string {
+    return `
+<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+      <tr>
+        <td style="background:#15803d;padding:28px 32px;text-align:center;">
+          <span style="color:#ffffff;font-size:22px;font-weight:700;">🌱 AgroManager AR</span>
+          <p style="color:#bbf7d0;margin:6px 0 0;font-size:13px;">Gestión agrícola para Argentina</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:36px 32px;">
+          <h2 style="color:#111827;font-size:22px;margin:0 0 12px;">Hola, ${nombre} 👋</h2>
+          <p style="color:#4b5563;line-height:1.7;margin:0 0 8px;">
+            Gracias por registrarte en <strong>AgroManager AR</strong>.
+            Para activar tu cuenta y comenzar a usarla, confirmá tu email haciendo clic en el botón de abajo.
+          </p>
+          <p style="color:#9ca3af;font-size:13px;margin:0 0 28px;">El enlace expira en <strong>24 horas</strong>.</p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+            <tr>
+              <td style="background:#15803d;border-radius:10px;">
+                <a href="${verifyUrl}"
+                   style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;">
+                  Verificar mi cuenta →
+                </a>
+              </td>
+            </tr>
+          </table>
+          <p style="color:#6b7280;font-size:13px;margin:0;">
+            Si no creaste esta cuenta, podés ignorar este email sin problema.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="color:#9ca3af;font-size:12px;margin:0;">
+            AgroManager AR · <a href="${this.frontendUrl}" style="color:#9ca3af;">www.agromanagerar.com</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
   }
 }

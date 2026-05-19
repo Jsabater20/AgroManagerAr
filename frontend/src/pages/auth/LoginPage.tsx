@@ -35,8 +35,9 @@ export default function LoginPage() {
       }
       setAuth(data.usuario, data.token);
       navigate('/dashboard');
-    } catch {
-      toast.error('Email o contraseña incorrectos');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Email o contraseña incorrectos');
     } finally {
       setLoading(false);
     }

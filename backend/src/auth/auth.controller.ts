@@ -3,6 +3,7 @@ import {
   Post,
   Body,
   Get,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -42,6 +43,11 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Get('verify')
+  verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
   }
 
   @UseGuards(JwtAuthGuard)

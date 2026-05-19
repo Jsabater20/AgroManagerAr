@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Sprout, Eye, EyeOff, Check, X, Leaf } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Sprout, Eye, EyeOff, Check, X, Leaf, Mail } from 'lucide-react';
 import { api } from '../../api/client';
-import { useAuthStore } from '../../store/auth.store';
 import toast from 'react-hot-toast';
 
 const rules = [
@@ -18,8 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const { setAuth } = useAuthStore();
-  const navigate = useNavigate();
+  const [registered, setRegistered] = useState(false);
 
   const allValid = rules.every((r) => r.test(form.password));
 
@@ -33,10 +31,8 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/register', form);
-      setAuth(data.usuario, data.token);
-      toast.success(`¡Bienvenido, ${data.usuario.nombre}!`);
-      navigate('/dashboard');
+      await api.post('/auth/register', form);
+      setRegistered(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string | string[] } } })
         ?.response?.data?.message;
@@ -45,6 +41,33 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  if (registered) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-950 via-green-900 to-emerald-800 p-6">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-10 text-center">
+          <div className="flex justify-center mb-6">
+            <div className="bg-green-100 p-4 rounded-full">
+              <Mail size={40} className="text-green-700" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">¡Revisá tu casilla de email!</h2>
+          <p className="text-gray-500 mb-2">
+            Te enviamos un enlace de verificación a <strong className="text-gray-700">{form.email}</strong>.
+          </p>
+          <p className="text-gray-500 text-sm mb-8">
+            Hacé clic en el enlace para activar tu cuenta. Revisá también la carpeta de spam si no lo ves.
+          </p>
+          <Link
+            to="/login"
+            className="block w-full bg-green-700 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-colors"
+          >
+            Ir al inicio de sesión
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">

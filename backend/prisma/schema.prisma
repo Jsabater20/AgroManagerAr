@@ -27,6 +27,9 @@ model Usuario {
   resetToken       String?
   resetTokenExpiry DateTime?
 
+  emailVerificado  Boolean   @default(false)
+  emailVerifToken  String?
+
   campos   Campo[]
   animales Animal[]
   tareas   TareaRural[]
