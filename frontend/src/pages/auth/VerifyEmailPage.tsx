@@ -1,26 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Sprout } from 'lucide-react';
-import api from '../../api/axios';
+import { api } from '../../api/client';
 
 type Status = 'loading' | 'success' | 'error';
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState<Status>('loading');
-  const [message, setMessage] = useState('');
+  const token = searchParams.get('token');
+
+  const [status, setStatus] = useState<Status>(token ? 'loading' : 'error');
+  const [message, setMessage] = useState(
+    token ? '' : 'El enlace de verificación es inválido.',
+  );
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    if (!token) {
-      setStatus('error');
-      setMessage('El enlace de verificación es inválido.');
-      return;
-    }
+    if (!token) return;
 
     api
       .get<{ message: string }>(`/auth/verify?token=${token}`)
-      .then(({ data }) => {
+      .then(({ data }: { data: { message: string } }) => {
         setStatus('success');
         setMessage(data.message);
       })
@@ -30,7 +29,7 @@ export default function VerifyEmailPage() {
         setStatus('error');
         setMessage(msg || 'El enlace de verificación es inválido o ya fue usado.');
       });
-  }, [searchParams]);
+  }, [token]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-950 via-green-900 to-emerald-800 p-6">
