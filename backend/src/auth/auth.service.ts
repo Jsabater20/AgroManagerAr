@@ -22,7 +22,7 @@ export class AuthService {
   private resend = process.env.RESEND_API_KEY
     ? new Resend(process.env.RESEND_API_KEY)
     : null;
-  private fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanager.ar';
+  private fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanagerar.com';
   private frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
 
   constructor(
@@ -55,14 +55,15 @@ export class AuthService {
 
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;
     if (this.resend) {
-      this.resend.emails
-        .send({
-          from: this.fromEmail,
-          to: usuario.email,
-          subject: 'Verificá tu cuenta — AgroManager AR',
-          html: this.buildVerifyEmail(usuario.nombre, verifyUrl),
-        })
-        .catch(() => {});
+      const result = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: usuario.email,
+        subject: 'Verificá tu cuenta — AgroManager AR',
+        html: this.buildVerifyEmail(usuario.nombre, verifyUrl),
+      });
+      if (result.error) {
+        console.error('[Resend] Error enviando email de verificación:', result.error);
+      }
     }
 
     return {
