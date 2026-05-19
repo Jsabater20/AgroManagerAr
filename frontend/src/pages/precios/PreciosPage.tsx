@@ -31,10 +31,16 @@ function FeatureCell({ value }: { value: boolean | string }) {
   return <span className="text-sm text-gray-600">{value}</span>;
 }
 
+const PRECIOS = {
+  mensual: { monto: 13990, label: 'mes', descuento: null },
+  anual:   { monto: 153890, label: 'año', descuento: 'Ahorrá un 16% con el plan anual' },
+};
+
 export default function PreciosPage() {
   const { usuario, setAuth, token } = useAuthStore();
   const navigate = useNavigate();
   const [showCancel, setShowCancel] = useState(false);
+  const [tipo, setTipo] = useState<'mensual' | 'anual'>('mensual');
 
   const { data: planInfo, refetch } = useQuery({
     queryKey: ['plan'],
@@ -43,7 +49,7 @@ export default function PreciosPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: crearCheckout,
+    mutationFn: () => crearCheckout(tipo),
     onSuccess: (data) => {
       window.location.href = data.init_point;
     },
@@ -116,14 +122,43 @@ export default function PreciosPage() {
           <div className="absolute -top-3 left-6">
             <span className="bg-green-600 text-white text-xs px-3 py-1 rounded-full font-medium">Recomendado</span>
           </div>
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-3">
             <h2 className="text-xl font-bold text-gray-900">Pro</h2>
             {isPro && <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">Tu plan</span>}
           </div>
+
+          {/* Toggle mensual / anual */}
+          {!isPro && (
+            <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 mb-4 w-fit">
+              <button
+                onClick={() => setTipo('mensual')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tipo === 'mensual' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+              >
+                Mensual
+              </button>
+              <button
+                onClick={() => setTipo('anual')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tipo === 'anual' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+              >
+                Anual
+              </button>
+            </div>
+          )}
+
           <p className="text-3xl font-bold text-gray-900 mb-1">
-            $12 <span className="text-base font-normal text-gray-500">USD / mes</span>
+            ${PRECIOS[tipo].monto.toLocaleString('es-AR')}
+            <span className="text-base font-normal text-gray-500"> ARS / {PRECIOS[tipo].label}</span>
           </p>
-          <p className="text-sm text-gray-500 mb-6">Gestión completa sin límites</p>
+
+          {/* Descuento anual */}
+          {tipo === 'anual' && (
+            <p className="text-sm font-medium text-green-700 bg-green-100 rounded-lg px-3 py-1 mb-2 w-fit">
+              🎉 Ahorrá un 16% con el plan anual
+            </p>
+          )}
+
+          <p className="text-sm text-gray-500 mb-1">Gestión completa sin límites</p>
+          <p className="text-xs text-green-700 font-medium mb-5">✓ 14 días gratis — sin cargo hasta que termine la prueba</p>
 
           {!isPro ? (
             <button

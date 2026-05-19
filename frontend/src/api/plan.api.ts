@@ -9,8 +9,8 @@ export interface PlanInfo {
 export const getPlanInfo = (): Promise<PlanInfo> =>
   api.get<PlanInfo>('/plan').then((r) => r.data);
 
-export const crearCheckout = (): Promise<{ init_point: string }> =>
-  api.post<{ init_point: string }>('/plan/checkout').then((r) => r.data);
+export const crearCheckout = (tipo: 'mensual' | 'anual' = 'mensual'): Promise<{ init_point: string }> =>
+  api.post<{ init_point: string }>('/plan/checkout', { tipo }).then((r) => r.data);
 
 export const cancelarSuscripcion = (): Promise<{ ok: boolean }> =>
   api.post<{ ok: boolean }>('/plan/cancelar').then((r) => r.data);
