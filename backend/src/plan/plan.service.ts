@@ -30,8 +30,11 @@ const TRIAL_DIAS = 14;
 @Injectable()
 export class PlanService {
   private frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
-  private resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-  private fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanagerar.com';
+  private resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
+  private fromEmail =
+    process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanagerar.com';
 
   private getMPClient() {
     const token = process.env.MP_ACCESS_TOKEN;
@@ -129,6 +132,13 @@ export class PlanService {
     }
   }
 
+  async checkProAccess(usuarioId: number, feature: string) {
+    if (await this.isPro(usuarioId)) return;
+    throw new ForbiddenException(
+      `${feature} está disponible solo en el plan Pro. Actualizá para acceder.`,
+    );
+  }
+
   async crearCheckout(
     usuarioId: number,
     email: string,
@@ -141,7 +151,7 @@ export class PlanService {
       body: {
         reason: p.label,
         payer_email: email,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         auto_recurring: {
           frequency: p.frecuencia,
           frequency_type: 'months',
@@ -191,12 +201,18 @@ export class PlanService {
         select: { email: true, nombre: true },
       });
       if (this.resend) {
-        this.resend.emails.send({
-          from: this.fromEmail,
-          to: usuario.email,
-          subject: '¡Tu suscripción Pro está activa! — AgroManager AR',
-          html: this.buildProEmail(usuario.nombre, tipo as 'mensual' | 'anual', expira),
-        }).catch(() => {});
+        this.resend.emails
+          .send({
+            from: this.fromEmail,
+            to: usuario.email,
+            subject: '¡Tu suscripción Pro está activa! — AgroManager AR',
+            html: this.buildProEmail(
+              usuario.nombre,
+              tipo as 'mensual' | 'anual',
+              expira,
+            ),
+          })
+          .catch(() => {});
       }
     } else if (status === 'cancelled' || status === 'paused') {
       const usuario = await this.prisma.usuario.update({
@@ -205,12 +221,14 @@ export class PlanService {
         select: { email: true, nombre: true },
       });
       if (this.resend) {
-        this.resend.emails.send({
-          from: this.fromEmail,
-          to: usuario.email,
-          subject: 'Tu suscripción Pro fue cancelada — AgroManager AR',
-          html: this.buildCancelEmail(usuario.nombre),
-        }).catch(() => {});
+        this.resend.emails
+          .send({
+            from: this.fromEmail,
+            to: usuario.email,
+            subject: 'Tu suscripción Pro fue cancelada — AgroManager AR',
+            html: this.buildCancelEmail(usuario.nombre),
+          })
+          .catch(() => {});
       }
     }
     return { ok: true };
@@ -235,19 +253,30 @@ export class PlanService {
       select: { email: true, nombre: true },
     });
     if (this.resend) {
-      this.resend.emails.send({
-        from: this.fromEmail,
-        to: usuario.email,
-        subject: 'Tu suscripción Pro fue cancelada — AgroManager AR',
-        html: this.buildCancelEmail(usuario.nombre),
-      }).catch(() => {});
+      this.resend.emails
+        .send({
+          from: this.fromEmail,
+          to: usuario.email,
+          subject: 'Tu suscripción Pro fue cancelada — AgroManager AR',
+          html: this.buildCancelEmail(usuario.nombre),
+        })
+        .catch(() => {});
     }
     return { ok: true };
   }
 
-  private buildProEmail(nombre: string, tipo: 'mensual' | 'anual', expira: Date): string {
-    const precio = tipo === 'anual' ? '$153.890 ARS / año' : '$13.990 ARS / mes';
-    const renovacion = expira.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  private buildProEmail(
+    nombre: string,
+    tipo: 'mensual' | 'anual',
+    expira: Date,
+  ): string {
+    const precio =
+      tipo === 'anual' ? '$153.890 ARS / año' : '$13.990 ARS / mes';
+    const renovacion = expira.toLocaleDateString('es-AR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
     return `
 <!DOCTYPE html>
 <html lang="es">

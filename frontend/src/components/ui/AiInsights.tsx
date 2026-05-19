@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Bot, AlertTriangle, CheckCircle2, Info, Lightbulb, RefreshCw, Link } from 'lucide-react';
+import { Bot, AlertTriangle, CheckCircle2, Info, Lightbulb, RefreshCw, Link, Zap } from 'lucide-react';
 import { aiApi, type AiInsight } from '../../api/ai.api';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/auth.store';
 
 const TIPO_CONFIG: Record<
   string,
@@ -38,12 +39,44 @@ const TIPO_CONFIG: Record<
 };
 
 export default function AiInsights() {
+  const isPro = useAuthStore((s) => s.isPro());
+  const navigate = useNavigate();
   const { data, isLoading, isError, refetch, isFetching } = useQuery<AiInsight[]>({
     queryKey: ['ai-insights'],
     queryFn: aiApi.insights,
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    enabled: isPro,
   });
+
+  if (!isPro) {
+    return (
+      <div className="bg-white dark:bg-gray-800/70 rounded-2xl border border-gray-100 dark:border-gray-700/40 shadow-sm p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-8 h-8 rounded-xl bg-green-600 flex items-center justify-center">
+            <Bot size={15} className="text-white" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-white text-sm leading-none">AgroBot — Análisis IA</h2>
+            <p className="text-[11px] text-gray-400 mt-0.5">Insights de tu establecimiento</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center text-center py-4 gap-3">
+          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+            <Zap size={22} className="text-green-600" />
+          </div>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Análisis IA disponible en Pro</p>
+          <p className="text-xs text-gray-500 max-w-xs">Activá Pro y AgroBot va a analizar tus datos y sugerirte acciones concretas para tu campo.</p>
+          <button
+            onClick={() => navigate('/precios')}
+            className="mt-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            Ver planes Pro →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800/70 rounded-2xl border border-gray-100 dark:border-gray-700/40 shadow-sm p-5">

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Loader2, Sprout } from 'lucide-react';
+import { Bot, X, Send, Loader2, Sprout, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { aiApi, type ChatMessage } from '../../api/ai.api';
+import { useAuthStore } from '../../store/auth.store';
 
 interface DisplayMessage {
   role: 'user' | 'model';
@@ -14,6 +16,8 @@ const WELCOME: DisplayMessage = {
 };
 
 export default function AiChat() {
+  const isPro = useAuthStore((s) => s.isPro());
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([WELCOME]);
   const [input, setInput] = useState('');
@@ -60,21 +64,27 @@ export default function AiChat() {
     <>
       {/* Floating button */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => isPro ? setOpen((o) => !o) : navigate('/precios')}
         className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center transition-all duration-200 ${
           open
             ? 'bg-gray-700 hover:bg-gray-600'
             : 'bg-green-600 hover:bg-green-500 hover:scale-105'
         }`}
         aria-label="AgroBot"
+        title={isPro ? 'AgroBot' : 'AgroBot — Solo Plan Pro'}
       >
         {open ? (
           <X size={22} className="text-white" />
         ) : (
           <Bot size={24} className="text-white" />
         )}
-        {!open && (
+        {!open && isPro && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white animate-pulse" />
+        )}
+        {!open && !isPro && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
+            <Zap size={10} className="text-yellow-900" />
+          </span>
         )}
       </button>
 
