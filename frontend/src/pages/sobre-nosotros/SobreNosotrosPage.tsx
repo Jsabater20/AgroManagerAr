@@ -39,12 +39,9 @@ export default function SobreNosotrosPage() {
             Sobre nosotros
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-5">
-            Tecnología para el campo argentino
+            AgroManager nació con el objetivo de modernizar la gestión rural con herramientas
+            simples, inteligentes y accesibles.
           </h1>
-          <p className="text-lg text-gray-500 leading-relaxed">
-            AgroManager AR nació de la necesidad de darle al productor agropecuario
-            argentino una herramienta moderna, accesible y pensada para la realidad local.
-          </p>
         </div>
       </section>
 
