@@ -3,7 +3,6 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -22,7 +21,8 @@ export class AuthService {
   private resend = process.env.RESEND_API_KEY
     ? new Resend(process.env.RESEND_API_KEY)
     : null;
-  private fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanagerar.com';
+  private fromEmail =
+    process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanagerar.com';
   private frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
 
   constructor(
@@ -40,7 +40,10 @@ export class AuthService {
 
     const hash = await bcrypt.hash(dto.password, 10);
     const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     const usuario = await this.prisma.usuario.create({
       data: {
@@ -62,7 +65,10 @@ export class AuthService {
         html: this.buildVerifyEmail(usuario.nombre, verifyUrl),
       });
       if (result.error) {
-        console.error('[Resend] Error enviando email de verificación:', result.error);
+        console.error(
+          '[Resend] Error enviando email de verificación:',
+          result.error,
+        );
       }
     }
 
@@ -101,7 +107,8 @@ export class AuthService {
     }
 
     const token = this.generarToken(usuario.id, usuario.email);
-    const { password: _, emailVerificado: __, ...usuarioSinPassword } = usuario;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, emailVerificado, ...usuarioSinPassword } = usuario;
     return { usuario: usuarioSinPassword, token };
   }
 
@@ -111,13 +118,17 @@ export class AuthService {
       where: { emailVerifToken: tokenHash },
     });
     if (!usuario) {
-      throw new BadRequestException('El enlace de verificación es inválido o ya fue usado.');
+      throw new BadRequestException(
+        'El enlace de verificación es inválido o ya fue usado.',
+      );
     }
     await this.prisma.usuario.update({
       where: { id: usuario.id },
       data: { emailVerificado: true, emailVerifToken: null },
     });
-    return { message: 'Email verificado correctamente. Ya podés iniciar sesión.' };
+    return {
+      message: 'Email verificado correctamente. Ya podés iniciar sesión.',
+    };
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {

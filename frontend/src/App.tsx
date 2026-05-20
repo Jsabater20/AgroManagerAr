@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import PrivateRoute from './components/layout/PrivateRoute';
 import Layout from './components/layout/Layout';
+import HomePage from './pages/home/HomePage';
+import ContactoPage from './pages/contacto/ContactoPage';
+import SobreNosotrosPage from './pages/sobre-nosotros/SobreNosotrosPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
@@ -37,6 +40,10 @@ export default function App() {
       <BrowserRouter>
         <Toaster position="top-right" />
         <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/precios" element={<PreciosPage />} />
+          <Route path="/contacto" element={<ContactoPage />} />
+          <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -60,12 +67,11 @@ export default function App() {
               <Route path="/campanias" element={<CampaniasPage />} />
               <Route path="/rentabilidad" element={<RentabilidadPage />} />
               <Route path="/clima" element={<ClimaPage />} />
-              <Route path="/precios" element={<PreciosPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
               <Route path="/admin" element={<AdminPage />} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

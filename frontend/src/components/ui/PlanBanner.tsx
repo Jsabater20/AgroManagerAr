@@ -73,7 +73,7 @@ export function UpgradeBanner() {
   if (isPro || dismissed) return null;
 
   return (
-    <div className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-4">
+    <div className="bg-linear-to-r from-green-600 to-green-700 text-white rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-4">
       <div className="flex items-center gap-2 text-sm">
         <Zap size={16} className="shrink-0" />
         <span>
