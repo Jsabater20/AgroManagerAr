@@ -5,6 +5,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth.store';
 import { getPlanInfo, cancelarSuscripcion, MP_CHECKOUT_URLS } from '../../api/plan.api';
+import PublicNav from '../../components/layout/PublicNav';
+import PublicFooter from '../../components/layout/PublicFooter';
 
 const features = [
   { label: 'Campos',                          free: '1 campo',     pro: 'Ilimitados' },
@@ -73,7 +75,9 @@ export default function PreciosPage() {
   const isPro = planInfo?.plan === 'PRO';
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
+    <div className="min-h-screen bg-gray-50">
+      {!token && <PublicNav />}
+      <div className="max-w-5xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-3">Planes AgroManager AR</h1>
@@ -99,7 +103,7 @@ export default function PreciosPage() {
       {/* Plans grid */}
       <div className="grid md:grid-cols-2 gap-6 mb-10">
         {/* Free */}
-        <div className={`rounded-2xl border-2 p-6 ${!isPro ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}`}>
+        <div className={`rounded-2xl border-2 p-6 ${!isPro ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white shadow-sm'}`}>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl font-bold text-gray-900">Free</h2>
             {!isPro && <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">Tu plan</span>}
@@ -252,6 +256,8 @@ export default function PreciosPage() {
           </div>
         </div>
       )}
+    </div>
+      {!token && <PublicFooter />}
     </div>
   );
 }

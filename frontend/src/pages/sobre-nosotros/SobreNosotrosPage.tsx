@@ -32,22 +32,36 @@ export default function SobreNosotrosPage() {
       <PublicNav />
 
       {/* Hero */}
-      <section className="bg-linear-to-b from-green-50 to-white py-20 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            <Sprout size={14} />
+      <section className="relative overflow-hidden bg-gray-950 text-white py-24 px-4">
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 20% 55%, #15803d 0%, transparent 55%), radial-gradient(circle at 80% 20%, #166534 0%, transparent 45%)',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+        <div className="relative max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 text-green-400 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest mb-6">
+            <Sprout size={12} />
             Sobre nosotros
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-5">
-            AgroManager nació con el objetivo de
-            <br />
-            <span className="text-green-600">modernizar la gestión rural</span>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-5">
+            Tecnología para el campo argentino
           </h1>
-          <p className="text-lg text-gray-500 leading-relaxed">
-            Con herramientas simples, inteligentes y accesibles para el productor
-            agropecuario argentino.
+          <p className="text-lg text-gray-300 leading-relaxed font-medium">
+             AgroManager AR nació de la necesidad de darle al productor agropecuario
+            argentino una herramienta moderna, accesible y pensada para la realidad local.
           </p>
         </div>
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-white to-transparent" />
       </section>
 
       {/* Mission */}
