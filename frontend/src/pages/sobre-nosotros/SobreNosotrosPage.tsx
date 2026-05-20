@@ -39,9 +39,14 @@ export default function SobreNosotrosPage() {
             Sobre nosotros
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-5">
-            AgroManager nació con el objetivo de modernizar la gestión rural con herramientas
-            simples, inteligentes y accesibles.
+            AgroManager nació con el objetivo de
+            <br />
+            <span className="text-green-600">modernizar la gestión rural</span>
           </h1>
+          <p className="text-lg text-gray-500 leading-relaxed">
+            Con herramientas simples, inteligentes y accesibles para el productor
+            agropecuario argentino.
+          </p>
         </div>
       </section>
 
