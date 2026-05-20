@@ -103,7 +103,7 @@ export default function PreciosPage() {
       {/* Plans grid */}
       <div className="grid md:grid-cols-2 gap-6 mb-10">
         {/* Free */}
-        <div className={`rounded-2xl border-2 p-6 ${!isPro ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white shadow-sm'}`}>
+        <div className={`rounded-2xl border-2 p-6 ${!isPro ? 'border-green-500 bg-white' : 'border-gray-200 bg-white shadow-sm'}`}>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl font-bold text-gray-900">Free</h2>
             {!isPro && <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">Tu plan</span>}
@@ -123,7 +123,7 @@ export default function PreciosPage() {
         </div>
 
         {/* Pro */}
-        <div className={`rounded-2xl border-2 p-6 relative ${isPro ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}`}>
+        <div className={`rounded-2xl border-2 p-6 relative ${isPro ? 'border-green-500 bg-white' : 'border-gray-200 bg-white'}`}>
           <div className="absolute -top-3 left-6">
             <span className="bg-green-600 text-white text-xs px-3 py-1 rounded-full font-medium">Recomendado</span>
           </div>
