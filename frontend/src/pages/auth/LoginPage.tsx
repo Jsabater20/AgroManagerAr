@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sprout, Eye, EyeOff, Map, Wheat, PawPrint, ClipboardList } from 'lucide-react';
+import { Sprout, Eye, EyeOff, Map, Wheat, PawPrint, ClipboardList, ArrowLeft } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuthStore } from '../../store/auth.store';
 import toast from 'react-hot-toast';
@@ -91,7 +91,14 @@ export default function LoginPage() {
       </div>
 
       {/* Panel derecho — formulario */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50 relative">
+        <Link
+          to="/"
+          className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Volver
+        </Link>
         <div className="w-full max-w-sm">
           {/* Logo mobile */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
