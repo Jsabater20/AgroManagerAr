@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class AppService {
@@ -13,18 +13,21 @@ export class AppService {
     asunto: string,
     mensaje: string,
   ): Promise<void> {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) throw new InternalServerErrorException('Email service not configured');
+    const gmailUser = process.env.EMAIL_USER;
+    const gmailPass = process.env.EMAIL_PASS;
+    if (!gmailUser || !gmailPass)
+      throw new InternalServerErrorException('Email service not configured');
 
-    const resend = new Resend(apiKey);
-    const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
-    const to = process.env.CONTACT_EMAIL ?? 'agromanagerarcontacto@gmail.com';
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: gmailUser, pass: gmailPass },
+    });
 
-    const { error } = await resend.emails.send({
-      from,
-      to,
+    await transporter.sendMail({
+      from: `"AgroManager AR" <${gmailUser}>`,
+      to: gmailUser,
       replyTo: email,
-      subject: asunto || `Consulta de ${nombre}`,
+      subject: asunto ? `[Contacto] ${asunto}` : `[Contacto] Consulta de ${nombre}`,
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
           <h2 style="color:#166534;margin-bottom:4px">Nueva consulta desde AgroManager AR</h2>
@@ -37,7 +40,5 @@ export class AppService {
         </div>
       `,
     });
-
-    if (error) throw new InternalServerErrorException(error.message);
   }
 }
