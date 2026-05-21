@@ -19,7 +19,10 @@ export class AppService {
       throw new InternalServerErrorException('Email service not configured');
 
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // STARTTLS
+      family: 4,     // forzar IPv4 (Railway no soporta IPv6 saliente)
       auth: { user: gmailUser, pass: gmailPass },
     });
 
