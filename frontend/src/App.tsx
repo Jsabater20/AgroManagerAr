@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuthStore } from './store/auth.store';
+import { getProfile } from './api/users.api';
 
 import PrivateRoute from './components/layout/PrivateRoute';
 import Layout from './components/layout/Layout';
@@ -35,6 +38,16 @@ import AdminPage from './pages/admin/AdminPage';
 const queryClient = new QueryClient();
 
 export default function App() {
+  const { token, setAuth, logout } = useAuthStore();
+
+  useEffect(() => {
+    if (!token) return;
+    getProfile()
+      .then((profile) => setAuth(profile, token))
+      .catch(() => { logout(); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
