@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Mail, MessageSquare, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { api } from '../../api/client';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 
@@ -14,6 +15,7 @@ export default function ContactoPage() {
     mensaje: '',
   });
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -21,19 +23,22 @@ export default function ContactoPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nombre || !form.email || !form.mensaje) {
       toast.error('Completá todos los campos requeridos.');
       return;
     }
-    const subject = encodeURIComponent(form.asunto || `Consulta de ${form.nombre}`);
-    const body = encodeURIComponent(
-      `Nombre: ${form.nombre}\nEmail: ${form.email}\n\n${form.mensaje}`,
-    );
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
-    setSent(true);
-    toast.success('Abriendo tu cliente de correo...');
+    setLoading(true);
+    try {
+      await api.post('/contact', form);
+      setSent(true);
+      toast.success('¡Mensaje enviado!');
+    } catch {
+      toast.error('No se pudo enviar el mensaje. Intentá de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,16 +62,10 @@ export default function ContactoPage() {
                 <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center">
                   <Send size={28} className="text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">¡Gracias por escribirnos!</h3>
+                <h3 className="text-xl font-bold text-gray-900">¡Mensaje enviado!</h3>
                 <p className="text-gray-500 text-sm max-w-xs">
-                  Tu cliente de correo debería haberse abierto. Si no fue así, escribinos
-                  directamente a{' '}
-                  <a
-                    href={`mailto:${CONTACT_EMAIL}`}
-                    className="text-green-700 font-medium hover:underline"
-                  >
-                    {CONTACT_EMAIL}
-                  </a>
+                  Recibimos tu consulta y te responderemos a la brevedad a{' '}
+                  <strong className="text-gray-700">{form.email}</strong>.
                 </p>
                 <button
                   onClick={() => setSent(false)}
@@ -144,10 +143,15 @@ export default function ContactoPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
-                  <Send size={16} />
-                  Enviar mensaje
+                  {loading ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                  {loading ? 'Enviando...' : 'Enviar mensaje'}
                 </button>
               </form>
             )}
