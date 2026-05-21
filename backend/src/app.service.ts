@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class AppService {
@@ -13,23 +13,16 @@ export class AppService {
     asunto: string,
     mensaje: string,
   ): Promise<void> {
-    const gmailUser = process.env.EMAIL_USER;
-    const gmailPass = process.env.EMAIL_PASS;
-    if (!gmailUser || !gmailPass)
+    const apiKey = process.env.RESEND_API_KEY;
+    const toEmail = process.env.CONTACT_EMAIL ?? process.env.RESEND_FROM_EMAIL;
+    if (!apiKey || !toEmail)
       throw new InternalServerErrorException('Email service not configured');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // STARTTLS
-      family: 4,     // forzar IPv4 (Railway no soporta IPv6 saliente)
-      auth: { user: gmailUser, pass: gmailPass },
-    } as any);
+    const resend = new Resend(apiKey);
 
-    await transporter.sendMail({
-      from: `"AgroManager AR" <${gmailUser}>`,
-      to: gmailUser,
+    const { error } = await resend.emails.send({
+      from: 'AgroManager AR <onboarding@resend.dev>',
+      to: [toEmail],
       replyTo: email,
       subject: asunto ? `[Contacto] ${asunto}` : `[Contacto] Consulta de ${nombre}`,
       html: `
@@ -44,5 +37,7 @@ export class AppService {
         </div>
       `,
     });
+
+    if (error) throw new InternalServerErrorException(error.message);
   }
 }
