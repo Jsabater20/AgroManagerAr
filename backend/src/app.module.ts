@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-// import { APP_FILTER } from '@nestjs/core';
-// import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup'; // disabled for diagnostics
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CamposModule } from './campos/campos.module';
@@ -43,7 +43,9 @@ import { UsersModule } from './users/users.module';
     CampaniasModule,
     AiModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
