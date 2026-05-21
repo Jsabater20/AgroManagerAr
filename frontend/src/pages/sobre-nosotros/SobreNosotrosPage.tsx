@@ -85,7 +85,7 @@ export default function SobreNosotrosPage() {
               desde el celular o la computadora.
             </p>
           </div>
-          <div className="bg-green-50 rounded-2xl p-8 border border-green-100">
+          <div className="bg-white rounded-2xl p-8 border border-green-100">
             <blockquote className="text-gray-700 leading-relaxed italic text-lg mb-4">
               "El productor argentino merece tecnología de primer nivel. Construimos
               AgroManager AR para que gestionar el campo sea tan simple como usar el

@@ -495,7 +495,7 @@ export default function HomePage() {
             </div>
 
             {/* Pro */}
-            <div className="border-2 border-green-500 rounded-2xl p-7 relative bg-green-50 shadow-lg shadow-green-100">
+            <div className="border-2 border-green-500 rounded-2xl p-7 relative bg-white shadow-lg shadow-green-100">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                 <span className="bg-green-600 text-white text-xs font-bold px-4 py-1 rounded-full">
                   RECOMENDADO
