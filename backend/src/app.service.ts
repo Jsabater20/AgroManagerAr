@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import type { Options as SMTPOptions } from 'nodemailer/lib/smtp-transport';
 
 @Injectable()
 export class AppService {
@@ -18,13 +19,14 @@ export class AppService {
     if (!gmailUser || !gmailPass)
       throw new InternalServerErrorException('Email service not configured');
 
-    const transporter = nodemailer.createTransport({
+    const smtpOptions = {
       host: 'smtp.gmail.com',
       port: 587,
       secure: false, // STARTTLS
       family: 4,     // forzar IPv4 (Railway no soporta IPv6 saliente)
       auth: { user: gmailUser, pass: gmailPass },
-    });
+    } as SMTPOptions;
+    const transporter = nodemailer.createTransport(smtpOptions);
 
     await transporter.sendMail({
       from: `"AgroManager AR" <${gmailUser}>`,
