@@ -20,8 +20,11 @@ export class AppService {
 
     const resend = new Resend(apiKey);
 
+    const fromEmail =
+      process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
+
     const { error } = await resend.emails.send({
-      from: 'AgroManager AR <onboarding@resend.dev>',
+      from: `AgroManager AR <${fromEmail}>`,
       to: [toEmail],
       replyTo: email,
       subject: asunto ? `[Contacto] ${asunto}` : `[Contacto] Consulta de ${nombre}`,
@@ -38,6 +41,9 @@ export class AppService {
       `,
     });
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) {
+      console.error('[Resend] error sending email:', error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
