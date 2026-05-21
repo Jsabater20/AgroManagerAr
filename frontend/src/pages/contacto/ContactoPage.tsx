@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 
-const CONTACT_EMAIL = 'contacto@agromanagerar.com';
+const CONTACT_EMAIL = 'agromanagerarcontacto@gmail.com';
 
 export default function ContactoPage() {
   const [form, setForm] = useState({
