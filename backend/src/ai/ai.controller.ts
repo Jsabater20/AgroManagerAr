@@ -7,7 +7,7 @@ import { AiChatDto } from './dto/ai.dto';
 import type { Request } from 'express';
 
 interface AuthRequest extends Request {
-  user: { userId: number };
+  user: { id: number };
 }
 
 @UseGuards(JwtAuthGuard, DemoGuard)
@@ -20,15 +20,15 @@ export class AiController {
 
   @Post('chat')
   async chat(@Req() req: AuthRequest, @Body() dto: AiChatDto) {
-    await this.planService.checkProAccess(req.user.userId, 'AgroBot IA');
-    const text = await this.aiService.chat(req.user.userId, dto.history, dto.message);
+    await this.planService.checkProAccess(req.user.id, 'AgroBot IA');
+    const text = await this.aiService.chat(req.user.id, dto.history, dto.message);
     return { text };
   }
 
   @Get('insights')
   async insights(@Req() req: AuthRequest) {
-    await this.planService.checkProAccess(req.user.userId, 'Análisis IA');
-    const items = await this.aiService.insights(req.user.userId);
+    await this.planService.checkProAccess(req.user.id, 'Análisis IA');
+    const items = await this.aiService.insights(req.user.id);
     return { insights: items };
   }
 }
