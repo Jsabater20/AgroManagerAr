@@ -15,7 +15,7 @@ export default function Layout() {
   const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-[#edf2ed] dark:bg-gray-950">
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {showOnboarding && <OnboardingWizard onClose={dismissOnboarding} />}
 
@@ -33,7 +33,7 @@ export default function Layout() {
       />
 
       {/* Topbar */}
-      <header className="sticky top-0 z-20 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+      <header className="sticky top-0 z-20 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }} className="h-14 flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
