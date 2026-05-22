@@ -156,6 +156,7 @@ export class AuthService {
       data: { resetToken: tokenHash, resetTokenExpiry: expiry },
     });
 
+    console.log(`[Auth] forgotPassword: usuario encontrado id=${usuario.id}, resend=${!!this.resend}, from=${this.fromEmail}, to=${usuario.email}`);
     if (this.resend) {
       const resetUrl = `${this.frontendUrl}/reset-password?token=${rawToken}`;
       const result = await this.resend.emails.send({
@@ -166,7 +167,11 @@ export class AuthService {
       });
       if (result.error) {
         console.error('[Resend] Error enviando email de reset:', result.error);
+      } else {
+        console.log(`[Auth] Email de reset enviado OK, id=${result.data?.id}`);
       }
+    } else {
+      console.warn('[Auth] Resend no inicializado — RESEND_API_KEY faltante');
     }
 
     return {
