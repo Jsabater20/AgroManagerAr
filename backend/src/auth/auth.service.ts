@@ -132,12 +132,14 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
+    console.log(`[Auth] forgotPassword called for: ${dto.email}`);
     const usuario = await this.prisma.usuario.findUnique({
       where: { email: dto.email },
     });
 
     // Respuesta genérica para no revelar si el email existe
     if (!usuario) {
+      console.log(`[Auth] forgotPassword: email no encontrado en BD: ${dto.email}`);
       return {
         message:
           'Si ese email está registrado, te enviaremos un enlace de recuperación.',
