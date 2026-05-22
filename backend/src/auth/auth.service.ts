@@ -59,7 +59,7 @@ export class AuthService {
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;
     if (this.resend) {
       const result = await this.resend.emails.send({
-        from: this.fromEmail,
+        from: `AgroManager AR <${this.fromEmail}>`,
         to: usuario.email,
         subject: 'Verificá tu cuenta — AgroManager AR',
         html: this.buildVerifyEmail(usuario.nombre, verifyUrl),
@@ -158,12 +158,15 @@ export class AuthService {
 
     if (this.resend) {
       const resetUrl = `${this.frontendUrl}/reset-password?token=${rawToken}`;
-      await this.resend.emails.send({
-        from: this.fromEmail,
+      const result = await this.resend.emails.send({
+        from: `AgroManager AR <${this.fromEmail}>`,
         to: usuario.email,
         subject: 'Recuperá tu contraseña — AgroManager AR',
         html: this.buildResetEmail(usuario.nombre, resetUrl),
       });
+      if (result.error) {
+        console.error('[Resend] Error enviando email de reset:', result.error);
+      }
     }
 
     return {
