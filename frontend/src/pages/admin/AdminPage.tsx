@@ -58,41 +58,43 @@ export default function AdminPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Panel de administración</h1>
-        <span className="text-sm text-gray-400">{users.length} usuarios</span>
+        <h1 className="text-2xl font-bold text-gray-900">Panel de administración</h1>
+        <span className="text-sm text-gray-500">{users.length} usuarios</span>
       </div>
 
       {msg && (
-        <div className="bg-green-800 text-green-200 px-4 py-2 rounded text-sm">{msg}</div>
+        <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 px-4 py-2 rounded-lg text-sm">
+          {msg}
+        </div>
       )}
 
       {isLoading ? (
-        <p className="text-gray-400">Cargando usuarios...</p>
+        <p className="text-gray-500">Cargando usuarios...</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-700">
+        <div className="bg-white overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
           <table className="w-full text-sm">
-            <thead className="bg-gray-800 text-gray-400 uppercase text-xs">
+            <thead className="bg-gray-50 text-gray-500 uppercase text-xs border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left">ID</th>
-                <th className="px-4 py-3 text-left">Nombre</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Rol</th>
-                <th className="px-4 py-3 text-left">Plan</th>
-                <th className="px-4 py-3 text-left">Miembro desde</th>
-                <th className="px-4 py-3 text-left">Acciones</th>
+                <th className="px-4 py-3 text-left font-medium">ID</th>
+                <th className="px-4 py-3 text-left font-medium">Nombre</th>
+                <th className="px-4 py-3 text-left font-medium">Email</th>
+                <th className="px-4 py-3 text-left font-medium">Rol</th>
+                <th className="px-4 py-3 text-left font-medium">Plan</th>
+                <th className="px-4 py-3 text-left font-medium">Miembro desde</th>
+                <th className="px-4 py-3 text-left font-medium">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-gray-100">
               {users.map((u: UserProfile) => (
-                <tr key={u.id} className="bg-gray-900 hover:bg-gray-800 transition-colors">
-                  <td className="px-4 py-3 text-gray-400">{u.id}</td>
-                  <td className="px-4 py-3 text-white font-medium">{u.nombre}</td>
-                  <td className="px-4 py-3 text-gray-300">{u.email}</td>
+                <tr key={u.id} className="bg-white hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-gray-500">{u.id}</td>
+                  <td className="px-4 py-3 text-gray-900 font-medium">{u.nombre}</td>
+                  <td className="px-4 py-3 text-gray-600">{u.email}</td>
 
                   {/* Rol */}
                   <td className="px-4 py-3">
                     <select
-                      className="bg-gray-700 text-white text-xs rounded px-2 py-1 border border-gray-600"
+                      className="bg-white text-gray-900 text-xs rounded-md px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500"
                       value={u.rol}
                       onChange={(e) =>
                         mutRol.mutate({ id: u.id, rol: e.target.value as 'ADMIN' | 'OPERADOR' })
@@ -106,7 +108,7 @@ export default function AdminPage() {
                   {/* Plan */}
                   <td className="px-4 py-3">
                     <select
-                      className="bg-gray-700 text-white text-xs rounded px-2 py-1 border border-gray-600"
+                      className="bg-white text-gray-900 text-xs rounded-md px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500"
                       value={u.plan}
                       onChange={(e) =>
                         mutPlan.mutate({ id: u.id, plan: e.target.value as 'FREE' | 'PRO' })
@@ -117,25 +119,25 @@ export default function AdminPage() {
                     </select>
                   </td>
 
-                  <td className="px-4 py-3 text-gray-400 text-xs">
+                  <td className="px-4 py-3 text-gray-500 text-xs">
                     {new Date(u.createdAt).toLocaleDateString('es-AR')}
                   </td>
 
                   {/* Eliminar */}
                   <td className="px-4 py-3">
                     {u.id === usuario?.id ? (
-                      <span className="text-gray-600 text-xs">Tu cuenta</span>
+                      <span className="text-gray-400 text-xs">Tu cuenta</span>
                     ) : confirmDelete === u.id ? (
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => mutDelete.mutate(u.id)}
-                          className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded"
+                          className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-md"
                         >
                           Confirmar
                         </button>
                         <button
                           onClick={() => setConfirmDelete(null)}
-                          className="text-xs text-gray-400 hover:text-white"
+                          className="text-xs text-gray-500 hover:text-gray-700"
                         >
                           Cancelar
                         </button>
@@ -143,7 +145,7 @@ export default function AdminPage() {
                     ) : (
                       <button
                         onClick={() => setConfirmDelete(u.id)}
-                        className="text-xs text-red-400 hover:text-red-300"
+                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         Eliminar
                       </button>
