@@ -251,9 +251,17 @@ export default function PreciosPage() {
                   Tus datos no se borran.
                 </p>
                 {!planInfo?.mpSuscripcionId && (
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
-                    ⚠️ Tu suscripción fue creada externamente. Además de confirmar aquí, <strong>cancelá también desde tu cuenta de MercadoPago</strong> para evitar futuros cobros.
-                  </p>
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2 space-y-1">
+                    <p>⚠️ Tu suscripción fue creada externamente. Para evitar futuros cobros, cancelá directamente desde MercadoPago:</p>
+                    <a
+                      href="https://www.mercadopago.com.ar/subscriptions"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-blue-600 underline font-medium"
+                    >
+                      Ir a Mis suscripciones en MercadoPago →
+                    </a>
+                  </div>
                 )}
               </div>
             </div>

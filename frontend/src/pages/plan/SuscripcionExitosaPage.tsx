@@ -14,7 +14,9 @@ export default function SuscripcionExitosaPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { usuario, token, setAuth } = useAuthStore();
-  const [estado, setEstado] = useState<Estado>('verificando');
+  const [estado, setEstado] = useState<Estado>(() =>
+    searchParams.get('preapproval_id') ? 'verificando' : 'error',
+  );
   const [intentos, setIntentos] = useState(0);
 
   const verificarMutation = useMutation({
@@ -53,10 +55,7 @@ export default function SuscripcionExitosaPage() {
 
   useEffect(() => {
     const preapprovalId = searchParams.get('preapproval_id');
-    if (!preapprovalId) {
-      setEstado('error');
-      return;
-    }
+    if (!preapprovalId) return;
     if (!token) {
       sessionStorage.setItem('pending_preapproval_id', preapprovalId);
       navigate(`/login?redirect=/suscripcion-exitosa?preapproval_id=${preapprovalId}`);
