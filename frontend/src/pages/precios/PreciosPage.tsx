@@ -250,6 +250,11 @@ export default function PreciosPage() {
                   Perdés acceso a todas las features Pro: IA AgroBot, campañas, reportes avanzados y más.
                   Tus datos no se borran.
                 </p>
+                {!planInfo?.mpSuscripcionId && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
+                    ⚠️ Tu suscripción fue creada externamente. Además de confirmar aquí, <strong>cancelá también desde tu cuenta de MercadoPago</strong> para evitar futuros cobros.
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex gap-3">
