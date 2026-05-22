@@ -21,7 +21,11 @@ export class AiController {
   @Post('chat')
   async chat(@Req() req: AuthRequest, @Body() dto: AiChatDto) {
     await this.planService.checkProAccess(req.user.id, 'AgroBot IA');
-    const text = await this.aiService.chat(req.user.id, dto.history, dto.message);
+    const text = await this.aiService.chat(
+      req.user.id,
+      dto.history,
+      dto.message,
+    );
     return { text };
   }
 

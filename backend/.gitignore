@@ -6,3 +6,6 @@ dist/
 /generated/prisma
 # accidental nested generate
 generated/generated/
+
+# Windows reserved device name (created accidentally)
+nul
