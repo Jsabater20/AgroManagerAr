@@ -34,6 +34,7 @@ import ClimaPage from './pages/clima/ClimaPage';
 import PreciosPage from './pages/precios/PreciosPage';
 import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
+import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/suscripcion-exitosa" element={<SuscripcionExitosaPage />} />
           <Route path="/terminos" element={<TermsPage />} />
           <Route path="/privacidad" element={<PrivacyPage />} />
           <Route element={<PrivateRoute />}>

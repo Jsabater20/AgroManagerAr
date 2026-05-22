@@ -44,6 +44,15 @@ export class PlanController {
     return this.planService.cancelarSuscripcion(req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('verificar')
+  verificar(
+    @Request() req: AuthRequest,
+    @Body('preapprovalId') preapprovalId: string,
+  ) {
+    return this.planService.verificarYActivar(req.user.id, preapprovalId);
+  }
+
   // Webhook público para MercadoPago
   @Post('webhook')
   webhook(@Body() body: Record<string, unknown>) {

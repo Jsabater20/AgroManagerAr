@@ -4,7 +4,7 @@ import { Check, X, Zap, Sprout, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth.store';
-import { getPlanInfo, cancelarSuscripcion, MP_CHECKOUT_URLS } from '../../api/plan.api';
+import { getPlanInfo, cancelarSuscripcion, crearCheckout } from '../../api/plan.api';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 
@@ -55,9 +55,13 @@ export default function PreciosPage() {
     enabled: !!token,
   });
 
-  const handleCheckout = () => {
-    window.location.href = MP_CHECKOUT_URLS[tipo];
-  };
+  const checkoutMutation = useMutation({
+    mutationFn: () => crearCheckout(tipo),
+    onSuccess: (data) => {
+      window.location.href = data.init_point;
+    },
+    onError: () => toast.error('Error al iniciar el pago. Intentá de nuevo.'),
+  });
 
   const cancelMutation = useMutation({
     mutationFn: cancelarSuscripcion,
@@ -167,11 +171,15 @@ export default function PreciosPage() {
 
           {!isPro ? (
             <button
-              onClick={handleCheckout}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mb-5"
+              onClick={() => {
+                if (!token) { navigate('/login'); return; }
+                checkoutMutation.mutate();
+              }}
+              disabled={checkoutMutation.isPending}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mb-5"
             >
               <Zap size={18} />
-              Suscribirse con MercadoPago
+              {checkoutMutation.isPending ? 'Redirigiendo...' : 'Suscribirse con MercadoPago'}
             </button>
           ) : (
             <div className="mb-5 space-y-2">

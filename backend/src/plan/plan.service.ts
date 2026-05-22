@@ -162,7 +162,7 @@ export class PlanService {
             frequency_type: 'days',
           },
         } as any,
-        back_url: `${this.frontendUrl}/precios?status=success`,
+        back_url: `${this.frontendUrl}/suscripcion-exitosa`,
         external_reference: `${usuarioId}:${tipo}`,
         status: 'pending',
       },
@@ -232,6 +232,63 @@ export class PlanService {
       }
     }
     return { ok: true };
+  }
+
+  async verificarYActivar(
+    usuarioId: number,
+    preapprovalId: string,
+  ): Promise<{ activado: boolean; status: string; plan?: string; planExpira?: Date }> {
+    const client = this.getMPClient();
+    const preApproval = new PreApproval(client);
+    const suscripcion = await preApproval.get({ id: preapprovalId });
+
+    // Verificar que la suscripción pertenece a este usuario
+    const [refId, tipo] = (
+      suscripcion.external_reference ?? '0:mensual'
+    ).split(':');
+    if (parseInt(refId) !== usuarioId) {
+      throw new ForbiddenException(
+        'Esta suscripción no pertenece a tu cuenta.',
+      );
+    }
+
+    const status = suscripcion.status ?? 'unknown';
+    if (status !== 'authorized') {
+      return { activado: false, status };
+    }
+
+    // Activar PRO: trial 14 días ya está en MP; damos buffer de 35/370 días en BD
+    const expira = new Date();
+    expira.setDate(expira.getDate() + (tipo === 'anual' ? 370 : 35));
+
+    const usuario = await this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { plan: 'PRO', planExpira: expira, mpSuscripcionId: preapprovalId },
+      select: { email: true, nombre: true, plan: true, planExpira: true },
+    });
+
+    // Email de bienvenida (sin bloquear)
+    if (this.resend) {
+      this.resend.emails
+        .send({
+          from: this.fromEmail,
+          to: usuario.email,
+          subject: '¡Tu suscripción Pro está activa! — AgroManager AR',
+          html: this.buildProEmail(
+            usuario.nombre,
+            tipo as 'mensual' | 'anual',
+            expira,
+          ),
+        })
+        .catch(() => {});
+    }
+
+    return {
+      activado: true,
+      status,
+      plan: usuario.plan,
+      planExpira: usuario.planExpira ?? undefined,
+    };
   }
 
   async cancelarSuscripcion(usuarioId: number) {
