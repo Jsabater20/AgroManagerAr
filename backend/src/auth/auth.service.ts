@@ -209,6 +209,8 @@ export class AuthService {
         password: hash,
         resetToken: null,
         resetTokenExpiry: null,
+        emailVerificado: true, // si recibió el email, el address está verificado
+        emailVerifToken: null,
       },
     });
 
