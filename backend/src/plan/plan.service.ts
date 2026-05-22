@@ -180,11 +180,22 @@ export class PlanService {
     const preApproval = new PreApproval(client);
     const suscripcion = await preApproval.get({ id: suscripcionId });
 
-    const [refId, tipo] = (suscripcion.external_reference ?? '0:mensual').split(
-      ':',
-    );
-    const usuarioId = parseInt(refId);
-    if (!usuarioId) return { ok: true };
+    const [refId, tipo] = (suscripcion.external_reference ?? '').split(':');
+    let usuarioId = parseInt(refId);
+
+    // Fallback para suscripciones antiguas (plan URL) sin external_reference
+    if (!usuarioId) {
+      const raw = suscripcion as unknown as Record<string, unknown>;
+      const payerEmail =
+        typeof raw['payer_email'] === 'string' ? raw['payer_email'] : undefined;
+      if (!payerEmail) return { ok: true };
+      const found = await this.prisma.usuario.findUnique({
+        where: { email: payerEmail },
+        select: { id: true },
+      });
+      if (!found) return { ok: true };
+      usuarioId = found.id;
+    }
 
     const status = suscripcion.status;
     if (status === 'authorized') {
@@ -237,15 +248,20 @@ export class PlanService {
   async verificarYActivar(
     usuarioId: number,
     preapprovalId: string,
-  ): Promise<{ activado: boolean; status: string; plan?: string; planExpira?: Date }> {
+  ): Promise<{
+    activado: boolean;
+    status: string;
+    plan?: string;
+    planExpira?: Date;
+  }> {
     const client = this.getMPClient();
     const preApproval = new PreApproval(client);
     const suscripcion = await preApproval.get({ id: preapprovalId });
 
     // Verificar que la suscripción pertenece a este usuario
-    const [refId, tipo] = (
-      suscripcion.external_reference ?? '0:mensual'
-    ).split(':');
+    const [refId, tipo] = (suscripcion.external_reference ?? '0:mensual').split(
+      ':',
+    );
     if (parseInt(refId) !== usuarioId) {
       throw new ForbiddenException(
         'Esta suscripción no pertenece a tu cuenta.',
