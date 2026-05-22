@@ -5,6 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth.store';
 import { getPlanInfo, cancelarSuscripcion, crearCheckout } from '../../api/plan.api';
+import { getProfile } from '../../api/users.api';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 
@@ -67,8 +68,13 @@ export default function PreciosPage() {
     mutationFn: cancelarSuscripcion,
     onSuccess: () => {
       toast.success('Suscripción cancelada. Tu plan vuelve a Free.');
-      if (usuario && token) {
-        setAuth({ ...usuario, plan: 'FREE' }, token);
+      // Re-fetch perfil para actualizar store con plan: 'FREE' fresco del backend
+      if (token) {
+        getProfile()
+          .then((freshUser) => setAuth(freshUser, token))
+          .catch(() => {
+            if (usuario && token) setAuth({ ...usuario, plan: 'FREE' }, token);
+          });
       }
       setShowCancel(false);
       refetch();

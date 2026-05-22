@@ -200,8 +200,8 @@ export class PlanService {
     const status = suscripcion.status;
     if (status === 'authorized') {
       const expira = new Date();
-      // Mensual: +35 días de buffer; Anual: +370 días de buffer
-      expira.setDate(expira.getDate() + (tipo === 'anual' ? 370 : 35));
+      // Mensual: +45 días (14 trial + 30 ciclo + buffer); Anual: +400 días
+      expira.setDate(expira.getDate() + (tipo === 'anual' ? 400 : 45));
       const usuario = await this.prisma.usuario.update({
         where: { id: usuarioId },
         data: {
@@ -273,9 +273,9 @@ export class PlanService {
       return { activado: false, status };
     }
 
-    // Activar PRO: trial 14 días ya está en MP; damos buffer de 35/370 días en BD
+    // Activar PRO: trial 14 días ya está en MP; damos buffer de 45/400 días en BD
     const expira = new Date();
-    expira.setDate(expira.getDate() + (tipo === 'anual' ? 370 : 35));
+    expira.setDate(expira.getDate() + (tipo === 'anual' ? 400 : 45));
 
     const usuario = await this.prisma.usuario.update({
       where: { id: usuarioId },

@@ -3,7 +3,10 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Zap } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { verificarActivacion } from '../../api/plan.api';
+import { getProfile } from '../../api/users.api';
 import { useAuthStore } from '../../store/auth.store';
+
+const MAX_INTENTOS = 8;
 
 type Estado = 'verificando' | 'activado' | 'pendiente' | 'error';
 
@@ -19,24 +22,29 @@ export default function SuscripcionExitosaPage() {
     onSuccess: (data) => {
       if (data.activado) {
         setEstado('activado');
-        // Actualizar el store local con plan PRO
-        if (usuario && token) {
-          setAuth({ ...usuario, plan: 'PRO' }, token);
+        // Re-fetch del perfil para obtener plan: 'PRO' fresco del backend,
+        // evitando race condition con el getProfile() inicial de App.tsx
+        if (token) {
+          getProfile()
+            .then((freshUser) => setAuth(freshUser, token))
+            .catch(() => {
+              // Fallback si el profile falla
+              if (usuario) setAuth({ ...usuario, plan: 'PRO' }, token);
+            });
         }
-      } else if (intentos < 4) {
+      } else if (intentos < MAX_INTENTOS) {
         // MP puede tardar unos segundos en confirmar
-        setEstado('pendiente');
         setTimeout(() => {
           setIntentos((n) => n + 1);
-        }, 3000);
+        }, 2000);
       } else {
-        // Después de 4 intentos, mostrar mensaje de pendiente
+        // Después de MAX_INTENTOS, mostrar mensaje de pendiente
         setEstado('pendiente');
       }
     },
     onError: () => {
-      if (intentos < 4) {
-        setTimeout(() => setIntentos((n) => n + 1), 3000);
+      if (intentos < MAX_INTENTOS) {
+        setTimeout(() => setIntentos((n) => n + 1), 2000);
       } else {
         setEstado('error');
       }
@@ -50,7 +58,6 @@ export default function SuscripcionExitosaPage() {
       return;
     }
     if (!token) {
-      // Guardar el ID y redirigir a login
       sessionStorage.setItem('pending_preapproval_id', preapprovalId);
       navigate(`/login?redirect=/suscripcion-exitosa?preapproval_id=${preapprovalId}`);
       return;
@@ -68,12 +75,15 @@ export default function SuscripcionExitosaPage() {
           <span className="font-bold text-gray-800 text-xl">AgroManager AR</span>
         </div>
 
-        {/* Estado: verificando */}
-        {(estado === 'verificando' || verificarMutation.isPending) && (
+        {/* Estado: verificando / retrying */}
+        {estado === 'verificando' && (
           <>
             <Loader2 className="w-16 h-16 text-green-500 mx-auto mb-4 animate-spin" />
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Activando tu suscripción...</h1>
             <p className="text-gray-500">Estamos verificando tu pago con MercadoPago.</p>
+            {intentos > 0 && (
+              <p className="text-xs text-gray-400 mt-2">Intento {intentos + 1} de {MAX_INTENTOS}...</p>
+            )}
           </>
         )}
 
