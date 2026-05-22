@@ -139,7 +139,9 @@ export class AuthService {
 
     // Respuesta genérica para no revelar si el email existe
     if (!usuario) {
-      console.log(`[Auth] forgotPassword: email no encontrado en BD: ${dto.email}`);
+      console.log(
+        `[Auth] forgotPassword: email no encontrado en BD: ${dto.email}`,
+      );
       return {
         message:
           'Si ese email está registrado, te enviaremos un enlace de recuperación.',
@@ -158,7 +160,9 @@ export class AuthService {
       data: { resetToken: tokenHash, resetTokenExpiry: expiry },
     });
 
-    console.log(`[Auth] forgotPassword: usuario encontrado id=${usuario.id}, resend=${!!this.resend}, from=${this.fromEmail}, to=${usuario.email}`);
+    console.log(
+      `[Auth] forgotPassword: usuario encontrado id=${usuario.id}, resend=${!!this.resend}, from=${this.fromEmail}, to=${usuario.email}`,
+    );
     if (this.resend) {
       const resetUrl = `${this.frontendUrl}/reset-password?token=${rawToken}`;
       const result = await this.resend.emails.send({
