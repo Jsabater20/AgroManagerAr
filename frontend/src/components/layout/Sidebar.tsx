@@ -28,9 +28,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const initials = usuario?.nombre
-    ? usuario.nombre.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
-    : '?';
+  const initials = [
+    usuario?.nombre?.[0] ?? '',
+    usuario?.apellido?.[0] ?? '',
+  ].join('').toUpperCase() || '?';
 
   return (
     <aside
@@ -99,7 +100,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <div className="w-8 h-8 rounded-full bg-green-700 flex items-center justify-center text-xs font-bold text-green-100 shrink-0">
             {initials}
           </div>
-          <p className="text-sm text-green-200 truncate flex-1">{usuario?.nombre}</p>
+          <p className="text-sm text-green-200 truncate flex-1">{[usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ')}</p>
         </div>
         {/* Perfil */}
         <NavLink

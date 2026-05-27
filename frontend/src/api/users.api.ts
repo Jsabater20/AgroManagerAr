@@ -4,6 +4,7 @@ export interface UserProfile {
   id: number;
   email: string;
   nombre: string;
+  apellido: string;
   rol: string;
   plan: 'FREE' | 'PRO';
   planExpira: string | null;
@@ -13,8 +14,8 @@ export interface UserProfile {
 export const getProfile = (): Promise<UserProfile> =>
   api.get<UserProfile>('/users/profile').then((r) => r.data);
 
-export const updateProfile = (nombre: string): Promise<UserProfile> =>
-  api.patch<UserProfile>('/users/profile', { nombre }).then((r) => r.data);
+export const updateProfile = (nombre: string, apellido: string): Promise<UserProfile> =>
+  api.patch<UserProfile>('/users/profile', { nombre, apellido }).then((r) => r.data);
 
 export const changePassword = (
   passwordActual: string,

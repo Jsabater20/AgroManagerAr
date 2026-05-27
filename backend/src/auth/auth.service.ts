@@ -49,11 +49,12 @@ export class AuthService {
       data: {
         email: dto.email,
         nombre: dto.nombre,
+        apellido: dto.apellido,
         password: hash,
         emailVerificado: false,
         emailVerifToken: tokenHash,
       },
-      select: { id: true, email: true, nombre: true },
+      select: { id: true, email: true, nombre: true, apellido: true },
     });
 
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;

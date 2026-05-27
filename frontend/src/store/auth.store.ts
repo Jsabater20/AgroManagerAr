@@ -4,6 +4,7 @@ interface Usuario {
   id: number;
   email: string;
   nombre: string;
+  apellido: string;
   rol: string;
   plan: 'FREE' | 'PRO';
 }

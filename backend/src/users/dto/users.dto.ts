@@ -5,6 +5,11 @@ export class UpdateProfileDto {
   @IsString()
   @MinLength(2)
   nombre?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  apellido?: string;
 }
 
 export class ChangePasswordDto {

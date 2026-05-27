@@ -12,6 +12,7 @@ export default function PerfilPage() {
   const { data: perfil } = useQuery({ queryKey: ['profile'], queryFn: getProfile });
 
   const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
   const [editandoNombre, setEditandoNombre] = useState(false);
 
   const [pwActual, setPwActual] = useState('');
@@ -22,10 +23,10 @@ export default function PerfilPage() {
   const [msgPw, setMsgPw] = useState('');
 
   const mutNombre = useMutation({
-    mutationFn: (n: string) => updateProfile(n),
+    mutationFn: () => updateProfile(nombre, apellido),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
-      if (usuario && token) setAuth({ ...usuario, nombre: data.nombre }, token);
+      if (usuario && token) setAuth({ ...usuario, nombre: data.nombre, apellido: data.apellido }, token);
       setEditandoNombre(false);
       setMsgNombre('Nombre actualizado correctamente.');
       setTimeout(() => setMsgNombre(''), 3000);
@@ -59,6 +60,13 @@ export default function PerfilPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Información de la cuenta</h2>
 
         <div className="flex items-center gap-3">
+          <span className="text-gray-500 text-sm w-28">Nombre</span>
+          <span className="text-gray-900">
+            {[perfil?.nombre, perfil?.apellido].filter(Boolean).join(' ') || '—'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
           <span className="text-gray-500 text-sm w-28">Email</span>
           <span className="text-gray-900">{perfil?.email}</span>
         </div>
@@ -88,41 +96,65 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* Editar nombre */}
+      {/* Editar nombre y apellido */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Nombre</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Nombre y apellido</h2>
 
         {!editandoNombre ? (
           <div className="flex items-center gap-4">
-            <span className="text-gray-900 text-base">{perfil?.nombre}</span>
+            <span className="text-gray-900 text-base">
+              {[perfil?.nombre, perfil?.apellido].filter(Boolean).join(' ') || '—'}
+            </span>
             <button
-              onClick={() => { setNombre(perfil?.nombre ?? ''); setEditandoNombre(true); }}
+              onClick={() => {
+                setNombre(perfil?.nombre ?? '');
+                setApellido(perfil?.apellido ?? '');
+                setEditandoNombre(true);
+              }}
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
             >
               Editar
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <input
-              className="input flex-1"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              maxLength={80}
-            />
-            <button
-              onClick={() => mutNombre.mutate(nombre)}
-              disabled={mutNombre.isPending || nombre.length < 2}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-            >
-              Guardar
-            </button>
-            <button
-              onClick={() => setEditandoNombre(false)}
-              className="text-sm text-gray-500 hover:text-gray-700 px-2"
-            >
-              Cancelar
-            </button>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Nombre</label>
+                <input
+                  className="input"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  maxLength={80}
+                  placeholder="Juan"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Apellido</label>
+                <input
+                  className="input"
+                  value={apellido}
+                  onChange={(e) => setApellido(e.target.value)}
+                  maxLength={80}
+                  placeholder="Pérez"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => mutNombre.mutate()}
+                disabled={mutNombre.isPending || nombre.length < 2 || apellido.length < 2}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => setEditandoNombre(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 px-2"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
         {msgNombre && <p className="text-green-600 dark:text-green-400 text-sm">{msgNombre}</p>}

@@ -7,6 +7,9 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   nombre!: string;
 
+  @IsNotEmpty({ message: 'El apellido es obligatorio' })
+  apellido!: string;
+
   @IsNotEmpty()
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   @Matches(/(?=.*[a-z])/, {
