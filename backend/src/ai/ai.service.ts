@@ -149,7 +149,7 @@ export class AiService {
     const siembrasDesc = siembrasActivas
       .map(
         (s) =>
-          `${s.tipoCultivo.nombre} en ${s.lote.nombre} (${s.lote.campo.nombre}), sembrado el ${new Date(s.fechaSiembra).toLocaleDateString('es-AR')}`,
+          `${s.tipoCultivo?.nombre ?? 'Cultivo'} en ${s.lote.nombre} (${s.lote.campo.nombre}), sembrado el ${new Date(s.fechaSiembra).toLocaleDateString('es-AR')}`,
       )
       .join('; ');
 

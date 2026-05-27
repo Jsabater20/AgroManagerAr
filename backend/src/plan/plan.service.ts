@@ -77,9 +77,12 @@ export class PlanService {
   async isPro(usuarioId: number): Promise<boolean> {
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: { plan: true, planExpira: true },
+      select: { plan: true, planExpira: true, rol: true },
     });
-    if (!u || u.plan !== 'PRO') return false;
+    if (!u) return false;
+    // ADMIN siempre tiene acceso completo
+    if (u.rol === 'ADMIN') return true;
+    if (u.plan !== 'PRO') return false;
     if (u.planExpira && u.planExpira < new Date()) {
       await this.prisma.usuario.update({
         where: { id: usuarioId },

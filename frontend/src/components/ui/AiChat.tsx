@@ -50,10 +50,17 @@ export default function AiChat() {
     try {
       const reply = await aiApi.chat(history, msg);
       setMessages((prev) => [...prev.slice(0, -1), { role: 'model', text: reply }]);
-    } catch {
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const errMsg =
+        status === 403
+          ? 'No tenés acceso a AgroBot. Verificá que tu plan Pro esté activo.'
+          : status === 401
+          ? 'Tu sesión expiró. Volvé a iniciar sesión.'
+          : 'No pude obtener respuesta. Intentá de nuevo en unos segundos.';
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        { role: 'model', text: 'No pude obtener respuesta. Verificá que el servidor esté activo y que GEMINI_API_KEY esté configurada.' },
+        { role: 'model', text: errMsg },
       ]);
     } finally {
       setLoading(false);
