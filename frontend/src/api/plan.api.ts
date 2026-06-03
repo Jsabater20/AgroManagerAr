@@ -4,6 +4,7 @@ export interface PlanInfo {
   plan: 'FREE' | 'PRO';
   planExpira: string | null;
   mpSuscripcionId: string | null;
+  trialUsado: boolean;
 }
 
 export const getPlanInfo = (): Promise<PlanInfo> =>

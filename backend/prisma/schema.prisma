@@ -31,6 +31,8 @@ model Usuario {
   emailVerificado  Boolean   @default(false)
   emailVerifToken  String?
 
+  trialUsado       Boolean   @default(false)
+
   campos   Campo[]
   animales Animal[]
   tareas   TareaRural[]

@@ -69,7 +69,7 @@ export class PlanService {
   async getUsuarioPlan(usuarioId: number) {
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: { plan: true, planExpira: true, mpSuscripcionId: true },
+      select: { plan: true, planExpira: true, mpSuscripcionId: true, trialUsado: true },
     });
     return u;
   }
@@ -148,23 +148,27 @@ export class PlanService {
     tipo: 'mensual' | 'anual',
   ) {
     const p = PRECIOS[tipo];
+    const u = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { trialUsado: true },
+    });
     const client = this.getMPClient();
     const preApproval = new PreApproval(client);
+    const autoRecurring: Record<string, unknown> = {
+      frequency: p.frecuencia,
+      frequency_type: 'months',
+      transaction_amount: p.monto,
+      currency_id: 'ARS',
+    };
+    if (!u?.trialUsado) {
+      autoRecurring.free_trial = { frequency: TRIAL_DIAS, frequency_type: 'days' };
+    }
     const result = await preApproval.create({
       body: {
         reason: p.label,
         payer_email: email,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        auto_recurring: {
-          frequency: p.frecuencia,
-          frequency_type: 'months',
-          transaction_amount: p.monto,
-          currency_id: 'ARS',
-          free_trial: {
-            frequency: TRIAL_DIAS,
-            frequency_type: 'days',
-          },
-        } as any,
+        auto_recurring: autoRecurring as any,
         back_url: `${this.frontendUrl}/suscripcion-exitosa`,
         external_reference: `${usuarioId}:${tipo}`,
         status: 'pending',
@@ -211,6 +215,7 @@ export class PlanService {
           plan: 'PRO',
           planExpira: expira,
           mpSuscripcionId: suscripcionId,
+          trialUsado: true,
         },
         select: { email: true, nombre: true },
       });
@@ -282,7 +287,7 @@ export class PlanService {
 
     const usuario = await this.prisma.usuario.update({
       where: { id: usuarioId },
-      data: { plan: 'PRO', planExpira: expira, mpSuscripcionId: preapprovalId },
+      data: { plan: 'PRO', planExpira: expira, mpSuscripcionId: preapprovalId, trialUsado: true },
       select: { email: true, nombre: true, plan: true, planExpira: true },
     });
 
