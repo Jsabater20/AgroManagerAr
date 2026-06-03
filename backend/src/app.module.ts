@@ -17,6 +17,7 @@ import { CampaniasModule } from './campanias/campanias.module';
 import { AiModule } from './ai/ai.module';
 import { PlanModule } from './plan/plan.module';
 import { UsersModule } from './users/users.module';
+import { DemoModule } from './demo/demo.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     PlanModule,
     UsersModule,
+    DemoModule,
     CamposModule,
     CultivosModule,
     SiembrasModule,

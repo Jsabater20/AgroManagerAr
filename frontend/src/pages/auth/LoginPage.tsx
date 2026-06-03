@@ -181,6 +181,19 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
+
+          {/* Acceso demo */}
+          <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+            <p className="text-xs font-semibold text-amber-800 mb-1">🎮 Probar sin registrarse</p>
+            <p className="text-xs text-amber-700 mb-2">Accedé a la cuenta demo con plan PRO activo y datos de ejemplo. Los datos se reinician cada 24 hs.</p>
+            <button
+              type="button"
+              onClick={() => setForm({ email: 'demo@agromanager.ar', password: 'Demo1234' })}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold py-2 rounded-lg transition-colors"
+            >
+              Usar cuenta demo
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import GlobalSearch, { useGlobalSearch } from './GlobalSearch';
 import OnboardingWizard, { useOnboarding } from './OnboardingWizard';
 import { useThemeStore } from '../../store/theme.store';
 import AiChat from '../ui/AiChat';
+import DemoBanner from '../ui/DemoBanner';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -16,6 +17,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-[#edf2ed] dark:bg-gray-950">
+      <DemoBanner />
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {showOnboarding && <OnboardingWizard onClose={dismissOnboarding} />}
 

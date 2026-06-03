@@ -51,17 +51,22 @@ async function main() {
   });
   console.log(`👤 Admin: ${usuario.email}`);
 
-  // ─── Usuario DEMO (solo lectura) ───────────────────────────────────────────
+  // ─── Usuario DEMO (interactivo, plan PRO, datos se reinician cada 24hs) ───
   const hashDemo = await bcrypt.hash('Demo1234', 10);
   const usuarioDemo = await prisma.usuario.create({
     data: {
       email: 'demo@agromanager.ar',
       nombre: 'Usuario Demo',
+      apellido: '',
       password: hashDemo,
       rol: 'OPERADOR',
+      plan: 'PRO',
+      planExpira: new Date('2035-12-31'),
+      emailVerificado: true,
+      trialUsado: true,
     },
   });
-  console.log(`👁️  Demo: ${usuarioDemo.email} (solo lectura via DemoGuard)`);
+  console.log(`🎮 Demo: ${usuarioDemo.email} (PRO interactivo)`);
 
   // ─── Tipos de cultivo ──────────────────────────────────────────────────────
   const [soja, maiz, trigo, girasol] = await Promise.all([
@@ -93,7 +98,7 @@ async function main() {
       hectareas: 500,
       ubicacion: 'Pergamino, Buenos Aires',
       propietario: 'Juan Pérez',
-      usuarioId: usuario.id,
+      usuarioId: usuarioDemo.id,
       lotes: {
         create: [
           { nombre: 'Lote Norte', hectareas: 120 },
@@ -111,7 +116,7 @@ async function main() {
       hectareas: 320,
       ubicacion: 'Marcos Juárez, Córdoba',
       propietario: 'Juan Pérez',
-      usuarioId: usuario.id,
+      usuarioId: usuarioDemo.id,
       lotes: {
         create: [
           { nombre: 'Potrero 1', hectareas: 160 },
@@ -133,7 +138,7 @@ async function main() {
       fechaInicio: new Date('2024-10-01'),
       fechaFin: new Date('2025-06-30'),
       descripcion: 'Primera campaña completa en ambos campos',
-      usuarioId: usuario.id,
+      usuarioId: usuarioDemo.id,
     },
   });
   const camp2526 = await prisma.campania.create({
@@ -141,7 +146,7 @@ async function main() {
       nombre: 'Campaña 2025/2026',
       fechaInicio: new Date('2025-10-01'),
       descripcion: 'Campaña actual en curso',
-      usuarioId: usuario.id,
+      usuarioId: usuarioDemo.id,
     },
   });
   console.log('📅 Campañas creadas');
@@ -295,7 +300,7 @@ async function main() {
 
   const animales = await Promise.all(
     animalesData.map((a) =>
-      prisma.animal.create({ data: { ...a, usuarioId: usuario.id } }),
+      prisma.animal.create({ data: { ...a, usuarioId: usuarioDemo.id } }),
     ),
   );
 
@@ -326,16 +331,16 @@ async function main() {
   // ─── Tareas rurales ────────────────────────────────────────────────────────
   await prisma.tareaRural.createMany({
     data: [
-      { usuarioId: usuario.id, titulo: 'Aplicar herbicida Lote Este', descripcion: 'Glifosato para control de yuyo colorado', tipo: 'FUMIGACION',     estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-05-15'), campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, titulo: 'Revisión sanitaria rodeo',    descripcion: 'Vacunación antiaftosa y brucelosis',     tipo: 'VETERINARIA',   estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-05-20') },
-      { usuarioId: usuario.id, titulo: 'Fertilizar Potrero 2',        descripcion: 'Urea 100kg/ha en cobertura',             tipo: 'FERTILIZACION', estado: 'EN_CURSO',   prioridad: 'MEDIA',  fechaProgramada: new Date('2026-05-08'), campoId: campoProgreso.id },
-      { usuarioId: usuario.id, titulo: 'Mantenimiento aguada norte',  descripcion: 'Revisión bebederos y bomba',             tipo: 'MANTENIMIENTO', estado: 'PENDIENTE',  prioridad: 'BAJA',   fechaProgramada: new Date('2026-05-25'), campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, titulo: 'Cosecha soja Lote Este',      descripcion: 'Coordinar cosechadora',                  tipo: 'COSECHA',       estado: 'PENDIENTE',  prioridad: 'URGENTE',fechaProgramada: new Date('2026-04-20'), campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, titulo: 'Análisis de suelo Lote Norte',descripcion: 'Laboratorio Rizobacter',                 tipo: 'OTRO',          estado: 'COMPLETADA', prioridad: 'MEDIA',  fechaProgramada: new Date('2025-09-10'), fechaCompletada: new Date('2025-09-12'), campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, titulo: 'Reparar alambrado sur',       descripcion: '200m de alambre de 5 hilos',             tipo: 'MANTENIMIENTO', estado: 'COMPLETADA', prioridad: 'MEDIA',  fechaProgramada: new Date('2025-10-05'), fechaCompletada: new Date('2025-10-07'), campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, titulo: 'Siembra trigo invierno',      descripcion: 'Variedad Buck SY 200',                   tipo: 'SIEMBRA',       estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-06-15'), campoId: campoProgreso.id },
-      { usuarioId: usuario.id, titulo: 'Desmalezado caminos internos',descripcion: 'Rotativa en caminos del campo',          tipo: 'MANTENIMIENTO', estado: 'COMPLETADA', prioridad: 'BAJA',   fechaProgramada: new Date('2025-11-20'), fechaCompletada: new Date('2025-11-22'), campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, titulo: 'Control de plagas girasol',   descripcion: 'Monitoreo y eventual aplicación',        tipo: 'FUMIGACION',    estado: 'EN_CURSO',   prioridad: 'ALTA',   fechaProgramada: new Date('2026-01-10'), campoId: campoProgreso.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Aplicar herbicida Lote Este', descripcion: 'Glifosato para control de yuyo colorado', tipo: 'FUMIGACION',     estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-05-15'), campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Revisión sanitaria rodeo',    descripcion: 'Vacunación antiaftosa y brucelosis',     tipo: 'VETERINARIA',   estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-05-20') },
+      { usuarioId: usuarioDemo.id, titulo: 'Fertilizar Potrero 2',        descripcion: 'Urea 100kg/ha en cobertura',             tipo: 'FERTILIZACION', estado: 'EN_CURSO',   prioridad: 'MEDIA',  fechaProgramada: new Date('2026-05-08'), campoId: campoProgreso.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Mantenimiento aguada norte',  descripcion: 'Revisión bebederos y bomba',             tipo: 'MANTENIMIENTO', estado: 'PENDIENTE',  prioridad: 'BAJA',   fechaProgramada: new Date('2026-05-25'), campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Cosecha soja Lote Este',      descripcion: 'Coordinar cosechadora',                  tipo: 'COSECHA',       estado: 'PENDIENTE',  prioridad: 'URGENTE',fechaProgramada: new Date('2026-04-20'), campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Análisis de suelo Lote Norte',descripcion: 'Laboratorio Rizobacter',                 tipo: 'OTRO',          estado: 'COMPLETADA', prioridad: 'MEDIA',  fechaProgramada: new Date('2025-09-10'), fechaCompletada: new Date('2025-09-12'), campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Reparar alambrado sur',       descripcion: '200m de alambre de 5 hilos',             tipo: 'MANTENIMIENTO', estado: 'COMPLETADA', prioridad: 'MEDIA',  fechaProgramada: new Date('2025-10-05'), fechaCompletada: new Date('2025-10-07'), campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Siembra trigo invierno',      descripcion: 'Variedad Buck SY 200',                   tipo: 'SIEMBRA',       estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-06-15'), campoId: campoProgreso.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Desmalezado caminos internos',descripcion: 'Rotativa en caminos del campo',          tipo: 'MANTENIMIENTO', estado: 'COMPLETADA', prioridad: 'BAJA',   fechaProgramada: new Date('2025-11-20'), fechaCompletada: new Date('2025-11-22'), campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, titulo: 'Control de plagas girasol',   descripcion: 'Monitoreo y eventual aplicación',        tipo: 'FUMIGACION',    estado: 'EN_CURSO',   prioridad: 'ALTA',   fechaProgramada: new Date('2026-01-10'), campoId: campoProgreso.id },
     ],
   });
   console.log('📋 Tareas creadas');
@@ -344,28 +349,28 @@ async function main() {
   await prisma.movimientoFinanciero.createMany({
     data: [
       // Ingresos campaña 24/25
-      { usuarioId: usuario.id, tipo: 'INGRESO', concepto: 'Venta soja Lote Norte 408t', monto: 408000 * 3400 / 1000 * 2.1, fecha: new Date('2025-04-20'), categoria: 'COSECHA', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'INGRESO', concepto: 'Venta maíz Lote Sur 1584t',  monto: 1584 * 180 * 0.9,          fecha: new Date('2025-03-28'), categoria: 'COSECHA', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'INGRESO', concepto: 'Venta trigo Potrero 1 496t', monto: 496 * 160 * 0.85,          fecha: new Date('2024-12-10'), categoria: 'COSECHA', campoId: campoProgreso.id },
-      { usuarioId: usuario.id, tipo: 'INGRESO', concepto: 'Venta novillo 01 y 02',      monto: 420000,                    fecha: new Date('2025-02-15'), categoria: 'VENTA_ANIMAL' },
-      { usuarioId: usuario.id, tipo: 'INGRESO', concepto: 'Arrendamiento parcela oeste', monto: 85000,                   fecha: new Date('2025-01-05'), categoria: 'OTRO', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'INGRESO', concepto: 'Venta terneros 3 cabezas',   monto: 180000,                   fecha: new Date('2025-05-02'), categoria: 'VENTA_ANIMAL' },
+      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta soja Lote Norte 408t', monto: 408000 * 3400 / 1000 * 2.1, fecha: new Date('2025-04-20'), categoria: 'COSECHA', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta maíz Lote Sur 1584t',  monto: 1584 * 180 * 0.9,          fecha: new Date('2025-03-28'), categoria: 'COSECHA', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta trigo Potrero 1 496t', monto: 496 * 160 * 0.85,          fecha: new Date('2024-12-10'), categoria: 'COSECHA', campoId: campoProgreso.id },
+      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta novillo 01 y 02',      monto: 420000,                    fecha: new Date('2025-02-15'), categoria: 'VENTA_ANIMAL' },
+      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Arrendamiento parcela oeste', monto: 85000,                   fecha: new Date('2025-01-05'), categoria: 'OTRO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta terneros 3 cabezas',   monto: 180000,                   fecha: new Date('2025-05-02'), categoria: 'VENTA_ANIMAL' },
 
       // Egresos campaña 24/25
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Semilla soja NK7059 — 60kg × 120ha', monto: 72000, fecha: new Date('2024-11-08'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Semilla maíz DK7210 — 22kg × 180ha', monto: 95000, fecha: new Date('2024-10-18'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Urea 250kg × 180ha',                  monto: 48000, fecha: new Date('2024-10-20'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'FDA 100kg × 160ha trigo',             monto: 22000, fecha: new Date('2024-06-14'), categoria: 'INSUMO', campoId: campoProgreso.id },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Servicio cosecha soja',                monto: 110000,fecha: new Date('2025-04-15'), categoria: 'SERVICIO', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Servicio cosecha maíz',                monto: 135000,fecha: new Date('2025-03-24'), categoria: 'SERVICIO', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Combustible — campaña completa',       monto: 62000, fecha: new Date('2025-01-15'), categoria: 'COMBUSTIBLE' },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Mano de obra — 3 peones mensual',      monto: 180000,fecha: new Date('2025-02-01'), categoria: 'MANO_DE_OBRA' },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Vacunación antiaftosa rodeo',          monto: 18500, fecha: new Date('2025-04-01'), categoria: 'VETERINARIA' },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Reparación tranquera y alambrado',     monto: 25000, fecha: new Date('2025-03-10'), categoria: 'MANTENIMIENTO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Semilla soja NK7059 — 60kg × 120ha', monto: 72000, fecha: new Date('2024-11-08'), categoria: 'INSUMO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Semilla maíz DK7210 — 22kg × 180ha', monto: 95000, fecha: new Date('2024-10-18'), categoria: 'INSUMO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Urea 250kg × 180ha',                  monto: 48000, fecha: new Date('2024-10-20'), categoria: 'INSUMO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'FDA 100kg × 160ha trigo',             monto: 22000, fecha: new Date('2024-06-14'), categoria: 'INSUMO', campoId: campoProgreso.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Servicio cosecha soja',                monto: 110000,fecha: new Date('2025-04-15'), categoria: 'SERVICIO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Servicio cosecha maíz',                monto: 135000,fecha: new Date('2025-03-24'), categoria: 'SERVICIO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Combustible — campaña completa',       monto: 62000, fecha: new Date('2025-01-15'), categoria: 'COMBUSTIBLE' },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Mano de obra — 3 peones mensual',      monto: 180000,fecha: new Date('2025-02-01'), categoria: 'MANO_DE_OBRA' },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Vacunación antiaftosa rodeo',          monto: 18500, fecha: new Date('2025-04-01'), categoria: 'VETERINARIA' },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Reparación tranquera y alambrado',     monto: 25000, fecha: new Date('2025-03-10'), categoria: 'MANTENIMIENTO', campoId: campoEsperanza.id },
 
       // Campaña 25/26 (inicio)
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'Semilla soja Lote Este',   monto: 78000, fecha: new Date('2025-11-03'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuario.id, tipo: 'EGRESO', concepto: 'FDA girasol Potrero 2',    monto: 19800, fecha: new Date('2025-10-23'), categoria: 'INSUMO', campoId: campoProgreso.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Semilla soja Lote Este',   monto: 78000, fecha: new Date('2025-11-03'), categoria: 'INSUMO', campoId: campoEsperanza.id },
+      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'FDA girasol Potrero 2',    monto: 19800, fecha: new Date('2025-10-23'), categoria: 'INSUMO', campoId: campoProgreso.id },
     ],
   });
   console.log('💰 Movimientos financieros creados');
@@ -376,7 +381,7 @@ async function main() {
   console.log('   Email:    joaquingsabater@gmail.com');
   console.log('   Password: Jsadmin1234');
   console.log('');
-  console.log('👁️  DEMO (solo lectura — para clientes potenciales)');
+  console.log('🎮 DEMO (PRO interactivo — datos se reinician cada 24hs)');
   console.log('   Email:    demo@agromanager.ar');
   console.log('   Password: Demo1234');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
