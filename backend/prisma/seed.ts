@@ -2,48 +2,92 @@
  * AgroManager AR — Demo Seed
  * Ejecutar: npm run seed
  *
- * Crea datos realistas de dos campos argentinos con:
- * - 1 usuario ADMIN (joaquingsabater@gmail.com / Jsadmin1234)  ← acceso total + panel admin
- * - 1 usuario DEMO  (demo@agromanager.ar / Demo1234)           ← solo lectura, para clientes
- * - 2 campos, 5 lotes
- * - 4 tipos de cultivo, 8 insumos
- * - 2 campañas, 5 siembras (3 cosechadas + 2 en curso)
- * - 12 bovinos con historial de pesos y preñeces
- * - 10 tareas rurales
- * - 18 movimientos financieros
+ * SEGURO: solo toca al usuario ADMIN y al usuario DEMO.
+ * Las cuentas de clientes reales NO se borran.
+ *
+ * - 1 usuario ADMIN (joaquinsabater@agromanagerar.com / Jsadmin1234)
+ * - 1 usuario DEMO  (demo@agromanager.ar / Demo1234) ← PRO interactivo, reset 24hs
+ * - 2 campos, 5 lotes, 4 tipos de cultivo, 8 insumos
+ * - 2 campañas, 5 siembras, 12 bovinos, 10 tareas, 18 movimientos financieros
  */
 
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
+const ADMIN_EMAIL = 'joaquinsabater@agromanagerar.com';
+const DEMO_EMAIL = 'demo@agromanager.ar';
+
 const prisma = new PrismaClient();
 
+async function limpiarDemoData(demoId: number) {
+  const campos = await prisma.campo.findMany({ where: { usuarioId: demoId }, select: { id: true } });
+  const campoIds = campos.map((c) => c.id);
+  if (campoIds.length) {
+    const lotes = await prisma.lote.findMany({ where: { campoId: { in: campoIds } }, select: { id: true } });
+    const loteIds = lotes.map((l) => l.id);
+    if (loteIds.length) {
+      const siembras = await prisma.siembra.findMany({ where: { loteId: { in: loteIds } }, select: { id: true } });
+      const siembraIds = siembras.map((s) => s.id);
+      if (siembraIds.length) {
+        await prisma.aplicacionInsumo.deleteMany({ where: { siembraId: { in: siembraIds } } });
+        await prisma.cosecha.deleteMany({ where: { siembraId: { in: siembraIds } } });
+        await prisma.siembra.deleteMany({ where: { id: { in: siembraIds } } });
+      }
+      await prisma.lote.deleteMany({ where: { id: { in: loteIds } } });
+    }
+  }
+  await prisma.campania.deleteMany({ where: { usuarioId: demoId } });
+  await prisma.campo.deleteMany({ where: { usuarioId: demoId } });
+  const animales = await prisma.animal.findMany({ where: { usuarioId: demoId }, select: { id: true } });
+  const animalIds = animales.map((a) => a.id);
+  if (animalIds.length) {
+    await prisma.registroPeso.deleteMany({ where: { animalId: { in: animalIds } } });
+    await prisma.prenez.deleteMany({ where: { animalId: { in: animalIds } } });
+    await prisma.animal.deleteMany({ where: { id: { in: animalIds } } });
+  }
+  await prisma.tareaRural.deleteMany({ where: { usuarioId: demoId } });
+  await prisma.movimientoFinanciero.deleteMany({ where: { usuarioId: demoId } });
+}
+
 async function main() {
-  console.log('🌱 Iniciando seed de demo...');
+  console.log('🌱 Iniciando seed (seguro — no toca cuentas reales)...');
 
-  // ─── Limpiar tablas en orden correcto ─────────────────────────────────────
-  await prisma.registroPeso.deleteMany();
-  await prisma.prenez.deleteMany();
-  await prisma.animal.deleteMany();
-  await prisma.movimientoFinanciero.deleteMany();
-  await prisma.tareaRural.deleteMany();
-  await prisma.cosecha.deleteMany();
-  await prisma.aplicacionInsumo.deleteMany();
-  await prisma.siembra.deleteMany();
-  await prisma.campania.deleteMany();
-  await prisma.lote.deleteMany();
-  await prisma.campo.deleteMany();
-  await prisma.insumo.deleteMany();
-  await prisma.tipoCultivo.deleteMany();
-  await prisma.usuario.deleteMany();
+  // ─── Tipos de cultivo (globales, solo crea si no existen) ───────────────
+  const sojaExist    = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Soja' } });
+  const maizExist    = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Maíz' } });
+  const trigoExist   = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Trigo' } });
+  const girasolExist = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Girasol' } });
+  const soja    = sojaExist    ?? await prisma.tipoCultivo.create({ data: { nombre: 'Soja',    descripcion: 'Glycine max' } });
+  const maiz    = maizExist    ?? await prisma.tipoCultivo.create({ data: { nombre: 'Maíz',    descripcion: 'Zea mays' } });
+  const trigo   = trigoExist   ?? await prisma.tipoCultivo.create({ data: { nombre: 'Trigo',   descripcion: 'Triticum aestivum' } });
+  const girasol = girasolExist ?? await prisma.tipoCultivo.create({ data: { nombre: 'Girasol', descripcion: 'Helianthus annuus' } });
+  console.log('🌿 Tipos de cultivo OK');
 
-  console.log('🗑️  Tablas limpias');
+  // ─── Insumos (globales, solo crea si no existen) ─────────────────────────
+  async function getOrCreateInsumo(nombre: string, tipo: string, unidad: string, descripcion: string) {
+    return (await prisma.insumo.findFirst({ where: { nombre } }))
+      ?? prisma.insumo.create({ data: { nombre, tipo: tipo as any, unidad, descripcion } });
+  }
+  const [glifosato, urea, fda, semSoja, semMaiz, mancozeb, cipermetrina, nitrato] =
+    await Promise.all([
+      getOrCreateInsumo('Glifosato 48%',       'HERBICIDA',    'litros', 'Herbicida sistémico'),
+      getOrCreateInsumo('Urea Granulada',      'FERTILIZANTE', 'kg',     '46% N'),
+      getOrCreateInsumo('Fosfato Diamónico',   'FERTILIZANTE', 'kg',     '18-46-0'),
+      getOrCreateInsumo('Semilla Soja NK7059', 'SEMILLA',      'kg',     'Grupo VII, tolerante a sequía'),
+      getOrCreateInsumo('Semilla Maíz DK7210', 'SEMILLA',      'kg',     'Híbrido simple, alto rendimiento'),
+      getOrCreateInsumo('Mancozeb 80%',        'FUNGICIDA',    'kg',     'Fungicida preventivo'),
+      getOrCreateInsumo('Cipermetrina 25%',    'INSECTICIDA',  'litros', 'Insecticida piretroide'),
+      getOrCreateInsumo('Nitrato de Amonio',   'FERTILIZANTE', 'kg',     '34.5% N'),
+    ]);
+  console.log('🧴 Insumos OK');
 
-  // ─── Usuario ADMIN ─────────────────────────────────────────────────────────
+  // ─── Upsert usuario ADMIN ─────────────────────────────────────────────────
   const hashAdmin = await bcrypt.hash('Jsadmin1234', 10);
-  const usuario = await prisma.usuario.create({
-    data: {
-      email: 'joaquingsabater@gmail.com',
+  const usuario = await prisma.usuario.upsert({
+    where: { email: ADMIN_EMAIL },
+    update: { emailVerificado: true, rol: 'ADMIN' },
+    create: {
+      email: ADMIN_EMAIL,
       nombre: 'Joaquín Sabater',
       password: hashAdmin,
       rol: 'ADMIN',
@@ -52,11 +96,13 @@ async function main() {
   });
   console.log(`👤 Admin: ${usuario.email}`);
 
-  // ─── Usuario DEMO (interactivo, plan PRO, datos se reinician cada 24hs) ───
+  // ─── Upsert usuario DEMO ──────────────────────────────────────────────────
   const hashDemo = await bcrypt.hash('Demo1234', 10);
-  const usuarioDemo = await prisma.usuario.create({
-    data: {
-      email: 'demo@agromanager.ar',
+  const usuarioDemo = await prisma.usuario.upsert({
+    where: { email: DEMO_EMAIL },
+    update: { plan: 'PRO', planExpira: new Date('2035-12-31'), emailVerificado: true, trialUsado: true },
+    create: {
+      email: DEMO_EMAIL,
       nombre: 'Usuario Demo',
       apellido: '',
       password: hashDemo,
@@ -69,28 +115,9 @@ async function main() {
   });
   console.log(`🎮 Demo: ${usuarioDemo.email} (PRO interactivo)`);
 
-  // ─── Tipos de cultivo ──────────────────────────────────────────────────────
-  const [soja, maiz, trigo, girasol] = await Promise.all([
-    prisma.tipoCultivo.create({ data: { nombre: 'Soja', descripcion: 'Glycine max' } }),
-    prisma.tipoCultivo.create({ data: { nombre: 'Maíz', descripcion: 'Zea mays' } }),
-    prisma.tipoCultivo.create({ data: { nombre: 'Trigo', descripcion: 'Triticum aestivum' } }),
-    prisma.tipoCultivo.create({ data: { nombre: 'Girasol', descripcion: 'Helianthus annuus' } }),
-  ]);
-  console.log('🌿 Tipos de cultivo creados');
-
-  // ─── Insumos ───────────────────────────────────────────────────────────────
-  const [glifosato, urea, fda, semSoja, semMaiz, mancozeb, cipermetrina, nitrato] =
-    await Promise.all([
-      prisma.insumo.create({ data: { nombre: 'Glifosato 48%', tipo: 'HERBICIDA', unidad: 'litros', descripcion: 'Herbicida sistémico' } }),
-      prisma.insumo.create({ data: { nombre: 'Urea Granulada', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '46% N' } }),
-      prisma.insumo.create({ data: { nombre: 'Fosfato Diamónico', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '18-46-0' } }),
-      prisma.insumo.create({ data: { nombre: 'Semilla Soja NK7059', tipo: 'SEMILLA', unidad: 'kg', descripcion: 'Grupo VII, tolerante a sequía' } }),
-      prisma.insumo.create({ data: { nombre: 'Semilla Maíz DK7210', tipo: 'SEMILLA', unidad: 'kg', descripcion: 'Híbrido simple, alto rendimiento' } }),
-      prisma.insumo.create({ data: { nombre: 'Mancozeb 80%', tipo: 'FUNGICIDA', unidad: 'kg', descripcion: 'Fungicida preventivo' } }),
-      prisma.insumo.create({ data: { nombre: 'Cipermetrina 25%', tipo: 'INSECTICIDA', unidad: 'litros', descripcion: 'Insecticida piretroide' } }),
-      prisma.insumo.create({ data: { nombre: 'Nitrato de Amonio', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '34.5% N' } }),
-    ]);
-  console.log('🧴 Insumos creados');
+  // ─── Limpiar datos anteriores del demo y recrear ──────────────────────────
+  await limpiarDemoData(usuarioDemo.id);
+  console.log('🗑️  Datos demo anteriores eliminados');
 
   // ─── Campos y Lotes ────────────────────────────────────────────────────────
   const campoEsperanza = await prisma.campo.create({
@@ -379,11 +406,11 @@ async function main() {
   console.log('\n✅ Seed completado exitosamente!');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🔐 ADMINISTRADOR (acceso total + panel admin)');
-  console.log('   Email:    joaquingsabater@gmail.com');
+  console.log(`   Email:    ${ADMIN_EMAIL}`);
   console.log('   Password: Jsadmin1234');
   console.log('');
   console.log('🎮 DEMO (PRO interactivo — datos se reinician cada 24hs)');
-  console.log('   Email:    demo@agromanager.ar');
+  console.log(`   Email:    ${DEMO_EMAIL}`);
   console.log('   Password: Demo1234');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
