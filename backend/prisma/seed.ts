@@ -47,6 +47,7 @@ async function main() {
       nombre: 'Joaquín Sabater',
       password: hashAdmin,
       rol: 'ADMIN',
+      emailVerificado: true,
     },
   });
   console.log(`👤 Admin: ${usuario.email}`);
