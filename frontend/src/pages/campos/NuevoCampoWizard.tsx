@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   X, Layers, Plus, Trash2, Loader2, CheckCircle,
   Wheat, Beef, ChevronLeft, ChevronRight, ArrowRight,
-  MapPin, Navigation,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { camposApi } from '../../api/campos.api';
+import UbicacionStep from './UbicacionStep';
 
 type Actividad = 'AGRICULTURA' | 'GANADERIA' | 'MIXTO';
 
@@ -22,6 +22,7 @@ interface Props {
 
 const STEPS = [
   { label: 'Datos básicos' },
+  { label: 'Ubicación' },
   { label: 'Lotes' },
   { label: 'Actividad' },
 ];
@@ -30,11 +31,15 @@ export default function NuevoCampoWizard({ onClose }: Props) {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  // Paso 0
+  // Paso 0 — Datos básicos
   const [nombre, setNombre] = useState('');
-  const [ubicacion, setUbicacion] = useState('');
   const [hectareas, setHectareas] = useState('');
   const [propietario, setPropietario] = useState('');
+
+  // Paso 1 — Ubicación
+  const [provincia, setProvincia] = useState('');
+  const [localidad, setLocalidad] = useState('');
+  const [ubicacion, setUbicacion] = useState('');
   const [latitud, setLatitud] = useState<number | null>(null);
   const [longitud, setLongitud] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -82,13 +87,14 @@ export default function NuevoCampoWizard({ onClose }: Props) {
 
   const canGoNext = () => {
     if (step === 0) return nombre.trim().length > 0;
-    if (step === 1) return true;
-    if (step === 2) return actividad !== null;
+    if (step === 1) return true; // ubicación es opcional
+    if (step === 2) return true; // lotes son opcionales
+    if (step === 3) return actividad !== null;
     return false;
   };
 
   const handleNext = () => {
-    if (step === 2) {
+    if (step === 3) {
       createMutation.mutate();
       return;
     }
@@ -165,20 +171,22 @@ export default function NuevoCampoWizard({ onClose }: Props) {
 
           <h2 className="text-xl font-bold text-white">
             {step === 0 && 'Datos del campo'}
-            {step === 1 && 'Lotes'}
-            {step === 2 && 'Tipo de actividad'}
-            {step === 3 && '¡Campo creado!'}
+            {step === 1 && 'Ubicación'}
+            {step === 2 && 'Lotes'}
+            {step === 3 && 'Tipo de actividad'}
+            {step === 4 && '¡Campo creado!'}
           </h2>
           <p className="text-green-200 text-sm mt-0.5">
             {step === 0 && 'Ingresá la información básica de tu establecimiento'}
-            {step === 1 && 'Dividí el campo en lotes (podés hacerlo después también)'}
-            {step === 2 && '¿A qué se dedica este campo?'}
-            {step === 3 && 'Tu campo está listo para empezar a gestionar'}
+            {step === 1 && 'Elegí provincia, localidad y marcá la ubicación GPS'}
+            {step === 2 && 'Dividí el campo en lotes (podés hacerlo después también)'}
+            {step === 3 && '¿A qué se dedica este campo?'}
+            {step === 4 && 'Tu campo está listo para empezar a gestionar'}
           </p>
         </div>
 
         {/* ── Contenido ── */}
-        <div className="p-6 min-h-56">
+        <div className="p-6 min-h-56 overflow-y-auto max-h-[70vh]">
 
           {/* Paso 0 — Datos básicos */}
           {step === 0 && (
@@ -223,70 +231,23 @@ export default function NuevoCampoWizard({ onClose }: Props) {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Ubicación
-                </label>
-                <input
-                  value={ubicacion}
-                  onChange={(e) => setUbicacion(e.target.value)}
-                  className="input"
-                  placeholder="Ej: Pergamino, Buenos Aires"
-                />
-              </div>
-
-              {/* GPS */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Coordenadas GPS
-                </label>
-                {latitud && longitud ? (
-                  <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={15} className="text-green-700 shrink-0" />
-                      <span className="text-xs text-green-800 font-mono">
-                        {latitud.toFixed(5)}, {longitud.toFixed(5)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={`https://www.google.com/maps?q=${latitud},${longitud}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-green-700 hover:underline"
-                      >
-                        Ver mapa
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => { setLatitud(null); setLongitud(null); }}
-                        className="text-gray-400 hover:text-red-500 transition-colors text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleGps}
-                    disabled={gpsLoading}
-                    className="flex items-center gap-2 w-full justify-center py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-green-400 hover:text-green-700 hover:bg-green-50 transition-all disabled:opacity-50"
-                  >
-                    {gpsLoading ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : (
-                      <Navigation size={15} />
-                    )}
-                    {gpsLoading ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
-                  </button>
-                )}
-              </div>
             </div>
           )}
 
-          {/* Paso 1 — Lotes */}
+          {/* Paso 1 — Ubicación */}
           {step === 1 && (
+            <UbicacionStep
+              provincia={provincia}   setProvincia={setProvincia}
+              localidad={localidad}   setLocalidad={setLocalidad}
+              ubicacion={ubicacion}   setUbicacion={setUbicacion}
+              latitud={latitud}       setLatitud={setLatitud}
+              longitud={longitud}     setLongitud={setLongitud}
+              gpsLoading={gpsLoading} onGps={handleGps}
+            />
+          )}
+
+          {/* Paso 2 — Lotes */}
+          {step === 2 && (
             <div className="space-y-3">
               {lotes.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
@@ -334,8 +295,8 @@ export default function NuevoCampoWizard({ onClose }: Props) {
             </div>
           )}
 
-          {/* Paso 2 — Actividad */}
-          {step === 2 && (
+          {/* Paso 3 — Actividad */}
+          {step === 3 && (
             <div className="grid grid-cols-3 gap-3">
               {(
                 [
@@ -387,8 +348,8 @@ export default function NuevoCampoWizard({ onClose }: Props) {
             </div>
           )}
 
-          {/* Paso 3 — Listo */}
-          {step === 3 && (
+          {/* Paso 4 — Listo */}
+          {step === 4 && (
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle size={32} className="text-green-600" />
@@ -416,7 +377,7 @@ export default function NuevoCampoWizard({ onClose }: Props) {
         {/* ── Footer ── */}
         <div className="px-6 pb-6 flex items-center justify-between">
           {/* Botón Atrás */}
-          {step > 0 && step < 3 ? (
+          {step > 0 && step < 4 ? (
             <button
               onClick={() => setStep((s) => s - 1)}
               disabled={createMutation.isPending}
@@ -430,11 +391,11 @@ export default function NuevoCampoWizard({ onClose }: Props) {
           )}
 
           {/* Acciones derecha */}
-          {step < 3 && (
+          {step < 4 && (
             <div className="flex items-center gap-2">
-              {step === 1 && (
+              {(step === 1 || step === 2) && (
                 <button
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep((s) => s + 1)}
                   className="text-sm text-gray-400 hover:text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Omitir
@@ -446,13 +407,13 @@ export default function NuevoCampoWizard({ onClose }: Props) {
                 className="flex items-center gap-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-                {step === 2 ? 'Crear campo' : 'Siguiente'}
-                {step < 2 && !createMutation.isPending && <ChevronRight size={16} />}
+                {step === 3 ? 'Crear campo' : 'Siguiente'}
+                {step < 3 && !createMutation.isPending && <ChevronRight size={16} />}
               </button>
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="flex items-center gap-3 w-full justify-center">
               <button
                 onClick={onClose}
