@@ -298,3 +298,102 @@ export interface CreateRegistroPesoDto {
   fecha: string;
   observaciones?: string;
 }
+
+// ─── Maquinarias ─────────────────────────────────────────────────────────────
+
+export type TipoMaquinaria =
+  | 'TRACTOR'
+  | 'SEMBRADORA'
+  | 'PULVERIZADORA'
+  | 'COSECHADORA'
+  | 'CAMIONETA'
+  | 'MIXER'
+  | 'ACOPLADO'
+  | 'TOLVA'
+  | 'HERRAMIENTA'
+  | 'OTRO';
+
+export type EstadoMaquinaria = 'OPERATIVA' | 'EN_MANTENIMIENTO' | 'FUERA_DE_SERVICIO';
+
+export type TipoMantenimiento = 'CAMBIO_ACEITE' | 'REVISION_GENERAL' | 'REPARACION' | 'OTRO';
+
+export type TipoGastoMaq = 'COMBUSTIBLE' | 'REPARACION' | 'REPUESTO' | 'SERVICIO' | 'SEGURO' | 'OTRO';
+
+export interface MantenimientoMaquinaria {
+  id: number;
+  maquinariaId: number;
+  tipo: TipoMantenimiento;
+  descripcion?: string;
+  fecha: string;
+  horasUso?: number;
+  costo?: number;
+  proximoMantenimiento?: string;
+  observaciones?: string;
+  createdAt: string;
+}
+
+export interface GastoMaquinaria {
+  id: number;
+  maquinariaId: number;
+  tipo: TipoGastoMaq;
+  descripcion: string;
+  monto: number;
+  fecha: string;
+  observaciones?: string;
+  createdAt: string;
+}
+
+export interface Maquinaria {
+  id: number;
+  usuarioId: number;
+  campoId?: number;
+  nombre: string;
+  tipo: TipoMaquinaria;
+  marca?: string;
+  modelo?: string;
+  anio?: number;
+  patente?: string;
+  estado: EstadoMaquinaria;
+  horasUso?: number;
+  seguroVencimiento?: string;
+  vtvVencimiento?: string;
+  observaciones?: string;
+  campo?: { id: number; nombre: string };
+  mantenimientos: MantenimientoMaquinaria[];
+  gastos: GastoMaquinaria[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMaquinariaDto {
+  nombre: string;
+  tipo: TipoMaquinaria;
+  marca?: string;
+  modelo?: string;
+  anio?: number;
+  patente?: string;
+  estado?: EstadoMaquinaria;
+  horasUso?: number;
+  seguroVencimiento?: string;
+  vtvVencimiento?: string;
+  observaciones?: string;
+  campoId?: number;
+}
+
+export interface CreateMantenimientoDto {
+  tipo: TipoMantenimiento;
+  descripcion?: string;
+  fecha: string;
+  horasUso?: number;
+  costo?: number;
+  proximoMantenimiento?: string;
+  observaciones?: string;
+}
+
+export interface CreateGastoDto {
+  tipo: TipoGastoMaq;
+  descripcion: string;
+  monto: number;
+  fecha: string;
+  observaciones?: string;
+}

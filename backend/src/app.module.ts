@@ -14,6 +14,7 @@ import { GanadoModule } from './ganado/ganado.module';
 import { TareasModule } from './tareas/tareas.module';
 import { FinanzasModule } from './finanzas/finanzas.module';
 import { CampaniasModule } from './campanias/campanias.module';
+import { MaquinariasModule } from './maquinarias/maquinarias.module';
 import { AiModule } from './ai/ai.module';
 import { PlanModule } from './plan/plan.module';
 import { UsersModule } from './users/users.module';
@@ -43,6 +44,7 @@ import { DemoModule } from './demo/demo.module';
     TareasModule,
     FinanzasModule,
     CampaniasModule,
+    MaquinariasModule,
     AiModule,
   ],
   controllers: [AppController],

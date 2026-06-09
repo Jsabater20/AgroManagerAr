@@ -20,14 +20,15 @@ export class AppService {
 
     const resend = new Resend(apiKey);
 
-    const fromEmail =
-      process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
+    const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
 
     const { error } = await resend.emails.send({
       from: `AgroManager AR <${fromEmail}>`,
       to: [toEmail],
       replyTo: email,
-      subject: asunto ? `[Contacto] ${asunto}` : `[Contacto] Consulta de ${nombre}`,
+      subject: asunto
+        ? `[Contacto] ${asunto}`
+        : `[Contacto] Consulta de ${nombre}`,
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
           <h2 style="color:#166534;margin-bottom:4px">Nueva consulta desde AgroManager AR</h2>

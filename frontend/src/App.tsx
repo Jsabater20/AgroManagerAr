@@ -26,6 +26,8 @@ import InsumosPage from './pages/insumos/InsumosPage';
 import CultivosPage from './pages/cultivos/CultivosPage';
 import GanadoPage from './pages/ganado/GanadoPage';
 import TareasPage from './pages/tareas/TareasPage';
+import MaquinariasPage from './pages/maquinarias/MaquinariasPage';
+import MaquinariaDetailPage from './pages/maquinarias/MaquinariaDetailPage';
 import ReportesPage from './pages/reportes/ReportesPage';
 import FinanzasPage from './pages/finanzas/FinanzasPage';
 import CampaniasPage from './pages/campanias/CampaniasPage';
@@ -77,6 +79,8 @@ export default function App() {
               <Route path="/insumos" element={<InsumosPage />} />
               <Route path="/ganado" element={<GanadoPage />} />
               <Route path="/tareas" element={<TareasPage />} />
+              <Route path="/maquinarias" element={<MaquinariasPage />} />
+              <Route path="/maquinarias/:id" element={<MaquinariaDetailPage />} />
               <Route path="/reportes" element={<ReportesPage />} />
               <Route path="/finanzas" element={<FinanzasPage />} />
               <Route path="/campanias" element={<CampaniasPage />} />
