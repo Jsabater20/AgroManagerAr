@@ -2,14 +2,14 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ClipboardList, Plus, Loader2, CheckCircle2, Clock, AlertTriangle,
-  XCircle, ChevronLeft, ChevronRight, X, Trash2, Pencil,
+  XCircle, ChevronLeft, ChevronRight, X, Trash2, Pencil, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { tareasApi } from '../../api/tareas.api';
 import { camposApi } from '../../api/campos.api';
 import type {
   TareaRural, CreateTareaDto,
-  TipoTarea, EstadoTarea, Prioridad,
+  TipoTarea, EstadoTarea, Prioridad, RepetirTarea,
 } from '../../api/types';
 
 const PAGE_SIZE = 10;
@@ -54,9 +54,16 @@ const PRIORIDAD_CONFIG: Record<Prioridad, { label: string; color: string; dot: s
   URGENTE: { label: 'Urgente', color: 'text-red-600',   dot: 'bg-red-500' },
 };
 
+const REPETIR_OPTIONS: { value: RepetirTarea; label: string }[] = [
+  { value: 'UNICA',     label: 'Una vez' },
+  { value: 'SEMANAL',   label: 'Cada 7 días' },
+  { value: 'QUINCENAL', label: 'Cada 15 días' },
+  { value: 'MENSUAL',   label: 'Mensual' },
+];
+
 const emptyForm: CreateTareaDto = {
-  titulo: '', tipo: 'OTRO', prioridad: 'MEDIA',
-  fechaProgramada: '', campoId: undefined, descripcion: '', observaciones: '',
+  titulo: '', tipo: 'OTRO', prioridad: 'MEDIA', repetir: 'UNICA',
+  fechaProgramada: '', fechaLimite: '', campoId: undefined, descripcion: '', observaciones: '',
 };
 
 function isOverdue(t: TareaRural): boolean {
@@ -110,6 +117,8 @@ export default function TareasPage() {
     setForm({
       titulo: t.titulo, tipo: t.tipo, prioridad: t.prioridad,
       fechaProgramada: t.fechaProgramada.split('T')[0],
+      fechaLimite: t.fechaLimite ? t.fechaLimite.split('T')[0] : '',
+      repetir: t.repetir ?? 'UNICA',
       campoId: t.campoId ?? undefined,
       descripcion: t.descripcion ?? '', observaciones: t.observaciones ?? '',
     });
@@ -250,6 +259,12 @@ export default function TareasPage() {
                       <td className="px-5 py-3.5">
                         <p className="font-medium text-gray-900">{t.titulo}</p>
                         {t.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{t.descripcion}</p>}
+                        {t.repetir && t.repetir !== 'UNICA' && (
+                          <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-indigo-600">
+                            <RefreshCw size={10} />
+                            {REPETIR_OPTIONS.find(r => r.value === t.repetir)?.label}
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TIPO_COLORS[t.tipo]}`}>
@@ -343,7 +358,18 @@ export default function TareasPage() {
                 <input required type="date" value={form.fechaProgramada}
                   onChange={(e) => setForm({ ...form, fechaProgramada: e.target.value })} className="input" />
               </Field>
-              <Field label="Campo (opcional)">
+              <Field label="Fecha límite">
+                <input type="date" value={form.fechaLimite ?? ''}
+                  onChange={(e) => setForm({ ...form, fechaLimite: e.target.value || undefined })} className="input" />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Repetir">
+                <select value={form.repetir ?? 'UNICA'} onChange={(e) => setForm({ ...form, repetir: e.target.value as RepetirTarea })} className="input">
+                  {REPETIR_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Campo">
                 <select value={form.campoId ?? 0} onChange={(e) => setForm({ ...form, campoId: Number(e.target.value) || undefined })} className="input">
                   <option value={0}>Sin campo</option>
                   {campos?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -353,11 +379,6 @@ export default function TareasPage() {
             <Field label="Descripción">
               <textarea rows={2} value={form.descripcion}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                className="input resize-none" placeholder="Opcional" />
-            </Field>
-            <Field label="Observaciones">
-              <textarea rows={2} value={form.observaciones}
-                onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
                 className="input resize-none" placeholder="Opcional" />
             </Field>
             <ModalActions

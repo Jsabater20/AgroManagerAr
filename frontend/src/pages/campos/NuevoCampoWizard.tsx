@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   X, Layers, Plus, Trash2, Loader2, CheckCircle,
   Wheat, Beef, ChevronLeft, ChevronRight, ArrowRight,
+  MapPin, Navigation,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { camposApi } from '../../api/campos.api';
@@ -34,6 +35,9 @@ export default function NuevoCampoWizard({ onClose }: Props) {
   const [ubicacion, setUbicacion] = useState('');
   const [hectareas, setHectareas] = useState('');
   const [propietario, setPropietario] = useState('');
+  const [latitud, setLatitud] = useState<number | null>(null);
+  const [longitud, setLongitud] = useState<number | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
 
   // Paso 1
   const [lotes, setLotes] = useState<LoteInput[]>([]);
@@ -52,6 +56,8 @@ export default function NuevoCampoWizard({ onClose }: Props) {
         hectareas: parseFloat(hectareas) || 0,
         ubicacion: ubicacion.trim() || undefined,
         propietario: propietario.trim() || undefined,
+        latitud: latitud ?? undefined,
+        longitud: longitud ?? undefined,
       });
       const lotesValidos = lotes.filter((l) => l.nombre.trim());
       if (lotesValidos.length > 0) {
@@ -93,6 +99,27 @@ export default function NuevoCampoWizard({ onClose }: Props) {
   const removeLote = (i: number) => setLotes((l) => l.filter((_, idx) => idx !== i));
   const updateLote = (i: number, field: keyof LoteInput, value: string) =>
     setLotes((l) => l.map((lot, idx) => (idx === i ? { ...lot, [field]: value } : lot)));
+
+  const handleGps = () => {
+    if (!navigator.geolocation) {
+      toast.error('Tu navegador no soporta geolocalización');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitud(pos.coords.latitude);
+        setLongitud(pos.coords.longitude);
+        setGpsLoading(false);
+        toast.success('Ubicación capturada');
+      },
+      () => {
+        setGpsLoading(false);
+        toast.error('No se pudo obtener la ubicación. Verificá los permisos del navegador.');
+      },
+      { timeout: 10000 },
+    );
+  };
 
   const lotesValidos = lotes.filter((l) => l.nombre.trim());
 
@@ -206,6 +233,54 @@ export default function NuevoCampoWizard({ onClose }: Props) {
                   className="input"
                   placeholder="Ej: Pergamino, Buenos Aires"
                 />
+              </div>
+
+              {/* GPS */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Coordenadas GPS
+                </label>
+                {latitud && longitud ? (
+                  <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={15} className="text-green-700 shrink-0" />
+                      <span className="text-xs text-green-800 font-mono">
+                        {latitud.toFixed(5)}, {longitud.toFixed(5)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`https://www.google.com/maps?q=${latitud},${longitud}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-green-700 hover:underline"
+                      >
+                        Ver mapa
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => { setLatitud(null); setLongitud(null); }}
+                        className="text-gray-400 hover:text-red-500 transition-colors text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGps}
+                    disabled={gpsLoading}
+                    className="flex items-center gap-2 w-full justify-center py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-green-400 hover:text-green-700 hover:bg-green-50 transition-all disabled:opacity-50"
+                  >
+                    {gpsLoading ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Navigation size={15} />
+                    )}
+                    {gpsLoading ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
+                  </button>
+                )}
               </div>
             </div>
           )}

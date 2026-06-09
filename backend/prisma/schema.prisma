@@ -58,6 +58,8 @@ model Campo {
   hectareas   Float
   ubicacion   String?
   propietario String?
+  latitud     Float?
+  longitud    Float?
   usuarioId   Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -262,7 +264,9 @@ model TareaRural {
   estado           EstadoTarea  @default(PENDIENTE)
   prioridad        Prioridad    @default(MEDIA)
   fechaProgramada  DateTime
+  fechaLimite      DateTime?
   fechaCompletada  DateTime?
+  repetir          RepetirTarea @default(UNICA)
   campoId          Int?
   observaciones    String?
   createdAt        DateTime     @default(now())
@@ -295,6 +299,13 @@ enum Prioridad {
   MEDIA
   ALTA
   URGENTE
+}
+
+enum RepetirTarea {
+  UNICA
+  SEMANAL
+  QUINCENAL
+  MENSUAL
 }
 
 // ─── MÓDULO 4: FINANZAS ───────────────────────────────────────────────────────

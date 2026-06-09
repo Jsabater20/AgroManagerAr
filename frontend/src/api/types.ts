@@ -13,6 +13,8 @@ export interface Campo {
   hectareas: number;
   ubicacion?: string;
   propietario?: string;
+  latitud?: number;
+  longitud?: number;
   usuarioId: number;
   createdAt: string;
   lotes: Lote[];
@@ -23,6 +25,8 @@ export interface CreateCampoDto {
   hectareas: number;
   ubicacion?: string;
   propietario?: string;
+  latitud?: number;
+  longitud?: number;
 }
 
 export interface CreateLoteDto {
@@ -186,6 +190,8 @@ export type TipoTarea =
 export type EstadoTarea = 'PENDIENTE' | 'EN_CURSO' | 'COMPLETADA' | 'CANCELADA';
 export type Prioridad = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
 
+export type RepetirTarea = 'UNICA' | 'SEMANAL' | 'QUINCENAL' | 'MENSUAL';
+
 export interface TareaRural {
   id: number;
   usuarioId: number;
@@ -195,7 +201,9 @@ export interface TareaRural {
   estado: EstadoTarea;
   prioridad: Prioridad;
   fechaProgramada: string;
+  fechaLimite?: string;
   fechaCompletada?: string;
+  repetir: RepetirTarea;
   campoId?: number;
   campo?: { id: number; nombre: string };
   observaciones?: string;
@@ -208,6 +216,8 @@ export interface CreateTareaDto {
   tipo: TipoTarea;
   prioridad?: Prioridad;
   fechaProgramada: string;
+  fechaLimite?: string;
+  repetir?: RepetirTarea;
   campoId?: number;
   observaciones?: string;
 }

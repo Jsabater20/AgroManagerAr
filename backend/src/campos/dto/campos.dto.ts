@@ -23,6 +23,16 @@ export class CreateCampoDto {
   @IsOptional()
   @IsString()
   propietario?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  latitud?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  longitud?: number;
 }
 
 export class UpdateCampoDto {
@@ -43,6 +53,16 @@ export class UpdateCampoDto {
   @IsOptional()
   @IsString()
   propietario?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  latitud?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  longitud?: number;
 }
 
 export class CreateLoteDto {
