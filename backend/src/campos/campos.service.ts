@@ -64,7 +64,37 @@ export class CamposService {
 
   async remove(id: number, usuarioId: number) {
     await this.findOne(id, usuarioId);
-    return this.prisma.campo.delete({ where: { id } });
+
+    // Obtener IDs de lotes y siembras para eliminar en cascada
+    const lotes = await this.prisma.lote.findMany({
+      where: { campoId: id },
+      select: { id: true },
+    });
+    const loteIds = lotes.map((l) => l.id);
+
+    const siembras = loteIds.length > 0
+      ? await this.prisma.siembra.findMany({
+          where: { loteId: { in: loteIds } },
+          select: { id: true },
+        })
+      : [];
+    const siembraIds = siembras.map((s) => s.id);
+
+    await this.prisma.$transaction([
+      // Eliminar registros hijos de siembras
+      this.prisma.aplicacionInsumo.deleteMany({ where: { siembraId: { in: siembraIds } } }),
+      this.prisma.cosecha.deleteMany({ where: { siembraId: { in: siembraIds } } }),
+      // Desvincular campañas de siembras (campaniaId nullable)
+      this.prisma.siembra.updateMany({ where: { id: { in: siembraIds } }, data: { campaniaId: null } }),
+      // Eliminar siembras y lotes
+      this.prisma.siembra.deleteMany({ where: { id: { in: siembraIds } } }),
+      this.prisma.lote.deleteMany({ where: { campoId: id } }),
+      // Desvincular tareas y movimientos (campoId nullable)
+      this.prisma.tareaRural.updateMany({ where: { campoId: id }, data: { campoId: null } }),
+      this.prisma.movimientoFinanciero.updateMany({ where: { campoId: id }, data: { campoId: null } }),
+      // Eliminar el campo
+      this.prisma.campo.delete({ where: { id } }),
+    ]);
   }
 
   async addLote(campoId: number, dto: CreateLoteDto, usuarioId: number) {
