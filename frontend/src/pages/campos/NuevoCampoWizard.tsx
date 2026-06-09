@@ -115,7 +115,7 @@ export default function NuevoCampoWizard({ onClose }: Props) {
           {/* Indicadores de paso */}
           {step < 3 && (
             <div className="flex items-center gap-2 mb-4">
-              {STEPS.map((s, i) => (
+              {STEPS.map((_s, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
