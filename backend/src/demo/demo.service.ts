@@ -20,8 +20,11 @@ export class DemoService implements OnModuleInit {
       });
       if (!demo) return;
       const maqCount = await this.prisma.maquinaria.count({ where: { usuarioId: demo.id } });
-      if (maqCount === 0) {
-        this.logger.log('Demo incompleta (sin maquinarias) — ejecutando reset...');
+      const campoSinGps = await this.prisma.campo.findFirst({
+        where: { usuarioId: demo.id, latitud: null },
+      });
+      if (maqCount === 0 || campoSinGps) {
+        this.logger.log('Demo incompleta — ejecutando reset...');
         await this.resetDemoData();
         this.logger.log('Reset inicial demo completado.');
       }
@@ -128,6 +131,8 @@ export class DemoService implements OnModuleInit {
         nombre: 'La Esperanza',
         hectareas: 500,
         ubicacion: 'Pergamino, Buenos Aires',
+        latitud: -33.8884,
+        longitud: -60.5659,
         propietario: 'Juan Pérez',
         usuarioId: uid,
         lotes: {
@@ -146,6 +151,8 @@ export class DemoService implements OnModuleInit {
         nombre: 'El Progreso',
         hectareas: 320,
         ubicacion: 'Marcos Juárez, Córdoba',
+        latitud: -32.6978,
+        longitud: -62.1028,
         propietario: 'Juan Pérez',
         usuarioId: uid,
         lotes: {
