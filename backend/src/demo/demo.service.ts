@@ -74,6 +74,7 @@ export class DemoService {
 
     await this.prisma.tareaRural.deleteMany({ where: { usuarioId: uid } });
     await this.prisma.movimientoFinanciero.deleteMany({ where: { usuarioId: uid } });
+    await this.prisma.maquinaria.deleteMany({ where: { usuarioId: uid } });
 
     // ── Re-crear datos demo ──────────────────────────────────────────────────
     await this.seedDemoData(uid);
@@ -310,6 +311,61 @@ export class DemoService {
       { usuarioId: uid, tipo: 'EGRESO', concepto: 'Semilla soja Lote Este', monto: 78000, fecha: new Date('2025-11-03'), categoria: 'INSUMO', campoId: campoEsperanza.id },
       { usuarioId: uid, tipo: 'EGRESO', concepto: 'FDA girasol Potrero 2', monto: 19800, fecha: new Date('2025-10-23'), categoria: 'INSUMO', campoId: campoProgreso.id },
     ]});
+
+    // ─── Maquinarias ─────────────────────────────────────────────────────────
+    await this.prisma.maquinaria.createMany({
+      data: [
+        {
+          usuarioId: uid, nombre: 'Tractor John Deere 5075E', tipo: 'TRACTOR', estado: 'OPERATIVA',
+          marca: 'John Deere', modelo: '5075E', anio: 2021, patente: 'AB123CD',
+          campoId: campoEsperanza.id, horasUso: 1500,
+          seguroVencimiento: new Date('2026-09-15'), vtvVencimiento: new Date('2026-10-20'),
+          observaciones: 'Usado para siembra y traslado de implementos. Último service realizado en mayo.',
+        },
+        {
+          usuarioId: uid, nombre: 'Cosechadora Case IH Axial-Flow 7150', tipo: 'COSECHADORA', estado: 'OPERATIVA',
+          marca: 'Case IH', modelo: 'Axial-Flow 7150', anio: 2019, patente: 'CH7150AR',
+          campoId: campoEsperanza.id, horasUso: 2840,
+          seguroVencimiento: new Date('2026-11-10'), vtvVencimiento: new Date('2026-12-05'),
+          observaciones: 'Se utiliza en campaña de soja y maíz. Revisar correas antes de cosecha gruesa.',
+        },
+        {
+          usuarioId: uid, nombre: 'Sembradora Agrometal TX Mega 1621', tipo: 'SEMBRADORA', estado: 'OPERATIVA',
+          marca: 'Agrometal', modelo: 'TX Mega 1621', anio: 2020, patente: 'AG1621TX',
+          campoId: campoEsperanza.id, horasUso: 980,
+          seguroVencimiento: new Date('2026-08-22'), vtvVencimiento: new Date('2026-09-30'),
+          observaciones: 'Regulada para maíz y soja. Controlar dosificadores antes de cada campaña.',
+        },
+        {
+          usuarioId: uid, nombre: 'Pulverizadora Metalfor 3025', tipo: 'PULVERIZADORA', estado: 'OPERATIVA',
+          marca: 'Metalfor', modelo: '3025', anio: 2018, patente: 'MF3025ZX',
+          campoId: campoProgreso.id, horasUso: 3210,
+          seguroVencimiento: new Date('2026-07-18'), vtvVencimiento: new Date('2026-08-25'),
+          observaciones: 'Equipo en buen estado. Revisar picos y bomba cada 200 hs.',
+        },
+        {
+          usuarioId: uid, nombre: 'Camioneta Toyota Hilux SRX', tipo: 'CAMIONETA', estado: 'OPERATIVA',
+          marca: 'Toyota', modelo: 'Hilux SRX 4x4', anio: 2022, patente: 'AE456FG',
+          campoId: null, horasUso: 62000,
+          seguroVencimiento: new Date('2026-10-12'), vtvVencimiento: new Date('2026-11-14'),
+          observaciones: 'Uso diario para recorridas y traslado de personal. Próximo cambio de aceite a los 65.000 km.',
+        },
+        {
+          usuarioId: uid, nombre: 'Tolva autodescargable Ombú 20 TN', tipo: 'TOLVA', estado: 'OPERATIVA',
+          marca: 'Ombú', modelo: 'Autodescargable 20 TN', anio: 2017, patente: 'OM20TN45',
+          campoId: null, horasUso: 0,
+          seguroVencimiento: new Date('2026-06-05'), vtvVencimiento: new Date('2026-07-19'),
+          observaciones: 'Se usa en cosecha para traslado de grano. Controlar cubiertas y sinfín.',
+        },
+        {
+          usuarioId: uid, nombre: 'Mixer Mainero 2910', tipo: 'MIXER', estado: 'EN_MANTENIMIENTO',
+          marca: 'Mainero', modelo: '2910', anio: 2016, patente: 'MN2910MX',
+          campoId: null, horasUso: 1875,
+          seguroVencimiento: new Date('2026-09-28'), vtvVencimiento: new Date('2026-10-10'),
+          observaciones: 'Actualmente en mantenimiento por desgaste de cuchillas. Revisión programada para la próxima semana.',
+        },
+      ],
+    });
   }
 
   /** Fuerza un reset manual (para endpoint admin o seed inicial) */
