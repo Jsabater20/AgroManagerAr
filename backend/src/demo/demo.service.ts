@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -6,10 +6,29 @@ import * as bcrypt from 'bcryptjs';
 export const DEMO_EMAIL = 'demo@agromanager.ar';
 
 @Injectable()
-export class DemoService {
+export class DemoService implements OnModuleInit {
   private readonly logger = new Logger(DemoService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  /** Al iniciar: resetea la demo si falta algún dato clave (ej. maquinarias vacías) */
+  async onModuleInit() {
+    try {
+      const demo = await this.prisma.usuario.findUnique({
+        where: { email: DEMO_EMAIL },
+        select: { id: true },
+      });
+      if (!demo) return;
+      const maqCount = await this.prisma.maquinaria.count({ where: { usuarioId: demo.id } });
+      if (maqCount === 0) {
+        this.logger.log('Demo incompleta (sin maquinarias) — ejecutando reset...');
+        await this.resetDemoData();
+        this.logger.log('Reset inicial demo completado.');
+      }
+    } catch (e) {
+      this.logger.error('Error en onModuleInit demo:', e);
+    }
+  }
 
   /** Cron: reinicia los datos demo todos los días a las 7:00 UTC (4:00 AR) */
   @Cron('0 7 * * *')
