@@ -15,6 +15,7 @@ const features = [
   { label: 'Siembras',                        free: 'Hasta 10',    pro: 'Ilimitadas' },
   { label: 'Gestión de cultivos',             free: true,          pro: true },
   { label: 'Gestión de insumos',              free: true,          pro: true },
+  { label: 'Maquinarias registradas',         free: 'Hasta 5',     pro: 'Ilimitadas' },
   { label: 'Tareas rurales',                  free: true,          pro: true },
   { label: 'Dashboard básico',                free: true,          pro: true },
   { label: 'Finanzas básicas',                free: true,          pro: true },

@@ -13,6 +13,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { MaquinariasService } from './maquinarias.service';
+import { PlanService } from '../plan/plan.service';
 import {
   CreateGastoDto,
   CreateMaquinariaDto,
@@ -25,7 +26,10 @@ type AuthRequest = Request & { user: { id: number } };
 @UseGuards(JwtAuthGuard)
 @Controller('maquinarias')
 export class MaquinariasController {
-  constructor(private readonly maquinariasService: MaquinariasService) {}
+  constructor(
+    private readonly maquinariasService: MaquinariasService,
+    private readonly planService: PlanService,
+  ) {}
 
   @Get()
   findAll(@Request() req: AuthRequest) {
@@ -39,7 +43,8 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Post()
-  create(@Request() req: AuthRequest, @Body() dto: CreateMaquinariaDto) {
+  async create(@Request() req: AuthRequest, @Body() dto: CreateMaquinariaDto) {
+    await this.planService.checkMaquinariasLimit(req.user.id);
     return this.maquinariasService.create(req.user.id, dto);
   }
 

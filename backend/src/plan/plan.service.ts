@@ -8,6 +8,7 @@ const LIMITES_FREE = {
   lotesPerCampo: 3,
   animales: 20,
   siembras: 10,
+  maquinarias: 5,
 };
 
 const PRECIOS = {
@@ -131,6 +132,16 @@ export class PlanService {
     if (count >= LIMITES_FREE.siembras) {
       throw new ForbiddenException(
         `Plan Free: máximo ${LIMITES_FREE.siembras} siembras. Actualizá a Pro para agregar más.`,
+      );
+    }
+  }
+
+  async checkMaquinariasLimit(usuarioId: number) {
+    if (await this.isPro(usuarioId)) return;
+    const count = await this.prisma.maquinaria.count({ where: { usuarioId } });
+    if (count >= LIMITES_FREE.maquinarias) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.maquinarias} maquinarias. Actualizá a Pro para agregar más.`,
       );
     }
   }
