@@ -88,7 +88,7 @@ export default function NuevoCampoWizard({ onClose }: Props) {
   const canGoNext = () => {
     if (step === 0) return nombre.trim().length > 0;
     if (step === 1) return true; // ubicación es opcional
-    if (step === 2) return true; // lotes son opcionales
+    if (step === 2) return lotesCoinciden; // lotes deben coincidir con hectáreas totales si hay datos
     if (step === 3) return actividad !== null;
     return false;
   };
@@ -105,6 +105,11 @@ export default function NuevoCampoWizard({ onClose }: Props) {
   const removeLote = (i: number) => setLotes((l) => l.filter((_, idx) => idx !== i));
   const updateLote = (i: number, field: keyof LoteInput, value: string) =>
     setLotes((l) => l.map((lot, idx) => (idx === i ? { ...lot, [field]: value } : lot)));
+
+  const totalHectareasLotes = lotes.reduce((sum, l) => sum + (parseFloat(l.hectareas) || 0), 0);
+  const hectareasDelCampo = parseFloat(hectareas) || 0;
+  const lotesConDatos = lotes.filter((l) => l.nombre.trim() && l.hectareas.trim());
+  const lotesCoinciden = lotesConDatos.length === 0 || Math.abs(totalHectareasLotes - hectareasDelCampo) < 0.01;
 
   const handleGps = () => {
     if (!navigator.geolocation) {
