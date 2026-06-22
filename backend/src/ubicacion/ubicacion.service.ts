@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-interface Provincia {
+export interface Provincia {
   id: string;
   nombre: string;
   centroide: { lat: number; lon: number };
 }
 
-interface Localidad {
+export interface Localidad {
   id: string;
   nombre: string;
   centroide: { lat: number; lon: number };
