@@ -80,7 +80,7 @@ export default function NuevoCampoWizard({ onClose }: Props) {
     onSuccess: (campo) => {
       qc.invalidateQueries({ queryKey: ['campos'] });
       setCreatedCampoId(campo.id);
-      setStep(3);
+      setStep(4);
     },
     onError: () => toast.error('Error al crear el campo'),
   });
