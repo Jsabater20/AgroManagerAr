@@ -4,22 +4,10 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Navigation, Loader2, MapPin } from 'lucide-react';
+import { ubicacionApi, type Provincia, type Localidad } from '../../api/ubicacion.api';
 
 // ── Fix Leaflet default marker icons en Vite ──────────────────────────────────
 L.Icon.Default.imagePath = 'https://unpkg.com/leaflet@1.9.4/dist/images/';
-
-// ── Tipos Georef API ──────────────────────────────────────────────────────────
-interface Provincia {
-  id: string;
-  nombre: string;
-  centroide: { lat: number; lon: number };
-}
-
-interface Localidad {
-  id: string;
-  nombre: string;
-  centroide: { lat: number; lon: number };
-}
 
 // ── Subcomponentes del mapa ───────────────────────────────────────────────────
 function ClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
@@ -66,29 +54,19 @@ export default function UbicacionStep({
   });
 
   // ── Provincias (una sola carga) ─────────────────────────────────────────────
-  const { data: provincias } = useQuery<Provincia[]>({
-    queryKey: ['georef-provincias'],
-    queryFn: async () => {
-      const res = await fetch(
-        'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre,centroide&max=100&orden=nombre',
-      );
-      const data = await res.json();
-      return data.provincias as Provincia[];
-    },
+  const { data: provincias, isLoading: loadingProvincias } = useQuery<Provincia[]>({
+    queryKey: ['provincias'],
+    queryFn: () => ubicacionApi.getProvincias(),
     staleTime: Infinity,
   });
 
   // ── Localidades según provincia ─────────────────────────────────────────────
   const { data: localidades, isLoading: loadingLocalidades } = useQuery<Localidad[]>({
-    queryKey: ['georef-localidades', provincia],
+    queryKey: ['localidades', provincia],
     queryFn: async () => {
       const prov = provincias?.find((p) => p.nombre === provincia);
       if (!prov) return [];
-      const res = await fetch(
-        `https://apis.datos.gob.ar/georef/api/localidades?provincia=${prov.id}&campos=id,nombre,centroide&max=1000&orden=nombre`,
-      );
-      const data = await res.json();
-      return data.localidades as Localidad[];
+      return ubicacionApi.getLocalidades(prov.id);
     },
     enabled: !!provincia && !!provincias,
     staleTime: 5 * 60 * 1000,
@@ -127,8 +105,9 @@ export default function UbicacionStep({
           value={provincia}
           onChange={(e) => handleProvinciaChange(e.target.value)}
           className="input"
+          disabled={loadingProvincias}
         >
-          <option value="">Seleccioná una provincia</option>
+          <option value="">{loadingProvincias ? 'Cargando provincias...' : 'Seleccioná una provincia'}</option>
           {provincias?.map((p) => (
             <option key={p.id} value={p.nombre}>{p.nombre}</option>
           ))}

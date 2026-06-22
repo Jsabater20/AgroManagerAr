@@ -19,6 +19,7 @@ import { AiModule } from './ai/ai.module';
 import { PlanModule } from './plan/plan.module';
 import { UsersModule } from './users/users.module';
 import { DemoModule } from './demo/demo.module';
+import { UbicacionModule } from './ubicacion/ubicacion.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { DemoModule } from './demo/demo.module';
     CampaniasModule,
     MaquinariasModule,
     AiModule,
+    UbicacionModule,
   ],
   controllers: [AppController],
   providers: [
