@@ -54,25 +54,23 @@ export default function UbicacionStep({
   });
 
 // ── Provincias (una sola carga) ─────────────────────────────────────────────
-  const { data: provincias, isLoading: loadingProvincias, error: errorProvincias } = useQuery<Provincia[]>({
+  const { data: provincias, isLoading: loadingProvincias } = useQuery<Provincia[]>({
     queryKey: ['provincias'],
     queryFn: () => ubicacionApi.getProvincias(),
-    staleTime: Infinity,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 
   // ── ID de la provincia seleccionada ─────────────────────────────────────────
   const provinciaId = provincias?.find((p) => p.nombre === provincia)?.id;
 
   // ── Localidades según provincia ─────────────────────────────────────────────
-  const { data: localidades, isLoading: loadingLocalidades, error: errorLocalidades } = useQuery<Localidad[]>({
+  const { data: localidades, isLoading: loadingLocalidades } = useQuery<Localidad[]>({
     queryKey: ['localidades', provinciaId],
     queryFn: () => (provinciaId ? ubicacionApi.getLocalidades(provinciaId) : Promise.resolve([])),
     enabled: !!provinciaId,
-    staleTime: 5 * 60 * 1000,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
   // ── Handlers de selección ───────────────────────────────────────────────────
   const handleProvinciaChange = (nombre: string) => {
@@ -103,25 +101,16 @@ export default function UbicacionStep({
       {/* Provincia */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Provincia</label>
-        {errorProvincias && (
-          <div className="text-xs text-red-600 mb-1.5 bg-red-50 p-2 rounded">
-            Error cargando provincias. Intentando nuevamente...
-          </div>
-        )}
         <select
           value={provincia}
           onChange={(e) => handleProvinciaChange(e.target.value)}
           className="input"
-          disabled={loadingProvincias || !provincias || provincias.length === 0}
+          disabled={loadingProvincias}
         >
           <option value="">
-            {loadingProvincias
-              ? 'Cargando provincias...'
-              : !provincias || provincias.length === 0
-                ? 'No se pudieron cargar las provincias'
-                : 'Seleccioná una provincia'}
+            {loadingProvincias ? 'Cargando provincias...' : 'Seleccioná una provincia'}
           </option>
-          {provincias && provincias.length > 0 && provincias.map((p) => (
+          {provincias && provincias.map((p) => (
             <option key={p.id} value={p.nombre}>{p.nombre}</option>
           ))}
         </select>
@@ -130,27 +119,20 @@ export default function UbicacionStep({
       {/* Localidad */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Localidad</label>
-        {errorLocalidades && provincia && (
-          <div className="text-xs text-red-600 mb-1.5 bg-red-50 p-2 rounded">
-            Error cargando localidades. Intentando nuevamente...
-          </div>
-        )}
         <select
           value={localidad}
           onChange={(e) => handleLocalidadChange(e.target.value)}
           className="input"
-          disabled={!provincia || loadingLocalidades || !localidades || localidades.length === 0}
+          disabled={!provincia || loadingLocalidades}
         >
           <option value="">
             {!provincia
               ? 'Primero elegí una provincia'
               : loadingLocalidades
                 ? 'Cargando localidades...'
-                : !localidades || localidades.length === 0
-                  ? 'No se encontraron localidades'
-                  : 'Seleccioná una localidad'}
+                : 'Seleccioná una localidad'}
           </option>
-          {localidades && localidades.length > 0 && localidades.map((l) => (
+          {localidades && localidades.map((l) => (
             <option key={l.id} value={l.nombre}>{l.nombre}</option>
           ))}
         </select>
