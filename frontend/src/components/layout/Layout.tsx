@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Moon, Sun, Search, Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import NotificationBell from './NotificationBell';
+import OrganizationSelector from './OrganizationSelector';
 import GlobalSearch, { useGlobalSearch } from './GlobalSearch';
 import OnboardingWizard, { useOnboarding } from './OnboardingWizard';
 import { useThemeStore } from '../../store/theme.store';
@@ -44,6 +45,9 @@ export default function Layout() {
           >
             <Menu size={20} />
           </button>
+
+          {/* Organization Selector */}
+          <OrganizationSelector />
 
           <div className="ml-auto flex items-center gap-2">
             <button

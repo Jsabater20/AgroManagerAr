@@ -1,3 +1,27 @@
+// ─── Organizaciones ───────────────────────────────────────────────────────────
+
+export interface Organizacion {
+  id: number;
+  nombre: string;
+  email: string;
+  plan: 'FREE' | 'PRO';
+  propietarioId: number;
+}
+
+export interface MiembroOrganizacion {
+  id: number;
+  usuarioId: number;
+  organizacionId: number;
+  rol: 'OWNER' | 'ADMIN' | 'OPERARIO' | 'CONTADOR';
+  estado: 'ACTIVO' | 'INVITADO' | 'INACTIVO' | 'SUSPENDIDO';
+  usuario?: {
+    id: number;
+    email: string;
+    nombre: string;
+    apellido: string;
+  };
+}
+
 // ─── Campos ───────────────────────────────────────────────────────────────────
 
 export interface Lote {

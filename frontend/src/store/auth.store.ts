@@ -9,11 +9,23 @@ interface Usuario {
   plan: 'FREE' | 'PRO';
 }
 
+interface Organizacion {
+  id: number;
+  nombre: string;
+  email: string;
+  plan: 'FREE' | 'PRO';
+  propietarioId: number;
+}
+
 interface AuthState {
   usuario: Usuario | null;
   token: string | null;
+  organizacionId: number | null;
+  organizaciones: Organizacion[];
   hydrating: boolean;
-  setAuth: (usuario: Usuario, token: string) => void;
+  setAuth: (usuario: Usuario, token: string, organizacionId?: number) => void;
+  setOrganizacionId: (id: number) => void;
+  setOrganizaciones: (orgs: Organizacion[]) => void;
   setHydrating: (v: boolean) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
@@ -21,22 +33,47 @@ interface AuthState {
 }
 
 const storedToken = localStorage.getItem('token');
+const storedOrgId = localStorage.getItem('organizacionId');
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   usuario: null,
   token: storedToken,
+  organizacionId: storedOrgId ? parseInt(storedOrgId) : null,
+  organizaciones: [],
   hydrating: !!storedToken,
 
-  setAuth: (usuario, token) => {
+  setAuth: (usuario, token, organizacionId) => {
+    // Si no viene organizacionId, intentar extraerlo del token JWT
+    if (!organizacionId) {
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        organizacionId = decoded.organizacionId;
+      } catch (e) {
+        organizacionId = undefined;
+      }
+    }
     localStorage.setItem('token', token);
-    set({ usuario, token, hydrating: false });
+    if (organizacionId) {
+      localStorage.setItem('organizacionId', organizacionId.toString());
+    }
+    set({ usuario, token, organizacionId, hydrating: false });
+  },
+
+  setOrganizacionId: (id) => {
+    localStorage.setItem('organizacionId', id.toString());
+    set({ organizacionId: id });
+  },
+
+  setOrganizaciones: (orgs) => {
+    set({ organizaciones: orgs });
   },
 
   setHydrating: (v: boolean) => set({ hydrating: v }),
 
   logout: () => {
     localStorage.removeItem('token');
-    set({ usuario: null, token: null, hydrating: false });
+    localStorage.removeItem('organizacionId');
+    set({ usuario: null, token: null, organizacionId: null, organizaciones: [], hydrating: false });
   },
 
   isAuthenticated: () => !!get().token,
