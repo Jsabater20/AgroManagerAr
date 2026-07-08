@@ -57,6 +57,16 @@ export class AuthService {
       select: { id: true, email: true, nombre: true, apellido: true },
     });
 
+    // AUTO-CREAR ORGANIZACIÓN PERSONAL
+    await this.prisma.organizacion.create({
+      data: {
+        nombre: `${usuario.nombre} ${dto.apellido}`,
+        email: usuario.email,
+        plan: 'FREE',
+        propietarioId: usuario.id,
+      },
+    });
+
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;
     if (this.resend) {
       const result = await this.resend.emails.send({
@@ -107,7 +117,17 @@ export class AuthService {
       );
     }
 
-    const token = this.generarToken(usuario.id, usuario.email);
+    // Obtener org principal del usuario (la que es dueño)
+    const orgPrincipal = await this.prisma.organizacion.findFirst({
+      where: { propietarioId: usuario.id },
+      select: { id: true },
+    });
+
+    const token = this.generarToken(
+      usuario.id,
+      usuario.email,
+      orgPrincipal?.id,
+    );
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, emailVerificado, ...usuarioSinPassword } = usuario;
     return { usuario: usuarioSinPassword, token };
@@ -222,8 +242,16 @@ export class AuthService {
     return { message: 'Contraseña actualizada correctamente.' };
   }
 
-  private generarToken(userId: number, email: string): string {
-    return this.jwtService.sign({ sub: userId, email });
+  private generarToken(
+    userId: number,
+    email: string,
+    organizacionId?: number,
+  ): string {
+    return this.jwtService.sign({
+      sub: userId,
+      email,
+      organizacionId: organizacionId || null,
+    });
   }
 
   private buildWelcomeEmail(nombre: string): string {
@@ -297,8 +325,7 @@ export class AuthService {
         </td>
       </tr>
 
-    </table>
-  </td></tr>
+    </table></td></tr>
 </table>
 </body>
 </html>`;

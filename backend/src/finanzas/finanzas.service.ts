@@ -6,9 +6,9 @@ import { CreateMovimientoDto, UpdateMovimientoDto } from './dto/finanzas.dto';
 export class FinanzasService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(usuarioId: number) {
+  findAll(usuarioId: number, organizacionId: number) {
     return this.prisma.movimientoFinanciero.findMany({
-      where: { usuarioId },
+      where: { usuarioId, organizacionId },
       include: {
         campo: { select: { id: true, nombre: true } },
         siembra: {
@@ -19,36 +19,46 @@ export class FinanzasService {
     });
   }
 
-  async findOne(id: number, usuarioId: number) {
+  async findOne(id: number, usuarioId: number, organizacionId: number) {
     const m = await this.prisma.movimientoFinanciero.findFirst({
-      where: { id, usuarioId },
+      where: { id, usuarioId, organizacionId },
     });
     if (!m) throw new NotFoundException('Movimiento no encontrado');
     return m;
   }
 
-  create(usuarioId: number, dto: CreateMovimientoDto) {
+  create(usuarioId: number, organizacionId: number, dto: CreateMovimientoDto) {
     return this.prisma.movimientoFinanciero.create({
-      data: { ...dto, usuarioId, fecha: new Date(dto.fecha) },
+      data: {
+        ...dto,
+        usuarioId,
+        organizacionId,
+        fecha: new Date(dto.fecha),
+      },
       include: { campo: { select: { id: true, nombre: true } } },
     });
   }
 
-  async update(id: number, usuarioId: number, dto: UpdateMovimientoDto) {
-    await this.findOne(id, usuarioId);
+  async update(
+    id: number,
+    usuarioId: number,
+    organizacionId: number,
+    dto: UpdateMovimientoDto,
+  ) {
+    await this.findOne(id, usuarioId, organizacionId);
     const data: Record<string, unknown> = { ...dto };
     if (dto.fecha) data['fecha'] = new Date(dto.fecha);
     return this.prisma.movimientoFinanciero.update({ where: { id }, data });
   }
 
-  async remove(id: number, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async remove(id: number, usuarioId: number, organizacionId: number) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.movimientoFinanciero.delete({ where: { id } });
   }
 
-  async resumen(usuarioId: number) {
+  async resumen(usuarioId: number, organizacionId: number) {
     const movimientos = await this.prisma.movimientoFinanciero.findMany({
-      where: { usuarioId },
+      where: { usuarioId, organizacionId },
     });
     const ingresos = movimientos
       .filter((m) => m.tipo === 'INGRESO')

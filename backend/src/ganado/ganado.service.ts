@@ -29,25 +29,29 @@ export class GanadoService {
     private planService: PlanService,
   ) {}
 
-  findAll(usuarioId: number) {
+  findAll(usuarioId: number, organizacionId: number) {
     return this.prisma.animal.findMany({
-      where: { usuarioId },
+      where: { usuarioId, organizacionId },
       include: { preneces: { orderBy: { createdAt: 'desc' } } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: number, usuarioId: number) {
+  async findOne(id: number, usuarioId: number, organizacionId: number) {
     const animal = await this.prisma.animal.findUnique({
       where: { id },
       include: { preneces: { orderBy: { createdAt: 'desc' } } },
     });
     if (!animal) throw new NotFoundException('Animal no encontrado');
-    if (animal.usuarioId !== usuarioId) throw new ForbiddenException();
+    if (
+      animal.usuarioId !== usuarioId ||
+      animal.organizacionId !== organizacionId
+    )
+      throw new ForbiddenException();
     return animal;
   }
 
-  async create(dto: CreateAnimalDto, usuarioId: number) {
+  async create(dto: CreateAnimalDto, usuarioId: number, organizacionId: number) {
     await this.planService.checkAnimalesLimit(usuarioId);
     return this.prisma.animal.create({
       data: {
@@ -61,13 +65,19 @@ export class GanadoService {
           : undefined,
         observaciones: dto.observaciones,
         usuarioId,
+        organizacionId,
       },
       include: { preneces: true },
     });
   }
 
-  async update(id: number, dto: UpdateAnimalDto, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async update(
+    id: number,
+    dto: UpdateAnimalDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.animal.update({
       where: { id },
       data: {
@@ -83,13 +93,18 @@ export class GanadoService {
     });
   }
 
-  async remove(id: number, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async remove(id: number, usuarioId: number, organizacionId: number) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.animal.delete({ where: { id } });
   }
 
-  async addPrenez(animalId: number, dto: CreatePrenezDto, usuarioId: number) {
-    const animal = await this.findOne(animalId, usuarioId);
+  async addPrenez(
+    animalId: number,
+    dto: CreatePrenezDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const animal = await this.findOne(animalId, usuarioId, organizacionId);
     const fechaInicio = new Date(dto.fechaInicio);
     const days = GESTATION_DAYS[animal.especie] ?? 283;
     const fechaEstimadaParto = new Date(fechaInicio);
@@ -109,13 +124,18 @@ export class GanadoService {
     prenezId: number,
     dto: UpdatePrenezEstadoDto,
     usuarioId: number,
+    organizacionId: number,
   ) {
     const prenez = await this.prisma.prenez.findUnique({
       where: { id: prenezId },
       include: { animal: true },
     });
     if (!prenez) throw new NotFoundException('Preñez no encontrada');
-    if (prenez.animal.usuarioId !== usuarioId) throw new ForbiddenException();
+    if (
+      prenez.animal.usuarioId !== usuarioId ||
+      prenez.animal.organizacionId !== organizacionId
+    )
+      throw new ForbiddenException();
 
     return this.prisma.prenez.update({
       where: { id: prenezId },
@@ -123,10 +143,12 @@ export class GanadoService {
     });
   }
 
-  // ─── Historial de pesos ──────────────────────────────────────────────────────
-
-  async getPesos(animalId: number, usuarioId: number) {
-    await this.findOne(animalId, usuarioId);
+  async getPesos(
+    animalId: number,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.findOne(animalId, usuarioId, organizacionId);
     return this.prisma.registroPeso.findMany({
       where: { animalId },
       orderBy: { fecha: 'asc' },
@@ -137,8 +159,9 @@ export class GanadoService {
     animalId: number,
     dto: CreateRegistroPesoDto,
     usuarioId: number,
+    organizacionId: number,
   ) {
-    await this.findOne(animalId, usuarioId);
+    await this.findOne(animalId, usuarioId, organizacionId);
     const registro = await this.prisma.registroPeso.create({
       data: {
         animalId,
@@ -147,7 +170,6 @@ export class GanadoService {
         observaciones: dto.observaciones,
       },
     });
-    // Actualizar peso actual del animal
     await this.prisma.animal.update({
       where: { id: animalId },
       data: { peso: dto.peso },
@@ -155,15 +177,17 @@ export class GanadoService {
     return registro;
   }
 
-  async removePeso(pesoId: number, usuarioId: number) {
-    const registro = await this.prisma.registroPeso.findUnique({
+  async removePeso(pesoId: number, usuarioId: number, organizacionId: number) {
+    const peso = await this.prisma.registroPeso.findUnique({
       where: { id: pesoId },
       include: { animal: true },
     });
-    if (!registro)
-      throw new NotFoundException('Registro de peso no encontrado');
-
-    if (registro.animal.usuarioId !== usuarioId) throw new ForbiddenException();
+    if (!peso) throw new NotFoundException('Registro de peso no encontrado');
+    if (
+      peso.animal.usuarioId !== usuarioId ||
+      peso.animal.organizacionId !== organizacionId
+    )
+      throw new ForbiddenException();
     return this.prisma.registroPeso.delete({ where: { id: pesoId } });
   }
 }

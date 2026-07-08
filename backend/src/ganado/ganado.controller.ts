@@ -20,29 +20,31 @@ import {
 } from './dto/ganado.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
+import { OrganizationGuard } from '../organizations/organization.guard';
 
 interface AuthRequest {
   user: { id: number };
+  organizacionId: number;
 }
 
-@UseGuards(JwtAuthGuard, DemoGuard)
+@UseGuards(JwtAuthGuard, DemoGuard, OrganizationGuard)
 @Controller('ganado')
 export class GanadoController {
   constructor(private ganadoService: GanadoService) {}
 
   @Get()
   findAll(@Request() req: AuthRequest) {
-    return this.ganadoService.findAll(req.user.id);
+    return this.ganadoService.findAll(req.user.id, req.organizacionId);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
-    return this.ganadoService.findOne(id, req.user.id);
+    return this.ganadoService.findOne(id, req.user.id, req.organizacionId);
   }
 
   @Post()
   create(@Body() dto: CreateAnimalDto, @Request() req: AuthRequest) {
-    return this.ganadoService.create(dto, req.user.id);
+    return this.ganadoService.create(dto, req.user.id, req.organizacionId);
   }
 
   @Patch(':id')
@@ -51,12 +53,17 @@ export class GanadoController {
     @Body() dto: UpdateAnimalDto,
     @Request() req: AuthRequest,
   ) {
-    return this.ganadoService.update(id, dto, req.user.id);
+    return this.ganadoService.update(
+      id,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
-    return this.ganadoService.remove(id, req.user.id);
+    return this.ganadoService.remove(id, req.user.id, req.organizacionId);
   }
 
   @Post(':id/preneces')
@@ -65,7 +72,12 @@ export class GanadoController {
     @Body() dto: CreatePrenezDto,
     @Request() req: AuthRequest,
   ) {
-    return this.ganadoService.addPrenez(animalId, dto, req.user.id);
+    return this.ganadoService.addPrenez(
+      animalId,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 
   @Patch('preneces/:prenezId/estado')
@@ -74,14 +86,17 @@ export class GanadoController {
     @Body() dto: UpdatePrenezEstadoDto,
     @Request() req: AuthRequest,
   ) {
-    return this.ganadoService.updatePrenezEstado(prenezId, dto, req.user.id);
+    return this.ganadoService.updatePrenezEstado(
+      prenezId,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
-
-  // ─── Historial de pesos ──────────────────────────────────────────────────────
 
   @Get(':id/pesos')
   getPesos(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
-    return this.ganadoService.getPesos(id, req.user.id);
+    return this.ganadoService.getPesos(id, req.user.id, req.organizacionId);
   }
 
   @Post(':id/pesos')
@@ -90,7 +105,12 @@ export class GanadoController {
     @Body() dto: CreateRegistroPesoDto,
     @Request() req: AuthRequest,
   ) {
-    return this.ganadoService.addPeso(animalId, dto, req.user.id);
+    return this.ganadoService.addPeso(
+      animalId,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 
   @Delete('pesos/:pesoId')
@@ -98,6 +118,6 @@ export class GanadoController {
     @Param('pesoId', ParseIntPipe) pesoId: number,
     @Request() req: AuthRequest,
   ) {
-    return this.ganadoService.removePeso(pesoId, req.user.id);
+    return this.ganadoService.removePeso(pesoId, req.user.id, req.organizacionId);
   }
 }

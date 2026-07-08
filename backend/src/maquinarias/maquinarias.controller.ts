@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
+import { OrganizationGuard } from '../organizations/organization.guard';
 import { MaquinariasService } from './maquinarias.service';
 import { PlanService } from '../plan/plan.service';
 import {
@@ -21,9 +22,12 @@ import {
   UpdateMaquinariaDto,
 } from './dto/maquinarias.dto';
 
-type AuthRequest = Request & { user: { id: number } };
+interface AuthRequest {
+  user: { id: number };
+  organizacionId: number;
+}
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OrganizationGuard)
 @Controller('maquinarias')
 export class MaquinariasController {
   constructor(
@@ -33,19 +37,23 @@ export class MaquinariasController {
 
   @Get()
   findAll(@Request() req: AuthRequest) {
-    return this.maquinariasService.findAll(req.user.id);
+    return this.maquinariasService.findAll(req.user.id, req.organizacionId);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
-    return this.maquinariasService.findOne(id, req.user.id);
+    return this.maquinariasService.findOne(id, req.user.id, req.organizacionId);
   }
 
   @UseGuards(DemoGuard)
   @Post()
   async create(@Request() req: AuthRequest, @Body() dto: CreateMaquinariaDto) {
     await this.planService.checkMaquinariasLimit(req.user.id);
-    return this.maquinariasService.create(req.user.id, dto);
+    return this.maquinariasService.create(
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
   }
 
   @UseGuards(DemoGuard)
@@ -55,13 +63,22 @@ export class MaquinariasController {
     @Request() req: AuthRequest,
     @Body() dto: UpdateMaquinariaDto,
   ) {
-    return this.maquinariasService.update(id, req.user.id, dto);
+    return this.maquinariasService.update(
+      id,
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
   }
 
   @UseGuards(DemoGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
-    return this.maquinariasService.remove(id, req.user.id);
+    return this.maquinariasService.remove(
+      id,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 
   // ── Mantenimientos ────────────────────────────────────────────────────────
@@ -73,7 +90,12 @@ export class MaquinariasController {
     @Request() req: AuthRequest,
     @Body() dto: CreateMantenimientoDto,
   ) {
-    return this.maquinariasService.addMantenimiento(id, req.user.id, dto);
+    return this.maquinariasService.addMantenimiento(
+      id,
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
   }
 
   @UseGuards(DemoGuard)
@@ -87,6 +109,7 @@ export class MaquinariasController {
       id,
       mantenimientoId,
       req.user.id,
+      req.organizacionId,
     );
   }
 
@@ -99,7 +122,12 @@ export class MaquinariasController {
     @Request() req: AuthRequest,
     @Body() dto: CreateGastoDto,
   ) {
-    return this.maquinariasService.addGasto(id, req.user.id, dto);
+    return this.maquinariasService.addGasto(
+      id,
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
   }
 
   @UseGuards(DemoGuard)
@@ -109,6 +137,11 @@ export class MaquinariasController {
     @Param('gastoId', ParseIntPipe) gastoId: number,
     @Request() req: AuthRequest,
   ) {
-    return this.maquinariasService.removeGasto(id, gastoId, req.user.id);
+    return this.maquinariasService.removeGasto(
+      id,
+      gastoId,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 }

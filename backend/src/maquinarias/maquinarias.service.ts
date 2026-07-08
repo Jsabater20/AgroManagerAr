@@ -15,9 +15,9 @@ import {
 export class MaquinariasService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(usuarioId: number) {
+  findAll(usuarioId: number, organizacionId: number) {
     return this.prisma.maquinaria.findMany({
-      where: { usuarioId },
+      where: { usuarioId, organizacionId },
       include: {
         campo: { select: { id: true, nombre: true } },
         mantenimientos: {
@@ -30,7 +30,7 @@ export class MaquinariasService {
     });
   }
 
-  async findOne(id: number, usuarioId: number) {
+  async findOne(id: number, usuarioId: number, organizacionId: number) {
     const maquinaria = await this.prisma.maquinaria.findUnique({
       where: { id },
       include: {
@@ -40,16 +40,20 @@ export class MaquinariasService {
       },
     });
     if (!maquinaria) throw new NotFoundException('Maquinaria no encontrada');
-    if (maquinaria.usuarioId !== usuarioId)
+    if (
+      maquinaria.usuarioId !== usuarioId ||
+      maquinaria.organizacionId !== organizacionId
+    )
       throw new ForbiddenException('No autorizado');
     return maquinaria;
   }
 
-  create(usuarioId: number, dto: CreateMaquinariaDto) {
+  create(usuarioId: number, organizacionId: number, dto: CreateMaquinariaDto) {
     return this.prisma.maquinaria.create({
       data: {
         ...dto,
         usuarioId,
+        organizacionId,
         seguroVencimiento: dto.seguroVencimiento
           ? new Date(dto.seguroVencimiento)
           : undefined,
@@ -60,8 +64,13 @@ export class MaquinariasService {
     });
   }
 
-  async update(id: number, usuarioId: number, dto: UpdateMaquinariaDto) {
-    await this.findOne(id, usuarioId);
+  async update(
+    id: number,
+    usuarioId: number,
+    organizacionId: number,
+    dto: UpdateMaquinariaDto,
+  ) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.maquinaria.update({
       where: { id },
       data: {
@@ -76,8 +85,8 @@ export class MaquinariasService {
     });
   }
 
-  async remove(id: number, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async remove(id: number, usuarioId: number, organizacionId: number) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.maquinaria.delete({ where: { id } });
   }
 
@@ -86,9 +95,10 @@ export class MaquinariasService {
   async addMantenimiento(
     maquinariaId: number,
     usuarioId: number,
+    organizacionId: number,
     dto: CreateMantenimientoDto,
   ) {
-    await this.findOne(maquinariaId, usuarioId);
+    await this.findOne(maquinariaId, usuarioId, organizacionId);
     const mantenimiento = await this.prisma.mantenimientoMaquinaria.create({
       data: {
         ...dto,
@@ -113,8 +123,9 @@ export class MaquinariasService {
     maquinariaId: number,
     mantenimientoId: number,
     usuarioId: number,
+    organizacionId: number,
   ) {
-    await this.findOne(maquinariaId, usuarioId);
+    await this.findOne(maquinariaId, usuarioId, organizacionId);
     const m = await this.prisma.mantenimientoMaquinaria.findUnique({
       where: { id: mantenimientoId },
     });
@@ -130,9 +141,10 @@ export class MaquinariasService {
   async addGasto(
     maquinariaId: number,
     usuarioId: number,
+    organizacionId: number,
     dto: CreateGastoDto,
   ) {
-    await this.findOne(maquinariaId, usuarioId);
+    await this.findOne(maquinariaId, usuarioId, organizacionId);
     return this.prisma.gastoMaquinaria.create({
       data: {
         ...dto,
@@ -146,8 +158,9 @@ export class MaquinariasService {
     maquinariaId: number,
     gastoId: number,
     usuarioId: number,
+    organizacionId: number,
   ) {
-    await this.findOne(maquinariaId, usuarioId);
+    await this.findOne(maquinariaId, usuarioId, organizacionId);
     const g = await this.prisma.gastoMaquinaria.findUnique({
       where: { id: gastoId },
     });

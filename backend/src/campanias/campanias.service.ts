@@ -6,9 +6,9 @@ import { CreateCampaniaDto, UpdateCampaniaDto } from './dto/campanias.dto';
 export class CampaniasService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(usuarioId: number) {
+  findAll(usuarioId: number, organizacionId: number) {
     return this.prisma.campania.findMany({
-      where: { usuarioId },
+      where: { usuarioId, organizacionId },
       include: {
         siembras: {
           include: {
@@ -22,9 +22,9 @@ export class CampaniasService {
     });
   }
 
-  async findOne(id: number, usuarioId: number) {
+  async findOne(id: number, usuarioId: number, organizacionId: number) {
     const c = await this.prisma.campania.findFirst({
-      where: { id, usuarioId },
+      where: { id, usuarioId, organizacionId },
       include: {
         siembras: {
           include: {
@@ -39,37 +39,47 @@ export class CampaniasService {
     return c;
   }
 
-  create(usuarioId: number, dto: CreateCampaniaDto) {
+  create(usuarioId: number, organizacionId: number, dto: CreateCampaniaDto) {
     return this.prisma.campania.create({
       data: {
         ...dto,
         usuarioId,
+        organizacionId,
         fechaInicio: new Date(dto.fechaInicio),
         fechaFin: dto.fechaFin ? new Date(dto.fechaFin) : undefined,
       },
     });
   }
 
-  async update(id: number, usuarioId: number, dto: UpdateCampaniaDto) {
-    await this.findOne(id, usuarioId);
+  async update(
+    id: number,
+    usuarioId: number,
+    organizacionId: number,
+    dto: UpdateCampaniaDto,
+  ) {
+    await this.findOne(id, usuarioId, organizacionId);
     const data: Record<string, unknown> = { ...dto };
     if (dto.fechaInicio) data['fechaInicio'] = new Date(dto.fechaInicio);
-    if (dto.fechaFin)    data['fechaFin']    = new Date(dto.fechaFin);
+    if (dto.fechaFin) data['fechaFin'] = new Date(dto.fechaFin);
     return this.prisma.campania.update({ where: { id }, data });
   }
 
-  async remove(id: number, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async remove(id: number, usuarioId: number, organizacionId: number) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.campania.delete({ where: { id } });
   }
 
-  /** Asignar/desasignar siembras a una campaña */
-  async asignarSiembras(id: number, usuarioId: number, siembraIds: number[]) {
-    await this.findOne(id, usuarioId);
+  async asignarSiembras(
+    id: number,
+    usuarioId: number,
+    organizacionId: number,
+    siembraIds: number[],
+  ) {
+    await this.findOne(id, usuarioId, organizacionId);
     await this.prisma.siembra.updateMany({
       where: { id: { in: siembraIds } },
       data: { campaniaId: id },
     });
-    return this.findOne(id, usuarioId);
+    return this.findOne(id, usuarioId, organizacionId);
   }
 }

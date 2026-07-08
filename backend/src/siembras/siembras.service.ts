@@ -19,10 +19,12 @@ export class SiembrasService {
     private planService: PlanService,
   ) {}
 
-  async findAll(usuarioId: number) {
+  async findAll(usuarioId: number, organizacionId: number) {
     return this.prisma.siembra.findMany({
       where: {
-        lote: { campo: { usuarioId } },
+        lote: {
+          campo: { usuarioId, organizacionId },
+        },
       },
       include: {
         lote: { include: { campo: true } },
@@ -33,7 +35,7 @@ export class SiembrasService {
     });
   }
 
-  async findOne(id: number, usuarioId: number) {
+  async findOne(id: number, usuarioId: number, organizacionId: number) {
     const siembra = await this.prisma.siembra.findUnique({
       where: { id },
       include: {
@@ -47,18 +49,30 @@ export class SiembrasService {
       },
     });
     if (!siembra) throw new NotFoundException('Siembra no encontrada');
-    if (siembra.lote.campo.usuarioId !== usuarioId) throw new ForbiddenException();
+    if (
+      siembra.lote.campo.usuarioId !== usuarioId ||
+      siembra.lote.campo.organizacionId !== organizacionId
+    )
+      throw new ForbiddenException();
     return siembra;
   }
 
-  async create(dto: CreateSiembraDto, usuarioId: number) {
-    // Verificar que el lote pertenece al usuario
+  async create(
+    dto: CreateSiembraDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    // Verificar que el lote pertenece al usuario y organización
     const lote = await this.prisma.lote.findUnique({
       where: { id: dto.loteId },
       include: { campo: true },
     });
     if (!lote) throw new NotFoundException('Lote no encontrado');
-    if (lote.campo.usuarioId !== usuarioId) throw new ForbiddenException();
+    if (
+      lote.campo.usuarioId !== usuarioId ||
+      lote.campo.organizacionId !== organizacionId
+    )
+      throw new ForbiddenException();
 
     await this.planService.checkSiembrasLimit(usuarioId);
 
@@ -74,8 +88,13 @@ export class SiembrasService {
     });
   }
 
-  async update(id: number, dto: UpdateSiembraDto, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async update(
+    id: number,
+    dto: UpdateSiembraDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.siembra.update({
       where: { id },
       data: {
@@ -86,8 +105,13 @@ export class SiembrasService {
     });
   }
 
-  async addCosecha(siembraId: number, dto: CreateCosechaDto, usuarioId: number) {
-    await this.findOne(siembraId, usuarioId);
+  async addCosecha(
+    siembraId: number,
+    dto: CreateCosechaDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.findOne(siembraId, usuarioId, organizacionId);
     return this.prisma.cosecha.create({
       data: {
         siembraId,
@@ -100,8 +124,13 @@ export class SiembrasService {
     });
   }
 
-  async addAplicacion(siembraId: number, dto: CreateAplicacionDto, usuarioId: number) {
-    await this.findOne(siembraId, usuarioId);
+  async addAplicacion(
+    siembraId: number,
+    dto: CreateAplicacionDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.findOne(siembraId, usuarioId, organizacionId);
     return this.prisma.aplicacionInsumo.create({
       data: {
         siembraId,

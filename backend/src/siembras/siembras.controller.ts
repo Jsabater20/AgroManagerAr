@@ -18,29 +18,31 @@ import {
 } from './dto/siembras.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
+import { OrganizationGuard } from '../organizations/organization.guard';
 
 interface AuthRequest {
   user: { id: number };
+  organizacionId: number;
 }
 
-@UseGuards(JwtAuthGuard, DemoGuard)
+@UseGuards(JwtAuthGuard, DemoGuard, OrganizationGuard)
 @Controller('siembras')
 export class SiembrasController {
   constructor(private siembrasService: SiembrasService) {}
 
   @Get()
   findAll(@Request() req: AuthRequest) {
-    return this.siembrasService.findAll(req.user.id);
+    return this.siembrasService.findAll(req.user.id, req.organizacionId);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
-    return this.siembrasService.findOne(id, req.user.id);
+    return this.siembrasService.findOne(id, req.user.id, req.organizacionId);
   }
 
   @Post()
   create(@Body() dto: CreateSiembraDto, @Request() req: AuthRequest) {
-    return this.siembrasService.create(dto, req.user.id);
+    return this.siembrasService.create(dto, req.user.id, req.organizacionId);
   }
 
   @Patch(':id')
@@ -49,7 +51,12 @@ export class SiembrasController {
     @Body() dto: UpdateSiembraDto,
     @Request() req: AuthRequest,
   ) {
-    return this.siembrasService.update(id, dto, req.user.id);
+    return this.siembrasService.update(
+      id,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 
   @Post(':id/cosechas')
@@ -58,7 +65,12 @@ export class SiembrasController {
     @Body() dto: CreateCosechaDto,
     @Request() req: AuthRequest,
   ) {
-    return this.siembrasService.addCosecha(siembraId, dto, req.user.id);
+    return this.siembrasService.addCosecha(
+      siembraId,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 
   @Post(':id/aplicaciones')
@@ -67,6 +79,11 @@ export class SiembrasController {
     @Body() dto: CreateAplicacionDto,
     @Request() req: AuthRequest,
   ) {
-    return this.siembrasService.addAplicacion(siembraId, dto, req.user.id);
+    return this.siembrasService.addAplicacion(
+      siembraId,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 }

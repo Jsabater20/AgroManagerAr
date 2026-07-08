@@ -6,25 +6,26 @@ import { CreateTareaDto, UpdateTareaDto, UpdateTareaEstadoDto } from './dto/tare
 export class TareasService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(usuarioId: number) {
+  findAll(usuarioId: number, organizacionId: number) {
     return this.prisma.tareaRural.findMany({
-      where: { usuarioId },
+      where: { usuarioId, organizacionId },
       include: { campo: { select: { id: true, nombre: true } } },
       orderBy: [{ fechaProgramada: 'asc' }, { createdAt: 'desc' }],
     });
   }
 
-  async findOne(id: number, usuarioId: number) {
+  async findOne(id: number, usuarioId: number, organizacionId: number) {
     const tarea = await this.prisma.tareaRural.findUnique({
       where: { id },
       include: { campo: { select: { id: true, nombre: true } } },
     });
     if (!tarea) throw new NotFoundException('Tarea no encontrada');
-    if (tarea.usuarioId !== usuarioId) throw new ForbiddenException();
+    if (tarea.usuarioId !== usuarioId || tarea.organizacionId !== organizacionId)
+      throw new ForbiddenException();
     return tarea;
   }
 
-  create(dto: CreateTareaDto, usuarioId: number) {
+  create(dto: CreateTareaDto, usuarioId: number, organizacionId: number) {
     return this.prisma.tareaRural.create({
       data: {
         titulo: dto.titulo,
@@ -37,13 +38,14 @@ export class TareasService {
         campoId: dto.campoId,
         observaciones: dto.observaciones,
         usuarioId,
+        organizacionId,
       },
       include: { campo: { select: { id: true, nombre: true } } },
     });
   }
 
-  async update(id: number, dto: UpdateTareaDto, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async update(id: number, dto: UpdateTareaDto, usuarioId: number, organizacionId: number) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.tareaRural.update({
       where: { id },
       data: {
@@ -61,8 +63,8 @@ export class TareasService {
     });
   }
 
-  async updateEstado(id: number, dto: UpdateTareaEstadoDto, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async updateEstado(id: number, dto: UpdateTareaEstadoDto, usuarioId: number, organizacionId: number) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.tareaRural.update({
       where: { id },
       data: {
@@ -73,8 +75,8 @@ export class TareasService {
     });
   }
 
-  async remove(id: number, usuarioId: number) {
-    await this.findOne(id, usuarioId);
+  async remove(id: number, usuarioId: number, organizacionId: number) {
+    await this.findOne(id, usuarioId, organizacionId);
     return this.prisma.tareaRural.delete({ where: { id } });
   }
 }
