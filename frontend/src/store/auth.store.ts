@@ -1,4 +1,12 @@
 import { create } from 'zustand';
+import type { QueryClient } from '@tanstack/react-query';
+
+// Global queryClient reference for invalidating queries on org change
+let queryClientRef: QueryClient | null = null;
+
+export const setQueryClientRef = (qc: QueryClient) => {
+  queryClientRef = qc;
+};
 
 interface Usuario {
   id: number;
@@ -61,6 +69,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setOrganizacionId: (id) => {
     localStorage.setItem('organizacionId', id.toString());
+    // Invalidar todas las queries cuando cambia de org
+    if (queryClientRef) {
+      queryClientRef.invalidateQueries();
+    }
     set({ organizacionId: id });
   },
 
