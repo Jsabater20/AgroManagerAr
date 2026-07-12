@@ -1,8 +1,12 @@
 import axios, { AxiosError } from 'axios';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: import.meta.env.VITE_API_URL || 'https://api.agromanagerar.com/api',
+  headers: { 
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  },
+  withCredentials: true,
 });
 
 // Interceptor de request: adjunta el JWT y organizacionId si existe
