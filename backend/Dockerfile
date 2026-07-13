@@ -14,7 +14,7 @@ COPY . .
 RUN npx prisma generate && npm run build
 
 # Verify the build output exists
-RUN ls -la /app/dist/main.js && echo "BUILD OK: dist/main.js found"
+RUN ls -la /app/dist/src/main.js && echo "BUILD OK: dist/src/main.js found"
 
 # Fix CRLF line endings in startup script (Windows git may have converted them)
 RUN sed -i 's/\r//' /app/start.sh && chmod +x /app/start.sh

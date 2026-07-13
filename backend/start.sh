@@ -15,11 +15,11 @@ echo "=== /app/dist contents ==="
 ls -la /app/dist/ 2>&1 || { echo "ERROR: /app/dist not found - BUILD FAILED?"; exit 1; }
 echo ""
 
-echo "=== Verifying dist/main.js ==="
-if [ -f "/app/dist/main.js" ]; then
-  echo "OK: /app/dist/main.js exists"
+echo "=== Verifying dist/src/main.js ==="
+if [ -f "/app/dist/src/main.js" ]; then
+  echo "OK: /app/dist/src/main.js exists"
 else
-  echo "ERROR: /app/dist/main.js NOT FOUND - nest build failed?"
+  echo "ERROR: /app/dist/src/main.js NOT FOUND - nest build failed?"
   exit 1
 fi
 echo ""
@@ -31,8 +31,8 @@ MIGRATE_CODE=$?
 echo "Migration exit code: ${MIGRATE_CODE}"
 echo ""
 
-echo "=== Starting NestJS (node /app/dist/main.js) ==="
-node /app/dist/main.js 2>&1
+echo "=== Starting NestJS (node /app/dist/src/main.js) ==="
+node /app/dist/src/main.js 2>&1
 EXIT_CODE=$?
 echo "=== node exited with code: ${EXIT_CODE} ==="
 exit ${EXIT_CODE}
