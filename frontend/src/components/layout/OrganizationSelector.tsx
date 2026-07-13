@@ -6,13 +6,14 @@ import { organizacionesApi } from '../../api/organizations.api';
 
 export default function OrganizationSelector() {
   const [open, setOpen] = useState(false);
-  const { organizacionId, setOrganizacionId, setOrganizaciones, organizaciones, usuario } = useAuthStore();
+  const { organizacionId, setOrganizacionId, setOrganizaciones, organizaciones, usuario, token } = useAuthStore();
 
-  const { data: orgs = [], isLoading, error } = useQuery({
+  const { data: orgs = [], isLoading, error, status } = useQuery({
     queryKey: ['organizaciones'],
     queryFn: () => organizacionesApi.obtenerTodas(),
     staleTime: 1000 * 60 * 5,
-    enabled: !!usuario,
+    enabled: !!token,
+    retry: 1,
   });
 
   useEffect(() => {
@@ -25,6 +26,24 @@ export default function OrganizationSelector() {
   }, [orgs, organizacionId, setOrganizacionId, setOrganizaciones]);
 
   const currentOrg = organizaciones.find((o) => o.id === organizacionId);
+
+  // Debug logs
+  useEffect(() => {
+    console.log('[OrganizationSelector]', {
+      token: !!token,
+      usuario: !!usuario,
+      organizacionId,
+      organizacionesCount: organizaciones.length,
+      currentOrgName: currentOrg?.nombre,
+      queryStatus: status,
+      isLoading,
+      hasError: !!error,
+    });
+  }, [token, usuario, organizacionId, organizaciones, currentOrg, status, isLoading, error]);
+
+  if (!token) {
+    return null;
+  }
 
   if (isLoading) {
     return (
@@ -39,7 +58,7 @@ export default function OrganizationSelector() {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-sm text-red-600 dark:text-red-400">
         <AlertCircle size={16} />
-        <span className="text-xs">Error cargando orgs</span>
+        <span className="text-xs">Error orgs</span>
       </div>
     );
   }
