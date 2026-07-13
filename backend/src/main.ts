@@ -16,21 +16,7 @@ async function bootstrap() {
   console.log('[BOOT] Creating NestJS app...');
   const app = await NestFactory.create(AppModule, {
     cors: {
-      origin: function (origin, callback) {
-        const allowedOrigins = [
-          'https://www.agromanagerar.com',
-          'https://agromanagerar.com',
-          'http://localhost:5173',
-          'http://localhost:3000',
-          'http://127.0.0.1:5173',
-        ];
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          console.warn(`[CORS] Blocked origin: ${origin}`);
-          callback(new Error('Not allowed by CORS'));
-        }
-      },
+      origin: true,
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
       credentials: true,
