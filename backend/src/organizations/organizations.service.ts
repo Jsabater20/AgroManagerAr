@@ -29,26 +29,34 @@ export class OrganizationsService {
   }
 
   async obtenerOrganizacionesDelUsuario(usuarioId: number) {
-    // Orgs donde es dueño + orgs donde es miembro
+    // Orgs donde es dueño
     const comoOwner = await this.prisma.organizacion.findMany({
       where: { propietarioId: usuarioId },
-      select: { id: true, nombre: true, email: true, plan: true },
+      select: { id: true, nombre: true, email: true, plan: true, propietarioId: true },
     });
 
+    // Orgs donde es miembro
     const comoMiembro = await this.prisma.usuarioOrganizacion.findMany({
       where: { usuarioId },
       select: {
         organizacion: {
-          select: { id: true, nombre: true, email: true, plan: true },
+          select: { id: true, nombre: true, email: true, plan: true, propietarioId: true },
         },
-        rol: true,
       },
     });
 
-    return {
-      comoOwner,
-      comoMiembro: comoMiembro.map((m) => ({ ...m.organizacion, rol: m.rol })),
-    };
+    // Combinar y eliminar duplicados (en caso que sea owner y miembro)
+    const todas = [
+      ...comoOwner,
+      ...comoMiembro.map((m) => m.organizacion),
+    ];
+
+    // Eliminar duplicados por ID
+    const unicas = Array.from(
+      new Map(todas.map((org) => [org.id, org])).values(),
+    );
+
+    return unicas;
   }
 
   async obtenerOrganizacion(organizacionId: number, usuarioId: number) {
