@@ -12,18 +12,12 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
-// Configuración de CORS desde variable de entorno
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
-  : [];
-
-if (!process.env.ALLOWED_ORIGINS) {
-  console.warn('[CORS] ALLOWED_ORIGINS environment variable is not set. Only no-origin requests will be allowed.');
-}
+// Configuración de CORS más permisiva para desarrollo
+const isDev = process.env.NODE_ENV !== 'production';
 
 async function bootstrap() {
   console.log('[BOOT] Creating NestJS app...');
-  console.log(`[CORS] Allowed origins: ${allowedOrigins.length > 0 ? allowedOrigins.join(', ') : 'NONE'}`);
+  console.log(`[BOOT] Environment: ${process.env.NODE_ENV || 'development'}`);
 
   const app = await NestFactory.create(AppModule, {
     cors: {
@@ -31,12 +25,29 @@ async function bootstrap() {
         // Permitir peticiones sin origin (curl, Postman, Railway health checks)
         if (!origin) {
           callback(null, true);
-        } else if (allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          console.warn(`[CORS] Blocked origin: ${origin}`);
-          callback(new Error('Not allowed by CORS'));
+          return;
         }
+        
+        // En desarrollo, permitir localhost y Vercel
+        if (isDev) {
+          if (origin.includes('localhost') || origin.includes('vercel.app')) {
+            callback(null, true);
+            return;
+          }
+        }
+        
+        // En producción, validar contra variable de entorno
+        const allowedOrigins = process.env.ALLOWED_ORIGINS
+          ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+          : [];
+        
+        if (allowedOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
       },
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
