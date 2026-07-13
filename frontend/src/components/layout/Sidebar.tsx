@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Zap, User, ShieldCheck, Wrench } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
+import OrganizationSelectorSidebar from './OrganizationSelectorSidebar';
 
 const navItems = [
   { to: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
@@ -58,6 +59,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <X size={18} />
         </button>
       </div>
+
+      {/* Organization Selector */}
+      <OrganizationSelectorSidebar />
 
       {/* Nav */}
       <nav className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">

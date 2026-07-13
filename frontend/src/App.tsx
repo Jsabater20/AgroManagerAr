@@ -37,6 +37,7 @@ import PreciosPage from './pages/precios/PreciosPage';
 import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
 import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
+import OrganizationMembersPage from './pages/organizaciones/OrganizationMembersPage';
 
 const queryClient = new QueryClient();
 setQueryClientRef(queryClient);
@@ -89,6 +90,7 @@ export default function App() {
               <Route path="/clima" element={<ClimaPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/organizaciones/:orgId/miembros" element={<OrganizationMembersPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
