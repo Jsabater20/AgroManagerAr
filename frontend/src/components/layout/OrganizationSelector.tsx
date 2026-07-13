@@ -9,11 +9,12 @@ export default function OrganizationSelector() {
   const { organizacionId, setOrganizacionId, setOrganizaciones, organizaciones, token } = useAuthStore();
 
   const { data: orgs = [], isLoading, error } = useQuery({
-    queryKey: ['organizaciones'],
+    queryKey: ['organizaciones', token],
     queryFn: () => organizacionesApi.obtenerTodas(),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    gcTime: 1000 * 60 * 5,
     enabled: !!token,
-    retry: 1,
+    retry: 2,
   });
 
   useEffect(() => {
@@ -82,8 +83,10 @@ export default function OrganizationSelector() {
   }
 
   const handleSelectOrg = (orgId: number) => {
+    console.log('[OrganizationSelector] handleSelectOrg called:', { orgId, currentId: organizacionId });
     setOrganizacionId(orgId);
     setOpen(false);
+    console.log('[OrganizationSelector] handleSelectOrg done:', { newId: orgId });
   };
 
   return (
