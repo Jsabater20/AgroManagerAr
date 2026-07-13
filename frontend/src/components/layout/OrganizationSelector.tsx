@@ -6,9 +6,9 @@ import { organizacionesApi } from '../../api/organizations.api';
 
 export default function OrganizationSelector() {
   const [open, setOpen] = useState(false);
-  const { organizacionId, setOrganizacionId, setOrganizaciones, organizaciones, usuario, token } = useAuthStore();
+  const { organizacionId, setOrganizacionId, setOrganizaciones, organizaciones, token } = useAuthStore();
 
-  const { data: orgs = [], isLoading, error, status } = useQuery({
+  const { data: orgs = [], isLoading, error } = useQuery({
     queryKey: ['organizaciones'],
     queryFn: () => organizacionesApi.obtenerTodas(),
     staleTime: 1000 * 60 * 5,
@@ -17,29 +17,38 @@ export default function OrganizationSelector() {
   });
 
   useEffect(() => {
+    console.log('[OrganizationSelector] useEffect: orgs changed', { orgsLength: orgs.length, orgs });
     if (orgs.length > 0) {
+      console.log('[OrganizationSelector] Setting organizaciones:', orgs);
       setOrganizaciones(orgs);
       if (!organizacionId) {
+        console.log('[OrganizationSelector] Setting first org:', orgs[0].id);
         setOrganizacionId(orgs[0].id);
       }
     }
-  }, [orgs, organizacionId, setOrganizacionId, setOrganizaciones]);
+  }, [orgs]);
 
-  const currentOrg = organizaciones.find((o) => o.id === organizacionId);
-
-  // Debug logs
+  // Verificar que currentOrg existe
   useEffect(() => {
-    console.log('[OrganizationSelector]', {
-      token: !!token,
-      usuario: !!usuario,
-      organizacionId,
-      organizacionesCount: organizaciones.length,
-      currentOrgName: currentOrg?.nombre,
-      queryStatus: status,
-      isLoading,
-      hasError: !!error,
+    const current = organizaciones.find((o) => o.id === organizacionId);
+    console.log('[OrganizationSelector] currentOrg check:', { 
+      organizacionId, 
+      organizacionesInStore: organizaciones.length,
+      currentOrgExists: !!current,
+      currentOrg: current
     });
-  }, [token, usuario, organizacionId, organizaciones, currentOrg, status, isLoading, error]);
+  }, [organizacionId, organizaciones]);
+
+  const currentOrg = organizaciones.find((o) => o.id === organizacionId) || orgs.find((o) => o.id === organizacionId);
+  
+  // Debug final
+  console.log('[OrganizationSelector] render:', {
+    currentOrgFound: !!currentOrg,
+    currentOrgName: currentOrg?.nombre,
+    organizacionId,
+    organizacionesFromStore: organizaciones.length,
+    organizacionesFromQuery: orgs.length,
+  });
 
   if (!token) {
     return null;
@@ -63,7 +72,7 @@ export default function OrganizationSelector() {
     );
   }
 
-  if (!currentOrg || organizaciones.length === 0) {
+  if (!currentOrg || (organizaciones.length === 0 && orgs.length === 0)) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
         <Building2 size={16} />
@@ -94,7 +103,7 @@ export default function OrganizationSelector() {
 
           <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg z-50">
             <div className="p-2">
-              {organizaciones.map((org) => (
+              {(organizaciones.length > 0 ? organizaciones : orgs).map((org) => (
                 <button
                   key={org.id}
                   onClick={() => handleSelectOrg(org.id)}
