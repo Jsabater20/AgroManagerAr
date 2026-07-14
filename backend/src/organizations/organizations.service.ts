@@ -146,8 +146,8 @@ export class OrganizationsService {
       }
     }
 
-    // Chequear si ya está invitado/miembro (solo rechazar si hay invitación PENDIENTE válida)
-    const invitacionPendiente = await this.prisma.invitacionOrganizacion.findFirst({
+    // Chequear si ya existe invitación pendiente (para permitir reinvitar)
+    const invitacionExistente = await this.prisma.invitacionOrganizacion.findFirst({
       where: {
         organizacionId,
         email: dto.email,
@@ -155,16 +155,11 @@ export class OrganizationsService {
       },
     });
 
-    // Si existe una invitación pendiente que NO ha expirado, rechazar
-    if (invitacionPendiente && new Date() <= invitacionPendiente.expiresAt) {
-      throw new BadRequestException('Esta persona ya tiene una invitación pendiente válida');
-    }
-
-    // Si existe una invitación expirada o ya aceptada, permitir enviar una nueva
-    // (eliminar la vieja para limpiar)
-    if (invitacionPendiente) {
+    // Si existe una invitación pendiente, eliminar la vieja para permitir reinvitar
+    // (esto permite re-enviar si se borraron emails, etc.)
+    if (invitacionExistente) {
       await this.prisma.invitacionOrganizacion.delete({
-        where: { id: invitacionPendiente.id },
+        where: { id: invitacionExistente.id },
       });
     }
 
