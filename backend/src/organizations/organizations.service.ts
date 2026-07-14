@@ -186,15 +186,16 @@ export class OrganizationsService {
 
     // Enviar email
     try {
-      await this.mailer.enviarInvitacion(
+      this.logger.log(`[invitarMiembro] Enviando email a ${dto.email}...`);
+      const mailResult = await this.mailer.enviarInvitacion(
         dto.email,
         org.nombre,
         `${usuarioInvitador?.nombre || 'Un usuario'} ${usuarioInvitador?.apellido || ''}`.trim(),
         linkInvitacion,
       );
-      this.logger.log(`Email de invitación enviado a ${dto.email}`);
+      this.logger.log(`[invitarMiembro] Email enviado exitosamente: ${JSON.stringify(mailResult)}`);
     } catch (error) {
-      this.logger.error(`Error al enviar email de invitación: ${error.message}`);
+      this.logger.error(`[invitarMiembro] Error al enviar email: ${error.message}`, error.stack);
       // No fallar si el email no se envía, pero logear el error
     }
 

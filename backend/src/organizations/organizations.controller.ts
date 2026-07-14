@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   ParseIntPipe,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OrganizationsService } from './organizations.service';
@@ -22,6 +23,8 @@ import { Auditar } from '../audit/decorators/audit.decorator';
 @Controller('organizaciones')
 @UseGuards(JwtAuthGuard)
 export class OrganizationsController {
+  private readonly logger = new Logger(OrganizationsController.name);
+
   constructor(private organizationsService: OrganizationsService) {}
 
   @Post()
@@ -71,7 +74,15 @@ export class OrganizationsController {
     @Body() dto: InvitarMiembroDto,
     @Request() req: { user: { id: number } },
   ) {
-    return this.organizationsService.invitarMiembro(id, req.user.id, dto);
+    this.logger.log(`[invitarMiembro] Recibido: orgId=${id}, email=${dto.email}, rol=${dto.rol}`);
+    try {
+      const result = await this.organizationsService.invitarMiembro(id, req.user.id, dto);
+      this.logger.log(`[invitarMiembro] Éxito: ${result.id}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`[invitarMiembro] Error: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   @Post('invitaciones/:token/aceptar')
