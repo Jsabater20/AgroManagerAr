@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Building2, Users, BarChart3, Clock } from 'lucide-react';
+import { ChevronDown, Building2, Users, BarChart3, Clock, Shield } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { organizacionesApi } from '../../api/organizations.api';
 
@@ -101,6 +101,20 @@ export default function OrganizationSelectorSidebar() {
                 >
                   <Clock size={12} />
                   <span>Permisos Temp.</span>
+                </button>
+              )}
+
+              {/* Roles */}
+              {organizacionId && (
+                <button
+                  onClick={() => {
+                    navigate(`/organizaciones/${organizacionId}/roles`);
+                    setOpen(false);
+                  }}
+                  className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-xs text-green-300 flex items-center gap-2"
+                >
+                  <Shield size={12} />
+                  <span>Roles</span>
                 </button>
               )}
             </div>

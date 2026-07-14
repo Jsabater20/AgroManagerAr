@@ -40,6 +40,7 @@ import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import OrganizationMembersPage from './pages/organizaciones/OrganizationMembersPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
+import RolesPage from './pages/organizaciones/RolesPage';
 
 const queryClient = new QueryClient();
 setQueryClientRef(queryClient);
@@ -97,6 +98,7 @@ export default function App() {
               <Route path="/organizaciones/:orgId/miembros" element={<OrganizationMembersPage />} />
               <Route path="/organizaciones/:orgId/auditoria" element={<AuditoriaPage />} />
               <Route path="/organizaciones/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
+              <Route path="/organizaciones/:orgId/roles" element={<RolesPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
