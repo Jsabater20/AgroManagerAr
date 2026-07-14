@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -21,6 +21,9 @@ import { UsersModule } from './users/users.module';
 import { DemoModule } from './demo/demo.module';
 import { UbicacionModule } from './ubicacion/ubicacion.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { PermissionsModule } from './permissions/permissions.module';
+import { AuditModule } from './audit/audit.module';
+import { AuditInterceptor } from './audit/interceptors/audit.interceptor';
 
 @Module({
   imports: [
@@ -50,6 +53,8 @@ import { OrganizationsModule } from './organizations/organizations.module';
     AiModule,
     UbicacionModule,
     OrganizationsModule,
+    PermissionsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [
@@ -57,6 +62,10 @@ import { OrganizationsModule } from './organizations/organizations.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
     // { provide: APP_FILTER, useClass: SentryGlobalFilter }, // disabled for diagnostics
   ],

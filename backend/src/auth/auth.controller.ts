@@ -16,6 +16,7 @@ import {
   ResetPasswordDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -29,6 +30,7 @@ export class AuthController {
 
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @Post('login')
+  @Auditar('login', 'Usuario')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }

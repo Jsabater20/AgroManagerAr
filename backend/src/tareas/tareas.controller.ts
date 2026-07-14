@@ -19,6 +19,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
   user: { id: number };
@@ -41,11 +42,13 @@ export class TareasController {
   }
 
   @Post()
+  @Auditar('crear_tarea', 'Tarea')
   create(@Body() dto: CreateTareaDto, @Request() req: AuthRequest) {
     return this.tareasService.create(dto, req.user.id, req.organizacionId);
   }
 
   @Patch(':id')
+  @Auditar('modificar_tarea', 'Tarea')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTareaDto,
@@ -55,6 +58,7 @@ export class TareasController {
   }
 
   @Patch(':id/estado')
+  @Auditar('cambiar_estado_tarea', 'Tarea')
   updateEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTareaEstadoDto,
@@ -64,6 +68,7 @@ export class TareasController {
   }
 
   @Delete(':id')
+  @Auditar('eliminar_tarea', 'Tarea')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.tareasService.remove(id, req.user.id, req.organizacionId);
   }

@@ -43,6 +43,7 @@ model Usuario {
   organizacionesQueEsDueno Organizacion[]           @relation("organizacion_owner")
   membresiasOrganizacion   UsuarioOrganizacion[]
   invitaciones             InvitacionOrganizacion[]
+  auditoriasLogs           AuditoriaLog[]           @relation("auditoriaLogs")
 }
 
 enum Rol {
@@ -517,6 +518,8 @@ model Organizacion {
   campanias            Campania[]
   invitaciones         InvitacionOrganizacion[]
   asignacionesRecursos AsignacionRecurso[]
+  rolesPersonalizados  RolPersonalizado[]
+  auditoriasLogs       AuditoriaLog[]           @relation("auditoriaLogs")
 
   @@index([propietarioId])
 }
@@ -528,6 +531,7 @@ model UsuarioOrganizacion {
   rol            RolOrganizacion     @default(OPERARIO)
   estado         EstadoMiembro       @default(ACTIVO)
   asignaciones   AsignacionRecurso[]
+  asignacionesPermiso AsignacionPermiso[] @relation("asignacionesPermiso")
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -585,6 +589,8 @@ enum RolOrganizacion {
   ADMIN
   OPERARIO
   CONTADOR
+  ASESOR
+  CONTRATISTA
 }
 
 enum TipoRecurso {
@@ -609,4 +615,64 @@ enum EstadoInvitacion {
   ACEPTADA
   RECHAZADA
   EXPIRADA
+}
+
+// ─── ROLES Y PERMISOS AVANZADOS ────────────────────────────────────────────────
+
+model RolPersonalizado {
+  id             Int      @id @default(autoincrement())
+  organizacionId Int
+  nombre         String   // ASESOR, CONTRATISTA, etc.
+  descripcion    String?
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizacion   Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  asignaciones   AsignacionPermiso[]
+
+  @@unique([organizacionId, nombre])
+  @@index([organizacionId])
+}
+
+model AsignacionPermiso {
+  id                    Int      @id @default(autoincrement())
+  usuarioOrganizacionId Int
+  rolPersonalizadoId    Int
+  recursoTipo           String?  // "CAMPO", "TAREA", null = acceso general
+  recursoId             Int?     // ID específico del recurso
+  fechaInicio           DateTime
+  fechaVencimiento      DateTime
+  activo                Boolean  @default(true)
+  notas                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  usuarioOrganizacion UsuarioOrganizacion @relation("asignacionesPermiso", fields: [usuarioOrganizacionId], references: [id], onDelete: Cascade)
+  rolPersonalizado    RolPersonalizado    @relation(fields: [rolPersonalizadoId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioOrganizacionId])
+  @@index([rolPersonalizadoId])
+  @@index([fechaVencimiento])
+}
+
+model AuditoriaLog {
+  id             Int      @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int?
+  accion         String   // "login", "crear_campo", "modificar_tarea", etc.
+  entidad        String?  // "Campo", "Tarea", "Maquinaria"
+  entidadId      Int?
+  cambios        String?  // JSON con detalles del cambio
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  usuario      Usuario        @relation("auditoriaLogs", fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion?  @relation("auditoriaLogs", fields: [organizacionId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
+  @@index([organizacionId])
+  @@index([createdAt])
+  @@index([accion])
 }

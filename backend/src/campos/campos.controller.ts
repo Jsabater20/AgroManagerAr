@@ -19,6 +19,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
   user: { id: number; email: string; nombre: string; rol: string };
@@ -41,11 +42,13 @@ export class CamposController {
   }
 
   @Post()
+  @Auditar('crear_campo', 'Campo')
   create(@Body() dto: CreateCampoDto, @Request() req: AuthRequest) {
     return this.camposService.create(dto, req.user.id, req.organizacionId);
   }
 
   @Patch(':id')
+  @Auditar('modificar_campo', 'Campo')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCampoDto,
@@ -55,11 +58,13 @@ export class CamposController {
   }
 
   @Delete(':id')
+  @Auditar('eliminar_campo', 'Campo')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.camposService.remove(id, req.user.id, req.organizacionId);
   }
 
   @Post(':id/lotes')
+  @Auditar('crear_lote', 'Lote')
   addLote(
     @Param('id', ParseIntPipe) campoId: number,
     @Body() dto: CreateLoteDto,

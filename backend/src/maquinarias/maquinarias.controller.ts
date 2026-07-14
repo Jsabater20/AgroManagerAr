@@ -21,6 +21,7 @@ import {
   CreateMantenimientoDto,
   UpdateMaquinariaDto,
 } from './dto/maquinarias.dto';
+import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
   user: { id: number };
@@ -47,6 +48,7 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Post()
+  @Auditar('crear_maquinaria', 'Maquinaria')
   async create(@Request() req: AuthRequest, @Body() dto: CreateMaquinariaDto) {
     await this.planService.checkMaquinariasLimit(req.user.id);
     return this.maquinariasService.create(
@@ -58,6 +60,7 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Patch(':id')
+  @Auditar('modificar_maquinaria', 'Maquinaria')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Request() req: AuthRequest,
@@ -73,6 +76,7 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Delete(':id')
+  @Auditar('eliminar_maquinaria', 'Maquinaria')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.maquinariasService.remove(
       id,
@@ -85,6 +89,7 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Post(':id/mantenimientos')
+  @Auditar('crear_mantenimiento', 'MantenimientoMaquinaria')
   addMantenimiento(
     @Param('id', ParseIntPipe) id: number,
     @Request() req: AuthRequest,
@@ -100,6 +105,7 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Delete(':id/mantenimientos/:mantenimientoId')
+  @Auditar('eliminar_mantenimiento', 'MantenimientoMaquinaria')
   removeMantenimiento(
     @Param('id', ParseIntPipe) id: number,
     @Param('mantenimientoId', ParseIntPipe) mantenimientoId: number,
@@ -117,6 +123,7 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Post(':id/gastos')
+  @Auditar('crear_gasto_maquinaria', 'GastoMaquinaria')
   addGasto(
     @Param('id', ParseIntPipe) id: number,
     @Request() req: AuthRequest,
@@ -132,6 +139,7 @@ export class MaquinariasController {
 
   @UseGuards(DemoGuard)
   @Delete(':id/gastos/:gastoId')
+  @Auditar('eliminar_gasto_maquinaria', 'GastoMaquinaria')
   removeGasto(
     @Param('id', ParseIntPipe) id: number,
     @Param('gastoId', ParseIntPipe) gastoId: number,

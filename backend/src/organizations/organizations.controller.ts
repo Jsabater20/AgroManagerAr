@@ -17,6 +17,7 @@ import {
   UpdateOrganizacionDto,
   InvitarMiembroDto,
 } from './organizations.dto';
+import { Auditar } from '../audit/decorators/audit.decorator';
 
 @Controller('organizaciones')
 @UseGuards(JwtAuthGuard)
@@ -24,6 +25,7 @@ export class OrganizationsController {
   constructor(private organizationsService: OrganizationsService) {}
 
   @Post()
+  @Auditar('crear_organizacion', 'Organizacion')
   async crearOrganizacion(
     @Request() req: { user: { id: number } },
     @Body() dto: CreateOrganizacionDto,
@@ -49,6 +51,7 @@ export class OrganizationsController {
   }
 
   @Patch(':id')
+  @Auditar('actualizar_organizacion', 'Organizacion')
   async actualizarOrganizacion(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateOrganizacionDto,
@@ -62,6 +65,7 @@ export class OrganizationsController {
   }
 
   @Post(':id/invitar')
+  @Auditar('invitar_miembro', 'UsuarioOrganizacion')
   async invitarMiembro(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: InvitarMiembroDto,
@@ -71,6 +75,7 @@ export class OrganizationsController {
   }
 
   @Post('invitaciones/:token/aceptar')
+  @Auditar('aceptar_invitacion', 'UsuarioOrganizacion')
   async aceptarInvitacion(
     @Param('token') token: string,
     @Request() req: { user: { id: number } },
@@ -87,6 +92,7 @@ export class OrganizationsController {
   }
 
   @Delete(':id/miembros/:miembroId')
+  @Auditar('eliminar_miembro', 'UsuarioOrganizacion')
   async eliminarMiembro(
     @Param('id', ParseIntPipe) id: number,
     @Param('miembroId', ParseIntPipe) miembroId: number,
