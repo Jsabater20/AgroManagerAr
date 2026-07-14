@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, User, ShieldCheck, Wrench } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, User, ShieldCheck, Wrench, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import OrganizationSelectorSidebar from './OrganizationSelectorSidebar';
 
@@ -19,6 +19,7 @@ const navItems: Array<{ to: string; label: string; icon: any; roles: RolType[] }
   { to: '/rentabilidad', label: 'Rentabilidad', icon: TrendingUp, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
   { to: '/reportes',     label: 'Reportes',     icon: FileBarChart2, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
   { to: '/clima',        label: 'Clima',        icon: CloudSun, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR'] },
+  { to: '/admin',        label: 'Administración', icon: Settings, roles: ['OWNER'] },
 ];
 
 interface SidebarProps {
