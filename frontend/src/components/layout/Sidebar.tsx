@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, User, ShieldCheck, Wrench, Settings } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, ShieldCheck, Wrench, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import OrganizationSelectorSidebar from './OrganizationSelectorSidebar';
 
@@ -94,7 +94,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           className="flex items-center gap-2 mb-2 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
         >
           <ShieldCheck size={14} className="text-green-400" />
-          <span className="text-xs font-semibold text-green-300">{isPro ? 'PRO' : 'FREE'}</span>
+          <span className="text-xs font-semibold text-green-300">{isPro() ? 'PRO' : 'FREE'}</span>
         </NavLink>
 
         <div className="flex items-center gap-3 px-3 py-3 mb-2 rounded-lg bg-white/10">
