@@ -16,14 +16,12 @@ export default function OrganizationMembersPage() {
 
   const orgIdNum = orgId ? parseInt(orgId) : 0;
 
-  // Fetch miembros
   const { data: miembros = [], isLoading: miembrosLoading } = useQuery({
     queryKey: ['miembros', orgIdNum],
     queryFn: () => organizacionesApi.obtenerMiembros(orgIdNum),
     enabled: !!orgIdNum,
   });
 
-  // Invite mutation
   const inviteMutation = useMutation({
     mutationFn: (dto: { email: string; rol: string }) =>
       organizacionesApi.invitarMiembro(orgIdNum, dto),
@@ -32,12 +30,12 @@ export default function OrganizationMembersPage() {
       setEmailInput('');
       setRoleInput('OPERARIO');
     },
-    onError: (_err: any) => {
-      toast.error(_err?.response?.data?.message || 'Error al invitar');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { message?: string } } } | null;
+      toast.error(error?.response?.data?.message || 'Error al invitar');
     },
   });
 
-  // Delete member mutation
   const deleteMutation = useMutation({
     mutationFn: (usuarioId: number) =>
       organizacionesApi.eliminarMiembro(orgIdNum, usuarioId),
@@ -60,7 +58,6 @@ export default function OrganizationMembersPage() {
 
   return (
     <div className="max-w-5xl">
-      {/* CAMBIO 2: Título mejorado */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
           <Mail className="text-green-600" size={32} />
@@ -71,7 +68,6 @@ export default function OrganizationMembersPage() {
         </p>
       </div>
 
-      {/* CAMBIO 2: Formulario mejorado y siempre visible */}
       <div className="mb-8 p-6 bg-linear-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Plus size={20} className="text-green-600" />
@@ -83,16 +79,15 @@ export default function OrganizationMembersPage() {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Rol
               </label>
-              {/* CAMBIO 3: stopPropagation para que la sidebar no se cierre */}
               <select
                 value={roleInput}
                 onChange={(e) => setRoleInput(e.target.value as RolOrganizacion)}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium cursor-pointer [&>option]:bg-white [&>option]:dark:bg-gray-700 [&>option]:text-gray-900 [&>option]:dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium cursor-pointer"
               >
                 {ROLES_DISPONIBLES.map((rol) => (
-                  <option key={rol.value} value={rol.value} className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option key={rol.value} value={rol.value}>
                     {rol.label}
                   </option>
                 ))}
@@ -102,7 +97,6 @@ export default function OrganizationMembersPage() {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Email del Nuevo Miembro
               </label>
-              {/* CAMBIO 3: stopPropagation para que la sidebar no se cierre */}
               <input
                 type="email"
                 value={emailInput}
@@ -137,7 +131,6 @@ export default function OrganizationMembersPage() {
         </form>
       </div>
 
-      {/* Members List */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
