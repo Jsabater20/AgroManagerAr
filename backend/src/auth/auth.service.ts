@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { Resend } from 'resend';
+import { InvitacionOrganizacion, Organizacion } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   RegisterDto,
@@ -39,7 +40,7 @@ export class AuthService {
     }
 
     // Si hay token de invitación, validar que sea válido
-    let invitacion = null;
+    let invitacion: (InvitacionOrganizacion & { organizacion: Organizacion }) | null = null;
     if (dto.invitationToken) {
       invitacion = await this.prisma.invitacionOrganizacion.findUnique({
         where: { token: dto.invitationToken },
