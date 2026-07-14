@@ -142,6 +142,50 @@ export class UsersService {
         'No podés eliminar tu propia cuenta desde el panel',
       );
 
+    // Borrado cascada: primero eliminar todas las referencias
+    // 1. Miembro de organizaciones
+    await this.prisma.usuarioOrganizacion.deleteMany({
+      where: { usuarioId: targetId },
+    });
+
+    // 2. Invitaciones recibidas
+    await this.prisma.invitacionOrganizacion.deleteMany({
+      where: { usuarioId: targetId },
+    });
+
+    // 3. Invitaciones pendientes con este email
+    const user = await this.prisma.usuario.findUnique({
+      where: { id: targetId },
+      select: { email: true },
+    });
+    if (user) {
+      await this.prisma.invitacionOrganizacion.deleteMany({
+        where: { email: user.email },
+      });
+    }
+
+    // 4. Organizaciones donde es propietario (transferir o eliminar)
+    const organizacionesOwner = await this.prisma.organizacion.findMany({
+      where: { propietarioId: targetId },
+    });
+
+    // Eliminar las organizaciones que posee (también elimina datos cascada en DB)
+    for (const org of organizacionesOwner) {
+      // Primero eliminar miembros
+      await this.prisma.usuarioOrganizacion.deleteMany({
+        where: { organizacionId: org.id },
+      });
+      // Luego eliminar invitaciones
+      await this.prisma.invitacionOrganizacion.deleteMany({
+        where: { organizacionId: org.id },
+      });
+      // Finalmente eliminar la organización
+      await this.prisma.organizacion.delete({
+        where: { id: org.id },
+      });
+    }
+
+    // 5. Finalmente eliminar el usuario
     await this.prisma.usuario.delete({ where: { id: targetId } });
     return { ok: true };
   }
