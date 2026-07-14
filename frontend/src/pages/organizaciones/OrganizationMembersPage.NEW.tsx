@@ -32,8 +32,9 @@ export default function OrganizationMembersPage() {
       setEmailInput('');
       setRoleInput('OPERARIO');
     },
-    onError: (_err: any) => {
-      toast.error(_err?.response?.data?.message || 'Error al invitar');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { message?: string } } } | null;
+      toast.error(error?.response?.data?.message || 'Error al invitar');
     },
   });
 
@@ -64,7 +65,7 @@ export default function OrganizationMembersPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
           <Mail className="text-green-600" size={32} />
-          Administración de Miembros
+          Administración del personal del campo
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
           Invita nuevos usuarios y gestiona los roles dentro de tu organización
@@ -72,7 +73,7 @@ export default function OrganizationMembersPage() {
       </div>
 
       {/* CAMBIO 2: Formulario mejorado y siempre visible */}
-      <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg shadow-md">
+      <div className="mb-8 p-6 bg-linear-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Plus size={20} className="text-green-600" />
           Agregar Nuevo Miembro

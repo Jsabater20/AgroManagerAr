@@ -204,7 +204,8 @@ export class OrganizationsService {
       );
       this.logger.log(`[invitarMiembro] Email enviado exitosamente: ${JSON.stringify(mailResult)}`);
     } catch (error) {
-      this.logger.error(`[invitarMiembro] Error al enviar email: ${error.message}`, error.stack);
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(`[invitarMiembro] Error al enviar email: ${err.message}`, err.stack);
       // No fallar si el email no se envía, pero logear el error
     }
 

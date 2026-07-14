@@ -32,7 +32,7 @@ export default function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-950 via-green-900 to-emerald-800 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-950 via-green-900 to-emerald-800 p-6">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-10 text-center">
         {/* Logo */}
         <div className="flex justify-center mb-6">

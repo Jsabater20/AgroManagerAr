@@ -72,7 +72,7 @@ export default function OrganizationMembersPage() {
       </div>
 
       {/* CAMBIO 2: Formulario mejorado y siempre visible */}
-      <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg shadow-md">
+      <div className="mb-8 p-6 bg-linear-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Plus size={20} className="text-green-600" />
           Agregar Nuevo Miembro

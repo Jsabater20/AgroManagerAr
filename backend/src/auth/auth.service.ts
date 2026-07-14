@@ -40,31 +40,36 @@ export class AuthService {
     }
 
     // Si hay token de invitación, validar que sea válido
-    let invitacion: (InvitacionOrganizacion & { organizacion: Organizacion }) | null = null;
+    let invitacion:
+      | (InvitacionOrganizacion & { organizacion: Organizacion })
+      | null = null;
     if (dto.invitationToken) {
-      invitacion = await this.prisma.invitacionOrganizacion.findUnique({
-        where: { token: dto.invitationToken },
-        include: { organizacion: true },
-      });
+      const foundInvitacion =
+        await this.prisma.invitacionOrganizacion.findUnique({
+          where: { token: dto.invitationToken },
+          include: { organizacion: true },
+        });
 
-      if (!invitacion) {
+      if (!foundInvitacion) {
         throw new BadRequestException('Invitación no encontrada');
       }
 
-      if (invitacion.estado !== 'PENDIENTE') {
+      if (foundInvitacion.estado !== 'PENDIENTE') {
         throw new BadRequestException('Invitación ya fue usada');
       }
 
-      if (new Date() > invitacion.expiresAt) {
+      if (new Date() > foundInvitacion.expiresAt) {
         throw new BadRequestException('Invitación expirada');
       }
 
       // Validar que el email coincida
-      if (invitacion.email !== dto.email) {
+      if (foundInvitacion.email !== dto.email) {
         throw new BadRequestException(
-          `Esta invitación es para el email ${invitacion.email}`,
+          `Esta invitación es para el email ${foundInvitacion.email}`,
         );
       }
+
+      invitacion = foundInvitacion;
     }
 
     const hash = await bcrypt.hash(dto.password, 10);
