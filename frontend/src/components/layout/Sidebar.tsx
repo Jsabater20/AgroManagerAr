@@ -39,7 +39,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     usuario?.apellido?.[0] ?? '',
   ].join('').toUpperCase() || '?';
 
-  // Filtrar items según rol del usuario
   const visibleItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
@@ -47,7 +46,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       className={`fixed top-0 left-0 h-full w-64 bg-green-900 text-white flex flex-col z-40 transition-transform duration-300 ease-in-out shadow-2xl
         ${open ? 'translate-x-0' : '-translate-x-full'}`}
     >
-      {/* Logo + cerrar */}
       <div className="flex items-center justify-between px-4 border-b border-white/10 min-h-16">
         <div className="flex items-center gap-2.5">
           <div className="bg-green-700 p-1.5 rounded-lg">
@@ -67,10 +65,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </button>
       </div>
 
-      {/* Organization Selector */}
       <OrganizationSelectorSidebar />
 
-      {/* Nav */}
       <nav className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">
         {visibleItems.map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -91,63 +87,33 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Footer */}
       <div className="p-2 border-t border-white/10">
-        {/* Plan badge */}
         <NavLink
           to="/precios"
           onClick={onClose}
           className="flex items-center gap-2 mb-2 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
         >
-          <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${isPro() ? 'bg-yellow-400 text-yellow-900' : 'bg-green-700 text-green-200'}`}>
-            {isPro() ? '⚡ Pro' : 'Free'}
-          </div>
+          <ShieldCheck size={14} className="text-green-400" />
+          <span className="text-xs font-semibold text-green-300">{isPro ? 'PRO' : 'FREE'}</span>
         </NavLink>
 
-        {/* User info */}
-        <div className="flex items-center gap-2 px-1 py-1 mb-2">
-          <div className="w-7 h-7 rounded-full bg-green-700 flex items-center justify-center text-xs font-bold text-green-100 shrink-0">
+        <div className="flex items-center gap-3 px-3 py-3 mb-2 rounded-lg bg-white/10">
+          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white">
             {initials}
           </div>
-          <p className="text-xs text-green-200 truncate flex-1">{[usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ')}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">{usuario?.nombre}</p>
+            <p className="text-xs text-green-300 truncate">{usuario?.email}</p>
+          </div>
         </div>
 
-        {/* Action buttons (icons only) */}
-        <div className="flex items-center gap-1">
-          <NavLink
-            to="/perfil"
-            onClick={onClose}
-            title="Mi perfil"
-            className={({ isActive }) =>
-              `flex-1 flex items-center justify-center py-2 rounded-lg text-sm transition-all
-              ${isActive ? 'bg-white/15 text-white' : 'text-green-400 hover:text-white hover:bg-white/10'}`
-            }
-          >
-            <User size={16} />
-          </NavLink>
-
-          {usuario?.rol === 'OWNER' && (
-            <NavLink
-              to="/admin"
-              onClick={onClose}
-              title="Panel admin"
-              className={({ isActive }) =>
-                `flex-1 flex items-center justify-center py-2 rounded-lg transition-all
-                ${isActive ? 'bg-white/15 text-white' : 'text-yellow-400 hover:text-white hover:bg-white/10'}`
-              }
-            >
-              <ShieldCheck size={16} />
-            </NavLink>
-          )}
-
-          <button
-            onClick={handleLogout}
-            title="Cerrar sesión"
-            className="flex-1 flex items-center justify-center py-2 rounded-lg text-green-400 hover:text-red-300 hover:bg-white/10 transition-all"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+        >
+          <LogOut size={16} />
+          Salir
+        </button>
       </div>
     </aside>
   );
