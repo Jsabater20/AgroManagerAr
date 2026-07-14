@@ -22,7 +22,7 @@ export class InvitarMiembroDto {
   @IsEmail()
   email!: string;
 
-  @IsEnum(['OWNER', 'ADMIN', 'OPERARIO', 'CONTADOR'])
+  @IsEnum(['OWNER', 'ADMIN', 'OPERARIO', 'CONTADOR', 'ASESOR', 'CONTRATISTA'])
   @IsOptional()
   rol?: string;
 }
