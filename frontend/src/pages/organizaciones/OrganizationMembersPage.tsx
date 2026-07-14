@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Plus, Trash2, Mail, Loader } from 'lucide-react';
@@ -15,6 +15,14 @@ export default function OrganizationMembersPage() {
   const [roleInput, setRoleInput] = useState<RolOrganizacion>('OPERARIO');
 
   const orgIdNum = orgId ? parseInt(orgId) : 0;
+
+  // Cerrar sidebar al entrar a esta página
+  useEffect(() => {
+    const backdrop = document.querySelector('[class*="fixed inset-0 bg-black"]');
+    if (backdrop instanceof HTMLElement) {
+      backdrop.click();
+    }
+  }, []);
 
   const { data: miembros = [], isLoading: miembrosLoading } = useQuery({
     queryKey: ['miembros', orgIdNum],
@@ -61,7 +69,7 @@ export default function OrganizationMembersPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
           <Mail className="text-green-600" size={32} />
-          Administración de Miembros
+          Administración de personal del campo
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
           Invita nuevos usuarios y gestiona los roles dentro de tu organización

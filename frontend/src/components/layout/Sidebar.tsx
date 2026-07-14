@@ -19,7 +19,6 @@ const navItems: Array<{ to: string; label: string; icon: any; roles: RolType[] }
   { to: '/rentabilidad', label: 'Rentabilidad', icon: TrendingUp, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
   { to: '/reportes',     label: 'Reportes',     icon: FileBarChart2, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
   { to: '/clima',        label: 'Clima',        icon: CloudSun, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR'] },
-  { to: '/admin',        label: 'Administración', icon: Settings, roles: ['OWNER'] },
 ];
 
 interface SidebarProps {
@@ -87,17 +86,28 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="p-2 border-t border-white/10">
+      <div className="p-2 border-t border-white/10 space-y-2">
+        {userRole === 'OWNER' && (
+          <NavLink
+            to="/admin"
+            onClick={onClose}
+            className="flex items-center gap-2 px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+          >
+            <Settings size={16} />
+            Administración
+          </NavLink>
+        )}
+
         <NavLink
           to="/precios"
           onClick={onClose}
-          className="flex items-center gap-2 mb-2 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
+          className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
         >
           <ShieldCheck size={14} className="text-green-400" />
           <span className="text-xs font-semibold text-green-300">{isPro() ? 'PRO' : 'FREE'}</span>
         </NavLink>
 
-        <div className="flex items-center gap-3 px-3 py-3 mb-2 rounded-lg bg-white/10">
+        <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/10">
           <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white">
             {initials}
           </div>
