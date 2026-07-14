@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Sprout, Eye, EyeOff, Check, X, Leaf, Mail, ArrowLeft } from 'lucide-react';
 import { api } from '../../api/client';
