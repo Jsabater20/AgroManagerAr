@@ -31,7 +31,6 @@ export default function OrganizationMembersPage() {
       toast.success('Invitación enviada');
       setEmailInput('');
       setRoleInput('OPERARIO');
-      setShowInviteForm(false);
     },
     onError: (_err: any) => {
       toast.error(_err?.response?.data?.message || 'Error al invitar');
