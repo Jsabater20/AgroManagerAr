@@ -16,7 +16,7 @@ interface PermissionGuardProps {
   fallback?: React.ReactNode;
 }
 
-export function RoleGuard({
+export function PermissionGuard({
   requiredRoles,
   permission,
   children,

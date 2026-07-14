@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Sprout, Eye, EyeOff, Check, X, Leaf, Mail, ArrowLeft } from 'lucide-react';
 import { api } from '../../api/client';
 import toast from 'react-hot-toast';
@@ -12,12 +12,19 @@ const rules = [
 ];
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ nombre: '', apellido: '', email: '', password: '' });
+  const [searchParams] = useSearchParams();
+  const invitationToken = searchParams.get('token');
+  const emailFromInvitation = searchParams.get('email');
+
+  const [form, setForm] = useState({ nombre: '', apellido: '', email: emailFromInvitation || '', password: '', invitationToken: invitationToken || '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [registered, setRegistered] = useState(false);
+
+  // Si hay token de invitación, el email es read-only
+  const emailReadOnly = !!invitationToken;
 
   const allValid = rules.every((r) => r.test(form.password));
 
@@ -31,7 +38,12 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      await api.post('/auth/register', form);
+      // Si hay invitationToken, incluirlo en el body
+      const payload = invitationToken
+        ? { ...form, invitationToken }
+        : { nombre: form.nombre, apellido: form.apellido, email: form.email, password: form.password };
+
+      await api.post('/auth/register', payload);
       setRegistered(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string | string[] } } })
@@ -175,11 +187,21 @@ export default function RegisterPage() {
               <input
                 type="email"
                 required
+                readOnly={emailReadOnly}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-colors shadow-sm"
+                className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors shadow-sm ${
+                  emailReadOnly
+                    ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed'
+                    : 'bg-white border-gray-200'
+                }`}
                 placeholder="tu@email.com"
               />
+              {emailReadOnly && (
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Este email fue confirmado en tu invitación
+                </p>
+              )}
             </div>
 
             <div>

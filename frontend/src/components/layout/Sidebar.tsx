@@ -3,20 +3,22 @@ import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, 
 import { useAuthStore } from '../../store/auth.store';
 import OrganizationSelectorSidebar from './OrganizationSelectorSidebar';
 
-const navItems = [
-  { to: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-  { to: '/campos',       label: 'Campos',       icon: Map },
-  { to: '/cultivos',     label: 'Cultivos',     icon: Leaf },
-  { to: '/siembras',     label: 'Siembras',     icon: Sprout },
-  { to: '/insumos',      label: 'Insumos',      icon: FlaskConical },
-  { to: '/ganado',       label: 'Ganadería',    icon: PawPrint },
-  { to: '/tareas',       label: 'Tareas',       icon: ClipboardList },
-  { to: '/maquinarias',  label: 'Maquinarias',  icon: Wrench },
-  { to: '/finanzas',     label: 'Finanzas',     icon: DollarSign },
-  { to: '/campanias',    label: 'Campañas',     icon: CalendarRange },
-  { to: '/rentabilidad', label: 'Rentabilidad', icon: TrendingUp },
-  { to: '/reportes',     label: 'Reportes',     icon: FileBarChart2 },
-  { to: '/clima',        label: 'Clima',        icon: CloudSun },
+type RolType = 'OWNER' | 'ADMIN' | 'OPERARIO' | 'ASESOR' | 'CONTRATISTA' | 'CONTADOR';
+
+const navItems: Array<{ to: string; label: string; icon: any; roles: RolType[] }> = [
+  { to: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR', 'CONTRATISTA', 'CONTADOR'] },
+  { to: '/campos',       label: 'Campos',       icon: Map, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR', 'CONTRATISTA'] },
+  { to: '/cultivos',     label: 'Cultivos',     icon: Leaf, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
+  { to: '/siembras',     label: 'Siembras',     icon: Sprout, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
+  { to: '/insumos',      label: 'Insumos',      icon: FlaskConical, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
+  { to: '/ganado',       label: 'Ganadería',    icon: PawPrint, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
+  { to: '/tareas',       label: 'Tareas',       icon: ClipboardList, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'CONTRATISTA'] },
+  { to: '/maquinarias',  label: 'Maquinarias',  icon: Wrench, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
+  { to: '/finanzas',     label: 'Finanzas',     icon: DollarSign, roles: ['OWNER', 'ADMIN', 'CONTADOR'] },
+  { to: '/campanias',    label: 'Campañas',     icon: CalendarRange, roles: ['OWNER', 'ADMIN', 'CONTADOR'] },
+  { to: '/rentabilidad', label: 'Rentabilidad', icon: TrendingUp, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
+  { to: '/reportes',     label: 'Reportes',     icon: FileBarChart2, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
+  { to: '/clima',        label: 'Clima',        icon: CloudSun, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR'] },
 ];
 
 interface SidebarProps {
@@ -27,6 +29,7 @@ interface SidebarProps {
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { usuario, logout, isPro } = useAuthStore();
   const navigate = useNavigate();
+  const userRole = (usuario?.rol as RolType) || 'OPERARIO';
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -34,6 +37,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     usuario?.nombre?.[0] ?? '',
     usuario?.apellido?.[0] ?? '',
   ].join('').toUpperCase() || '?';
+
+  // Filtrar items según rol del usuario
+  const visibleItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
     <aside
@@ -65,7 +71,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {visibleItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -119,7 +125,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <User size={16} />
           </NavLink>
 
-          {usuario?.rol === 'ADMIN' && (
+          {usuario?.rol === 'OWNER' && (
             <NavLink
               to="/admin"
               onClick={onClose}

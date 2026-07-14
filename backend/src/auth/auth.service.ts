@@ -38,6 +38,34 @@ export class AuthService {
       throw new ConflictException('Ya existe un usuario con ese email');
     }
 
+    // Si hay token de invitación, validar que sea válido
+    let invitacion = null;
+    if (dto.invitationToken) {
+      invitacion = await this.prisma.invitacionOrganizacion.findUnique({
+        where: { token: dto.invitationToken },
+        include: { organizacion: true },
+      });
+
+      if (!invitacion) {
+        throw new BadRequestException('Invitación no encontrada');
+      }
+
+      if (invitacion.estado !== 'PENDIENTE') {
+        throw new BadRequestException('Invitación ya fue usada');
+      }
+
+      if (new Date() > invitacion.expiresAt) {
+        throw new BadRequestException('Invitación expirada');
+      }
+
+      // Validar que el email coincida
+      if (invitacion.email !== dto.email) {
+        throw new BadRequestException(
+          `Esta invitación es para el email ${invitacion.email}`,
+        );
+      }
+    }
+
     const hash = await bcrypt.hash(dto.password, 10);
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto
@@ -57,15 +85,38 @@ export class AuthService {
       select: { id: true, email: true, nombre: true, apellido: true },
     });
 
-    // AUTO-CREAR ORGANIZACIÓN PERSONAL
-    await this.prisma.organizacion.create({
-      data: {
-        nombre: `${usuario.nombre} ${dto.apellido}`,
-        email: usuario.email,
-        plan: 'FREE',
-        propietarioId: usuario.id,
-      },
-    });
+    // Si hay invitación, aceptarla automáticamente
+    if (invitacion) {
+      // Crear membresía con el rol de la invitación (NUNCA OWNER)
+      await this.prisma.usuarioOrganizacion.create({
+        data: {
+          usuarioId: usuario.id,
+          organizacionId: invitacion.organizacionId,
+          rol: invitacion.rol,
+          estado: 'ACTIVO',
+        },
+      });
+
+      // Marcar invitación como aceptada
+      await this.prisma.invitacionOrganizacion.update({
+        where: { id: invitacion.id },
+        data: {
+          estado: 'ACEPTADA',
+          aceptadoEn: new Date(),
+          usuarioId: usuario.id,
+        },
+      });
+    } else {
+      // Si NO hay invitación, crear organización personal
+      await this.prisma.organizacion.create({
+        data: {
+          nombre: `${usuario.nombre} ${dto.apellido}`,
+          email: usuario.email,
+          plan: 'FREE',
+          propietarioId: usuario.id,
+        },
+      });
+    }
 
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;
     if (this.resend) {

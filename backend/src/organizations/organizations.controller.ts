@@ -21,12 +21,23 @@ import {
 import { Auditar } from '../audit/decorators/audit.decorator';
 
 @Controller('organizaciones')
-@UseGuards(JwtAuthGuard)
 export class OrganizationsController {
   private readonly logger = new Logger(OrganizationsController.name);
 
   constructor(private organizationsService: OrganizationsService) {}
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // PÚBLICO: Obtener invitación por token (sin autenticación)
+  // ────────────────────────────────────────────────────────────────────────────
+  @Get('invitaciones/:token')
+  async obtenerInvitacion(@Param('token') token: string) {
+    return this.organizationsService.obtenerInvitacionPorToken(token);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // PROTEGIDO: Resto de endpoints
+  // ────────────────────────────────────────────────────────────────────────────
+  @UseGuards(JwtAuthGuard)
   @Post()
   @Auditar('crear_organizacion', 'Organizacion')
   async crearOrganizacion(
@@ -36,6 +47,7 @@ export class OrganizationsController {
     return this.organizationsService.crearOrganizacion(req.user.id, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   async obtenerOrganizaciones(
     @Request() req: { user: { id: number } },
@@ -45,6 +57,7 @@ export class OrganizationsController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async obtenerOrganizacion(
     @Param('id', ParseIntPipe) id: number,
@@ -53,6 +66,7 @@ export class OrganizationsController {
     return this.organizationsService.obtenerOrganizacion(id, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @Auditar('actualizar_organizacion', 'Organizacion')
   async actualizarOrganizacion(
@@ -67,6 +81,7 @@ export class OrganizationsController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/invitar')
   @Auditar('invitar_miembro', 'UsuarioOrganizacion')
   async invitarMiembro(
@@ -87,6 +102,7 @@ export class OrganizationsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('invitaciones/:token/aceptar')
   @Auditar('aceptar_invitacion', 'UsuarioOrganizacion')
   async aceptarInvitacion(
@@ -96,6 +112,7 @@ export class OrganizationsController {
     return this.organizationsService.aceptarInvitacion(token, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id/miembros')
   async obtenerMiembros(
     @Param('id', ParseIntPipe) id: number,
@@ -104,6 +121,7 @@ export class OrganizationsController {
     return this.organizationsService.obtenerMiembros(id, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id/miembros/:miembroId')
   @Auditar('eliminar_miembro', 'UsuarioOrganizacion')
   async eliminarMiembro(
@@ -118,10 +136,7 @@ export class OrganizationsController {
     );
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // NUEVO: Cambiar rol de miembro
-  // ────────────────────────────────────────────────────────────────────────────
-
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/miembros/:miembroId/rol')
   @Auditar('cambiar_rol_miembro', 'UsuarioOrganizacion')
   async cambiarRolMiembro(

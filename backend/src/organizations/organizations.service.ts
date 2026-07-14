@@ -202,6 +202,35 @@ export class OrganizationsService {
     return invitacion;
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // NUEVO: Obtener invitación por token (público, sin autenticación)
+  // ────────────────────────────────────────────────────────────────────────────
+  async obtenerInvitacionPorToken(token: string) {
+    const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
+      where: { token },
+      include: { organizacion: true },
+    });
+
+    if (!invitacion) {
+      throw new BadRequestException('Invitación no encontrada');
+    }
+
+    if (invitacion.estado !== 'PENDIENTE') {
+      throw new BadRequestException('Invitación ya fue usada');
+    }
+
+    if (new Date() > invitacion.expiresAt) {
+      throw new BadRequestException('Invitación expirada');
+    }
+
+    return {
+      organizacionId: invitacion.organizacionId,
+      organizacionNombre: invitacion.organizacion.nombre,
+      rol: invitacion.rol,
+      email: invitacion.email,
+    };
+  }
+
   async aceptarInvitacion(token: string, usuarioId: number) {
     const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
       where: { token },
@@ -297,10 +326,6 @@ export class OrganizationsService {
       },
     });
   }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // NUEVO: Cambiar rol de miembro
-  // ────────────────────────────────────────────────────────────────────────────
 
   async cambiarRolMiembro(
     organizacionId: number,

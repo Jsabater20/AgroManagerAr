@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, Matches, MinLength, IsOptional, IsString } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail({}, { message: 'El email no es válido' })
@@ -22,6 +22,10 @@ export class RegisterDto {
     message: 'La contraseña debe incluir al menos un número',
   })
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  invitationToken?: string;
 }
 
 export class LoginDto {
