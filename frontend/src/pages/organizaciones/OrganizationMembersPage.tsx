@@ -89,10 +89,10 @@ export default function OrganizationMembersPage() {
                 onChange={(e) => setRoleInput(e.target.value as RolOrganizacion)}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium cursor-pointer"
+                className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium cursor-pointer [&>option]:bg-white [&>option]:dark:bg-gray-700 [&>option]:text-gray-900 [&>option]:dark:text-white"
               >
                 {ROLES_DISPONIBLES.map((rol) => (
-                  <option key={rol.value} value={rol.value}>
+                  <option key={rol.value} value={rol.value} className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     {rol.label}
                   </option>
                 ))}
