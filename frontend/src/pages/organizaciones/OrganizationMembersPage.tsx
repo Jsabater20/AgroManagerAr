@@ -4,17 +4,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Plus, Trash2, Mail, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { organizacionesApi } from '../../api/organizations.api';
+import { ROLES_DISPONIBLES } from '../../constants/roles';
 import type { MiembroOrganizacion } from '../../api/types';
 
 type RolOrganizacion = 'ADMIN' | 'OPERARIO' | 'CONTADOR' | 'ASESOR' | 'CONTRATISTA';
-
-const ROLES_DISPONIBLES: { value: RolOrganizacion; label: string }[] = [
-  { value: 'OPERARIO', label: 'Operario' },
-  { value: 'ADMIN', label: 'Administrador' },
-  { value: 'CONTADOR', label: 'Contador' },
-  { value: 'ASESOR', label: 'Asesor' },
-  { value: 'CONTRATISTA', label: 'Contratista' },
-];
 
 export default function OrganizationMembersPage() {
   const { orgId } = useParams<{ orgId: string }>();

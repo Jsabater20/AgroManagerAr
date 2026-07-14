@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Sprout, Mail, ArrowLeft, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { api } from '../../api/client';
+import { getRolTraducido } from '../../constants/roles';
 import toast from 'react-hot-toast';
 
 interface InvitacionData {
@@ -95,17 +96,7 @@ export default function AceptarInvitacionPage() {
       navigate(`/register?token=${token}&email=${invitacion.email}`);
     };
 
-    // Traducir el rol
-    const rolesTraducidos: Record<string, string> = {
-      OWNER: 'Propietario',
-      ADMIN: 'Administrador',
-      OPERARIO: 'Operario',
-      ASESOR: 'Asesor',
-      CONTADOR: 'Contador',
-      CONTRATISTA: 'Contratista',
-    };
-
-    const rolTraducido = rolesTraducidos[invitacion.rol] || invitacion.rol;
+    const rolTraducido = getRolTraducido(invitacion.rol);
 
     return (
       <div className="min-h-screen flex">
