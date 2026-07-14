@@ -118,10 +118,6 @@ export class OrganizationsController {
     );
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // NUEVO: Cambiar rol de miembro
-  // ────────────────────────────────────────────────────────────────────────────
-
   @Patch(':id/miembros/:miembroId/rol')
   @Auditar('cambiar_rol_miembro', 'UsuarioOrganizacion')
   async cambiarRolMiembro(
