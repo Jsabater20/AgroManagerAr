@@ -6,10 +6,20 @@ import toast from 'react-hot-toast';
 import { organizacionesApi } from '../../api/organizations.api';
 import type { MiembroOrganizacion } from '../../api/types';
 
+type RolOrganizacion = 'ADMIN' | 'OPERARIO' | 'CONTADOR' | 'ASESOR' | 'CONTRATISTA';
+
+const ROLES_DISPONIBLES: { value: RolOrganizacion; label: string }[] = [
+  { value: 'OPERARIO', label: 'Operario' },
+  { value: 'ADMIN', label: 'Administrador' },
+  { value: 'CONTADOR', label: 'Contador' },
+  { value: 'ASESOR', label: 'Asesor' },
+  { value: 'CONTRATISTA', label: 'Contratista' },
+];
+
 export default function OrganizationMembersPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const [emailInput, setEmailInput] = useState('');
-  const [roleInput, setRoleInput] = useState<'MIEMBRO' | 'ADMIN'>('MIEMBRO');
+  const [roleInput, setRoleInput] = useState<RolOrganizacion>('OPERARIO');
   const [showInviteForm, setShowInviteForm] = useState(false);
 
   const orgIdNum = orgId ? parseInt(orgId) : 0;
@@ -28,7 +38,7 @@ export default function OrganizationMembersPage() {
     onSuccess: () => {
       toast.success('Invitación enviada');
       setEmailInput('');
-      setRoleInput('MIEMBRO');
+      setRoleInput('OPERARIO');
       setShowInviteForm(false);
     },
     onError: (_err: any) => {
@@ -102,11 +112,14 @@ export default function OrganizationMembersPage() {
               </label>
               <select
                 value={roleInput}
-                onChange={(e) => setRoleInput(e.target.value as 'MIEMBRO' | 'ADMIN')}
+                onChange={(e) => setRoleInput(e.target.value as RolOrganizacion)}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
-                <option value="MIEMBRO">Miembro</option>
-                <option value="ADMIN">Administrador</option>
+                {ROLES_DISPONIBLES.map((rol) => (
+                  <option key={rol.value} value={rol.value}>
+                    {rol.label}
+                  </option>
+                ))}
               </select>
             </div>
 

@@ -146,8 +146,8 @@ export class OrganizationsService {
       }
     }
 
-    // Chequear si ya está invitado/miembro
-    const yaExiste = await this.prisma.invitacionOrganizacion.findFirst({
+    // Chequear si ya está invitado/miembro (solo rechazar si hay invitación PENDIENTE válida)
+    const invitacionPendiente = await this.prisma.invitacionOrganizacion.findFirst({
       where: {
         organizacionId,
         email: dto.email,
@@ -155,13 +155,27 @@ export class OrganizationsService {
       },
     });
 
-    if (yaExiste) {
-      throw new BadRequestException('Esta invitación ya existe');
+    // Si existe una invitación pendiente que NO ha expirado, rechazar
+    if (invitacionPendiente && new Date() <= invitacionPendiente.expiresAt) {
+      throw new BadRequestException('Esta persona ya tiene una invitación pendiente válida');
+    }
+
+    // Si existe una invitación expirada o ya aceptada, permitir enviar una nueva
+    // (eliminar la vieja para limpiar)
+    if (invitacionPendiente) {
+      await this.prisma.invitacionOrganizacion.delete({
+        where: { id: invitacionPendiente.id },
+      });
     }
 
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
     const rol: RolOrganizacion = (dto.rol as RolOrganizacion) || 'OPERARIO';
+
+    // Validar que no intenten hacer propietario a través de invitación
+    if (rol === 'OWNER') {
+      throw new BadRequestException('No se puede invitar como OWNER. Solo el propietario de la organización puede tener este rol');
+    }
 
     // Crear la invitación
     const invitacion = await this.prisma.invitacionOrganizacion.create({

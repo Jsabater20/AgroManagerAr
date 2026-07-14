@@ -22,7 +22,9 @@ export class InvitarMiembroDto {
   @IsEmail()
   email!: string;
 
-  @IsEnum(['OWNER', 'ADMIN', 'OPERARIO', 'CONTADOR', 'ASESOR', 'CONTRATISTA'])
+  @IsEnum(['OWNER', 'ADMIN', 'OPERARIO', 'CONTADOR', 'ASESOR', 'CONTRATISTA'], {
+    message: 'El rol debe ser uno de: OWNER, ADMIN, OPERARIO, CONTADOR, ASESOR, CONTRATISTA',
+  })
   @IsOptional()
-  rol?: string;
+  rol?: 'OWNER' | 'ADMIN' | 'OPERARIO' | 'CONTADOR' | 'ASESOR' | 'CONTRATISTA';
 }
