@@ -3,8 +3,10 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailerService } from '../mailer/mailer.service';
 import {
   CreateOrganizacionDto,
   UpdateOrganizacionDto,
@@ -15,7 +17,12 @@ import { RolOrganizacion } from '@prisma/client';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(OrganizationsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private mailer: MailerService,
+  ) {}
 
   async crearOrganizacion(usuarioId: number, dto: CreateOrganizacionDto) {
     return await this.prisma.organizacion.create({
@@ -156,7 +163,8 @@ export class OrganizationsService {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
     const rol: RolOrganizacion = (dto.rol as RolOrganizacion) || 'OPERARIO';
 
-    return await this.prisma.invitacionOrganizacion.create({
+    // Crear la invitación
+    const invitacion = await this.prisma.invitacionOrganizacion.create({
       data: {
         organizacionId,
         email: dto.email,
@@ -166,6 +174,31 @@ export class OrganizationsService {
         expiresAt,
       },
     });
+
+    // Obtener datos del usuario que invita
+    const usuarioInvitador = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+    });
+
+    // Construir link de invitación (usar frontend URL)
+    const frontendUrl = process.env.FRONTEND_URL || 'https://agro-manager-ar-px8f-git-develop-agro-manager-ar-s-projects.vercel.app';
+    const linkInvitacion = `${frontendUrl}/aceptar-invitacion?token=${token}`;
+
+    // Enviar email
+    try {
+      await this.mailer.enviarInvitacion(
+        dto.email,
+        org.nombre,
+        `${usuarioInvitador?.nombre || 'Un usuario'} ${usuarioInvitador?.apellido || ''}`.trim(),
+        linkInvitacion,
+      );
+      this.logger.log(`Email de invitación enviado a ${dto.email}`);
+    } catch (error) {
+      this.logger.error(`Error al enviar email de invitación: ${error.message}`);
+      // No fallar si el email no se envía, pero logear el error
+    }
+
+    return invitacion;
   }
 
   async aceptarInvitacion(token: string, usuarioId: number) {
@@ -259,6 +292,59 @@ export class OrganizationsService {
         usuarioId_organizacionId: {
           usuarioId: miembroId,
           organizacionId,
+        },
+      },
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // NUEVO: Cambiar rol de miembro
+  // ────────────────────────────────────────────────────────────────────────────
+
+  async cambiarRolMiembro(
+    organizacionId: number,
+    miembroId: number,
+    nuevoRol: 'OWNER' | 'ADMIN' | 'OPERARIO' | 'ASESOR' | 'CONTRATISTA' | 'CONTADOR',
+    usuarioActualId: number,
+  ) {
+    // Validar que el usuario actual sea OWNER o ADMIN
+    const org = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+    });
+
+    if (!org) {
+      throw new NotFoundException('Organización no encontrada');
+    }
+
+    const esOwner = org.propietarioId === usuarioActualId;
+    const esMiembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { usuarioId_organizacionId: { usuarioId: usuarioActualId, organizacionId } },
+    });
+
+    if (!esOwner && (!esMiembro || !['OWNER', 'ADMIN'].includes(esMiembro.rol))) {
+      throw new ForbiddenException('No tienes permisos para cambiar roles');
+    }
+
+    // No permitir cambiar el OWNER
+    const miembroActual = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { usuarioId_organizacionId: { usuarioId: miembroId, organizacionId } },
+    });
+
+    if (miembroActual?.rol === 'OWNER') {
+      throw new ForbiddenException('No puedes cambiar el rol del propietario');
+    }
+
+    if (!miembroActual) {
+      throw new NotFoundException('Miembro no encontrado');
+    }
+
+    // Cambiar rol
+    return this.prisma.usuarioOrganizacion.update({
+      where: { usuarioId_organizacionId: { usuarioId: miembroId, organizacionId } },
+      data: { rol: nuevoRol as RolOrganizacion },
+      include: {
+        usuario: {
+          select: { id: true, email: true, nombre: true, apellido: true },
         },
       },
     });

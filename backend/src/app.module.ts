@@ -23,6 +23,7 @@ import { UbicacionModule } from './ubicacion/ubicacion.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { AuditModule } from './audit/audit.module';
+import { MailerModule } from './mailer/mailer.module';
 import { AuditInterceptor } from './audit/interceptors/audit.interceptor';
 
 @Module({
@@ -55,6 +56,7 @@ import { AuditInterceptor } from './audit/interceptors/audit.interceptor';
     OrganizationsModule,
     PermissionsModule,
     AuditModule,
+    MailerModule,
   ],
   controllers: [AppController],
   providers: [

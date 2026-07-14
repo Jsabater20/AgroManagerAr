@@ -104,4 +104,24 @@ export class OrganizationsController {
       miembroId,
     );
   }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // NUEVO: Cambiar rol de miembro
+  // ────────────────────────────────────────────────────────────────────────────
+
+  @Patch(':id/miembros/:miembroId/rol')
+  @Auditar('cambiar_rol_miembro', 'UsuarioOrganizacion')
+  async cambiarRolMiembro(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('miembroId', ParseIntPipe) miembroId: number,
+    @Body() dto: { rol: string },
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.organizationsService.cambiarRolMiembro(
+      id,
+      miembroId,
+      dto.rol as 'OWNER' | 'ADMIN' | 'OPERARIO' | 'ASESOR' | 'CONTRATISTA' | 'CONTADOR',
+      req.user.id,
+    );
+  }
 }
