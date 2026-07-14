@@ -63,7 +63,7 @@ export default function OrganizationMembersPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
           <Mail className="text-green-600" size={32} />
-          Administración de Miembros
+          📋 Administración de Miembros
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
           Invita nuevos usuarios y gestiona los roles dentro de tu organización
