@@ -38,6 +38,8 @@ import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
 import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import OrganizationMembersPage from './pages/organizaciones/OrganizationMembersPage';
+import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
+import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 
 const queryClient = new QueryClient();
 setQueryClientRef(queryClient);
@@ -49,8 +51,10 @@ export default function App() {
     if (!token) return;
     getProfile()
       .then((profile) => setAuth(profile, token))
-      .catch(() => { logout(); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => {
+        logout();
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -91,6 +95,8 @@ export default function App() {
               <Route path="/perfil" element={<PerfilPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/organizaciones/:orgId/miembros" element={<OrganizationMembersPage />} />
+              <Route path="/organizaciones/:orgId/auditoria" element={<AuditoriaPage />} />
+              <Route path="/organizaciones/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
