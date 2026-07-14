@@ -85,6 +85,7 @@ export default function OrganizationMembersPage() {
               <select
                 value={roleInput}
                 onChange={(e) => setRoleInput(e.target.value as RolOrganizacion)}
+                onClickCapture={(e) => e.stopPropagation()}
                 className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
               >
                 {ROLES_DISPONIBLES.map((rol) => (
@@ -102,6 +103,7 @@ export default function OrganizationMembersPage() {
                 type="email"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
+                onClickCapture={(e) => e.stopPropagation()}
                 placeholder="trabajador@ejemplo.com"
                 className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-green-500 focus:outline-none"
               />
