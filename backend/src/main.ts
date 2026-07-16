@@ -21,37 +21,41 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, {
     cors: {
-      origin: function (origin, callback) {
+      origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
         // Permitir peticiones sin origin (curl, Postman, Railway health checks)
         if (!origin) {
           callback(null, true);
           return;
         }
-        
+
         // En desarrollo, permitir localhost y Vercel
         if (isDev) {
-          if (origin.includes('localhost') || origin.includes('vercel.app') || origin.includes('agromanagerar.com')) {
+          if (
+            origin.includes('localhost') ||
+            origin.includes('vercel.app') ||
+            origin.includes('agromanagerar.com')
+          ) {
             callback(null, true);
             return;
           }
         }
-        
+
         // Siempre permitir agromanagerar.com en producción también
         if (origin.includes('agromanagerar.com')) {
           callback(null, true);
           return;
         }
-        
+
         // En producción, validar contra variable de entorno
         const allowedOrigins = process.env.ALLOWED_ORIGINS
           ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
           : [];
-        
+
         if (allowedOrigins.includes(origin)) {
           callback(null, true);
           return;
         }
-        
+
         console.warn(`[CORS] Blocked origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       },
