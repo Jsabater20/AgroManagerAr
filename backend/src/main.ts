@@ -30,10 +30,16 @@ async function bootstrap() {
         
         // En desarrollo, permitir localhost y Vercel
         if (isDev) {
-          if (origin.includes('localhost') || origin.includes('vercel.app')) {
+          if (origin.includes('localhost') || origin.includes('vercel.app') || origin.includes('agromanagerar.com')) {
             callback(null, true);
             return;
           }
+        }
+        
+        // Siempre permitir agromanagerar.com en producción también
+        if (origin.includes('agromanagerar.com')) {
+          callback(null, true);
+          return;
         }
         
         // En producción, validar contra variable de entorno
