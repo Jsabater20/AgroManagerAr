@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, ShieldCheck, Wrench, Settings } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Wrench, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import OrganizationSelectorSidebar from './OrganizationSelectorSidebar';
 import type { ElementType } from 'react';
@@ -28,16 +28,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { usuario, logout, isPro } = useAuthStore();
+  const { usuario, logout } = useAuthStore();
   const navigate = useNavigate();
   const userRole = (usuario?.rol as RolType) || 'OPERARIO';
 
   const handleLogout = () => { logout(); navigate('/login'); };
-
-  const initials = [
-    usuario?.nombre?.[0] ?? '',
-    usuario?.apellido?.[0] ?? '',
-  ].join('').toUpperCase() || '?';
 
   const visibleItems = navItems.filter(item => item.roles.includes(userRole));
 
