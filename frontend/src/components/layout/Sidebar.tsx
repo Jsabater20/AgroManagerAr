@@ -28,7 +28,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { usuario, logout } = useAuthStore();
+  const { usuario, logout, isPro } = useAuthStore();
   const navigate = useNavigate();
   const userRole = (usuario?.rol as RolType) || 'OPERARIO';
 
@@ -82,36 +82,54 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="p-2 border-t border-white/10 space-y-2">
+      <div className="border-t border-white/10 p-3 space-y-3">
+        {/* Plan Badge */}
+        <div className="flex justify-center">
+          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+            isPro() 
+              ? 'bg-yellow-500 text-yellow-900' 
+              : 'bg-green-600 text-white'
+          }`}>
+            {isPro() ? '⭐ PRO' : '📱 FREE'}
+          </span>
+        </div>
+
+        {/* User Info */}
+        <div className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-center">
+          <p className="text-sm font-medium text-white truncate">{usuario?.nombre}</p>
+          <p className="text-xs text-green-300 truncate">{usuario?.email}</p>
+        </div>
+
+        {/* Action Buttons */}
         <NavLink
           to="/perfil"
           onClick={onClose}
-          className="w-full flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-green-300 hover:text-white hover:bg-green-600/20 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-green-400/30"
           title="Mi Perfil"
         >
           <Settings size={16} />
-          <span className="ml-2">Mi Perfil</span>
+          Mi Perfil
         </NavLink>
 
         {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
           <NavLink
             to="/admin"
             onClick={onClose}
-            className="w-full flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-green-300 hover:text-white hover:bg-green-600/20 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-green-400/30"
             title="Panel de administración"
           >
             <Settings size={16} />
-            <span className="ml-2">Admin</span>
+            Administración
           </NavLink>
         )}
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-green-300 hover:text-white hover:bg-red-600/20 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-red-400/30"
           title="Cerrar sesión"
         >
           <LogOut size={16} />
-          <span className="ml-2">Salir</span>
+          Salir
         </button>
       </div>
     </aside>
