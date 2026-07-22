@@ -88,21 +88,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </nav>
 
       <div className="p-2 border-t border-white/10 space-y-2">
-        {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
-          <NavLink
-            to="/admin"
-            onClick={onClose}
-            className="flex items-center gap-2 px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
-          >
-            <Settings size={16} />
-            Administración
-          </NavLink>
-        )}
-
         <NavLink
           to="/precios"
           onClick={onClose}
-          className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
+          className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors justify-center"
         >
           <ShieldCheck size={14} className="text-green-400" />
           <span className="text-xs font-semibold text-green-300">{isPro() ? 'PRO' : 'FREE'}</span>
@@ -118,13 +107,25 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </div>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
-        >
-          <LogOut size={16} />
-          Salir
-        </button>
+        <div className="flex items-center gap-2 pt-2">
+          {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
+            <NavLink
+              to="/admin"
+              onClick={onClose}
+              className="flex-1 flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              title="Panel de administración"
+            >
+              <Settings size={18} />
+            </NavLink>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex-1 flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="Cerrar sesión"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </div>
     </aside>
   );
