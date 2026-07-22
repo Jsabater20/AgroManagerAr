@@ -88,7 +88,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </nav>
 
       <div className="p-2 border-t border-white/10 space-y-2">
-        {(userRole === 'OWNER' || userRole === 'ADMIN') && (
+        {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
           <NavLink
             to="/admin"
             onClick={onClose}
