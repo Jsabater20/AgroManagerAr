@@ -97,6 +97,26 @@ export class PermissionsService {
     });
   }
 
+  // Listar permisos temporales de una organización
+  async listarPermisosTemporalesPorOrganizacion(organizacionId: number) {
+    return this.prisma.asignacionPermiso.findMany({
+      where: {
+        usuarioOrganizacion: {
+          organizacionId,
+        },
+        activo: true,
+      },
+      include: {
+        rolPersonalizado: true,
+        usuarioOrganizacion: {
+          include: {
+            usuario: true,
+          },
+        },
+      },
+    });
+  }
+
   // Desactivar un permiso
   async desactivarPermiso(permisoId: number) {
     return this.prisma.asignacionPermiso.update({

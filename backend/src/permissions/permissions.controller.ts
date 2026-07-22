@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -23,6 +24,15 @@ export class PermissionsController {
   ) {
     return this.permissionsService.listarPermisosActivos(
       parseInt(usuarioOrganizacionId),
+    );
+  }
+
+  @Get('temporales')
+  async listarPermisosTemporales(
+    @Query('organizacionId') organizacionId: string,
+  ) {
+    return this.permissionsService.listarPermisosTemporalesPorOrganizacion(
+      parseInt(organizacionId),
     );
   }
 
