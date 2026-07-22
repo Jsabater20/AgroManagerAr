@@ -89,43 +89,35 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
       <div className="p-2 border-t border-white/10 space-y-2">
         <NavLink
-          to="/precios"
+          to="/perfil"
           onClick={onClose}
-          className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors justify-center"
+          className="w-full flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+          title="Mi Perfil"
         >
-          <ShieldCheck size={14} className="text-green-400" />
-          <span className="text-xs font-semibold text-green-300">{isPro() ? 'PRO' : 'FREE'}</span>
+          <Settings size={16} />
+          <span className="ml-2">Mi Perfil</span>
         </NavLink>
 
-        <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/10">
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white">
-            {initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{usuario?.nombre}</p>
-            <p className="text-xs text-green-300 truncate">{usuario?.email}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 pt-2">
-          {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
-            <NavLink
-              to="/admin"
-              onClick={onClose}
-              className="flex-1 flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Panel de administración"
-            >
-              <Settings size={18} />
-            </NavLink>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex-1 flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title="Cerrar sesión"
+        {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
+          <NavLink
+            to="/admin"
+            onClick={onClose}
+            className="w-full flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+            title="Panel de administración"
           >
-            <LogOut size={18} />
-          </button>
-        </div>
+            <Settings size={16} />
+            <span className="ml-2">Admin</span>
+          </NavLink>
+        )}
+
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center px-3 py-2 text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+          title="Cerrar sesión"
+        >
+          <LogOut size={16} />
+          <span className="ml-2">Salir</span>
+        </button>
       </div>
     </aside>
   );
