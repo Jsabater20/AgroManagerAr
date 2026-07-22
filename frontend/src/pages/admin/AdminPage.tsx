@@ -16,8 +16,8 @@ export default function AdminPage() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [msg, setMsg] = useState('');
 
-  // Solo OWNER puede acceder al panel de admin
-  if (usuario?.rol !== 'OWNER') return <Navigate to="/" replace />;
+  // Solo tú (joaquinsabater@agromanagerar.com) puedes acceder al panel de admin
+  if (usuario?.email !== 'joaquinsabater@agromanagerar.com') return <Navigate to="/" replace />;
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
