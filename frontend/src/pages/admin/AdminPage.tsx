@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { User } from 'lucide-react';
 import {
   getAllUsers,
   updateUserPlan,
@@ -12,6 +14,7 @@ import { Navigate } from 'react-router-dom';
 
 export default function AdminPage() {
   const usuario = useAuthStore((s) => s.usuario);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [msg, setMsg] = useState('');
@@ -59,7 +62,13 @@ export default function AdminPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Panel de administración</h1>
+        <button
+          onClick={() => navigate('/perfil')}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
+        >
+          <User size={18} />
+          Mi Perfil
+        </button>
         <span className="text-sm text-gray-500">{users.length} usuarios</span>
       </div>
 
