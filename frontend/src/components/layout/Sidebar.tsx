@@ -34,6 +34,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
+  const initials = [
+    usuario?.nombre?.[0] ?? '',
+    usuario?.apellido?.[0] ?? '',
+  ].join('').toUpperCase() || '?';
+
   const visibleItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
@@ -83,54 +88,59 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </nav>
 
       <div className="border-t border-white/10 p-3 space-y-3">
-        {/* Plan Badge */}
+        {/* Pro Badge */}
         <div className="flex justify-center">
           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
             isPro() 
               ? 'bg-yellow-500 text-yellow-900' 
               : 'bg-green-600 text-white'
           }`}>
-            {isPro() ? '⭐ PRO' : '📱 FREE'}
+            {isPro() ? 'Pro' : 'Free'}
           </span>
         </div>
 
-        {/* User Info */}
-        <div className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-center">
-          <p className="text-sm font-medium text-white truncate">{usuario?.nombre}</p>
-          <p className="text-xs text-green-300 truncate">{usuario?.email}</p>
+        {/* User Avatar and Info */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white">
+            {initials}
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-white">{usuario?.nombre}</p>
+            <p className="text-xs text-green-300 truncate">{usuario?.email}</p>
+          </div>
         </div>
 
-        {/* Action Buttons */}
-        <NavLink
-          to="/perfil"
-          onClick={onClose}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-green-300 hover:text-white hover:bg-green-600/20 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-green-400/30"
-          title="Mi Perfil"
-        >
-          <Settings size={16} />
-          Mi Perfil
-        </NavLink>
+        {/* Action Icons */}
+        <div className="flex items-center justify-center gap-8 pt-2">
+          <NavLink
+            to="/perfil"
+            onClick={onClose}
+            className="text-green-300 hover:text-white transition-colors"
+            title="Mi Perfil"
+          >
+            <Settings size={20} />
+          </NavLink>
 
+          <button
+            onClick={handleLogout}
+            className="text-green-300 hover:text-white transition-colors"
+            title="Cerrar sesión"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
+
+        {/* Admin Link (hidden, accessed via sidebar menu or external nav) */}
         {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
           <NavLink
             to="/admin"
             onClick={onClose}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-green-300 hover:text-white hover:bg-green-600/20 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-green-400/30"
+            className="w-full text-center px-3 py-2 text-xs text-green-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors mt-2"
             title="Panel de administración"
           >
-            <Settings size={16} />
             Administración
           </NavLink>
         )}
-
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-green-300 hover:text-white hover:bg-red-600/20 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-red-400/30"
-          title="Cerrar sesión"
-        >
-          <LogOut size={16} />
-          Salir
-        </button>
       </div>
     </aside>
   );
