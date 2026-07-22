@@ -2,10 +2,11 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, ShieldCheck, Wrench, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import OrganizationSelectorSidebar from './OrganizationSelectorSidebar';
+import type { ElementType } from 'react';
 
 type RolType = 'OWNER' | 'ADMIN' | 'OPERARIO' | 'ASESOR' | 'CONTRATISTA' | 'CONTADOR';
 
-const navItems: Array<{ to: string; label: string; icon: any; roles: RolType[] }> = [
+const navItems: Array<{ to: string; label: string; icon: ElementType; roles: RolType[] }> = [
   { to: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR', 'CONTRATISTA', 'CONTADOR'] },
   { to: '/campos',       label: 'Campos',       icon: Map, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR', 'CONTRATISTA'] },
   { to: '/cultivos',     label: 'Cultivos',     icon: Leaf, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
