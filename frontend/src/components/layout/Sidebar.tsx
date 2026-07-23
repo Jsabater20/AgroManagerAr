@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Wrench, Settings } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Wrench, Settings, User } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import OrganizationSelectorSidebar from './OrganizationSelectorSidebar';
 import type { ElementType } from 'react';
@@ -28,7 +28,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { usuario, logout } = useAuthStore();
+  const { usuario, logout, isPro } = useAuthStore();
   const navigate = useNavigate();
   const userRole = (usuario?.rol as RolType) || 'OPERARIO';
 
@@ -82,37 +82,56 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-2 flex items-center justify-center gap-4">
-        {/* Perfil Icon */}
-        <NavLink
-          to="/perfil"
-          onClick={onClose}
-          className="text-green-300 hover:text-white transition-colors"
-          title="Mi Perfil"
-        >
-          <Settings size={18} />
-        </NavLink>
+      <div className="border-t border-white/10 p-3 space-y-2">
+        {/* Pro Badge */}
+        <div className="flex justify-center">
+          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+            isPro() 
+              ? 'bg-yellow-500 text-yellow-900' 
+              : 'bg-green-600 text-white'
+          }`}>
+            {isPro() ? 'Pro' : 'Free'}
+          </span>
+        </div>
 
-        {/* Admin Icon (solo para ti) */}
-        {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
+        {/* User Name */}
+        <div className="text-center">
+          <p className="text-sm font-medium text-white">{usuario?.nombre} {usuario?.apellido}</p>
+        </div>
+
+        {/* Action Icons */}
+        <div className="flex items-center justify-center gap-6 pt-2">
+          {/* Perfil Icon */}
           <NavLink
-            to="/admin"
+            to="/perfil"
             onClick={onClose}
             className="text-green-300 hover:text-white transition-colors"
-            title="Panel de administración"
+            title="Mi Perfil"
           >
-            <Settings size={18} />
+            <Settings size={20} />
           </NavLink>
-        )}
 
-        {/* Logout Icon */}
-        <button
-          onClick={handleLogout}
-          className="text-green-300 hover:text-white transition-colors"
-          title="Cerrar sesión"
-        >
-          <LogOut size={18} />
-        </button>
+          {/* Admin Icon (solo para ti) */}
+          {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
+            <NavLink
+              to="/admin"
+              onClick={onClose}
+              className="text-green-300 hover:text-white transition-colors"
+              title="Panel de administración"
+            >
+              <User size={20} />
+            </NavLink>
+          )}
+
+          {/* Logout Icon */}
+          <button
+            onClick={handleLogout}
+            className="text-green-300 hover:text-white transition-colors"
+            title="Cerrar sesión"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
     </aside>
   );
