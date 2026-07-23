@@ -28,16 +28,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { usuario, logout, isPro } = useAuthStore();
+  const { usuario, logout } = useAuthStore();
   const navigate = useNavigate();
   const userRole = (usuario?.rol as RolType) || 'OPERARIO';
 
   const handleLogout = () => { logout(); navigate('/login'); };
-
-  const initials = [
-    usuario?.nombre?.[0] ?? '',
-    usuario?.apellido?.[0] ?? '',
-  ].join('').toUpperCase() || '?';
 
   const visibleItems = navItems.filter(item => item.roles.includes(userRole));
 
@@ -87,60 +82,37 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-2 space-y-1">
-        {/* Pro Badge */}
-        <div className="flex justify-center pb-1">
-          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-            isPro() 
-              ? 'bg-yellow-500 text-yellow-900' 
-              : 'bg-green-600 text-white'
-          }`}>
-            {isPro() ? 'Pro' : 'Free'}
-          </span>
-        </div>
+      <div className="border-t border-white/10 p-2 flex items-center justify-center gap-4">
+        {/* Perfil Icon */}
+        <NavLink
+          to="/perfil"
+          onClick={onClose}
+          className="text-green-300 hover:text-white transition-colors"
+          title="Mi Perfil"
+        >
+          <Settings size={18} />
+        </NavLink>
 
-        {/* User Avatar and Info */}
-        <div className="flex flex-col items-center gap-1">
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white">
-            {initials}
-          </div>
-          <div className="text-center">
-            <p className="text-xs font-medium text-white leading-tight">{usuario?.nombre}</p>
-            <p className="text-xs text-green-300 truncate">{usuario?.email}</p>
-          </div>
-        </div>
-
-        {/* Action Icons */}
-        <div className="flex items-center justify-center gap-6 pt-1">
-          <NavLink
-            to="/perfil"
-            onClick={onClose}
-            className="text-green-300 hover:text-white transition-colors"
-            title="Mi Perfil"
-          >
-            <Settings size={16} />
-          </NavLink>
-
-          <button
-            onClick={handleLogout}
-            className="text-green-300 hover:text-white transition-colors"
-            title="Cerrar sesión"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-
-        {/* Admin Link */}
+        {/* Admin Icon (solo para ti) */}
         {usuario?.email === 'joaquinsabater@agromanagerar.com' && (
           <NavLink
             to="/admin"
             onClick={onClose}
-            className="block text-center px-2 py-1 text-xs text-green-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+            className="text-green-300 hover:text-white transition-colors"
             title="Panel de administración"
           >
-            Administración
+            <Settings size={18} />
           </NavLink>
         )}
+
+        {/* Logout Icon */}
+        <button
+          onClick={handleLogout}
+          className="text-green-300 hover:text-white transition-colors"
+          title="Cerrar sesión"
+        >
+          <LogOut size={18} />
+        </button>
       </div>
     </aside>
   );
