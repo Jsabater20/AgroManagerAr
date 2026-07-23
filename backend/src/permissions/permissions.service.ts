@@ -63,17 +63,38 @@ export class PermissionsService {
   // Crear permiso temporal (ASESOR visitando campo X del 01/10 al 05/10)
   async crearPermisoTemporal(
     usuarioOrganizacionId: number,
-    rolPersonalizadoId: number,
     fechaInicio: Date,
     fechaVencimiento: Date,
-    recursoTipo?: string,
-    recursoId?: number,
+    recursoTipo: string,
+    recursoId: number,
     notas?: string,
   ) {
+    // 1. Obtener usuarioOrganizacion actual
+    const usuarioOrg = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrganizacionId },
+      include: { usuario: true, organizacion: true },
+    });
+
+    if (!usuarioOrg) {
+      throw new Error('Usuario/Organización no encontrada');
+    }
+
+    // 2. Obtener un rol personalizado activo para asignarlo al permiso
+    const rolPersonalizado = await this.prisma.rolPersonalizado.findFirst({
+      where: { organizacionId: usuarioOrg.organizacionId, activo: true },
+    });
+
+    if (!rolPersonalizado) {
+      throw new Error(
+        'No hay roles personalizados activos en la organización',
+      );
+    }
+
+    // 3. Crear permiso temporal con el rol personalizado
     return this.prisma.asignacionPermiso.create({
       data: {
         usuarioOrganizacionId,
-        rolPersonalizadoId,
+        rolPersonalizadoId: rolPersonalizado.id,
         fechaInicio,
         fechaVencimiento,
         recursoTipo,

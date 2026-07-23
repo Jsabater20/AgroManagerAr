@@ -49,7 +49,6 @@ export class PermissionsController {
   async crearPermisoTemporal(@Body() dto: CreatePermisoTemporalDto) {
     return this.permissionsService.crearPermisoTemporal(
       dto.usuarioOrganizacionId,
-      dto.rolPersonalizadoId,
       new Date(dto.fechaInicio),
       new Date(dto.fechaVencimiento),
       dto.recursoTipo,
