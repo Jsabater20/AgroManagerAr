@@ -34,6 +34,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
+  const initials = [
+    usuario?.nombre?.[0] ?? '',
+    usuario?.apellido?.[0] ?? '',
+  ].join('').toUpperCase() || '?';
+
   const visibleItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
@@ -94,8 +99,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </span>
         </div>
 
-        {/* User Name */}
-        <div className="text-center">
+        {/* User Name with Avatar */}
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+            {initials}
+          </div>
           <p className="text-sm font-medium text-white">{usuario?.nombre} {usuario?.apellido}</p>
         </div>
 
