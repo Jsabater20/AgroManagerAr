@@ -36,6 +36,15 @@ export class PermissionsController {
     );
   }
 
+  @Get('roles/:organizacionId')
+  async obtenerRolesPersonalizados(
+    @Param('organizacionId') organizacionId: string,
+  ) {
+    return this.permissionsService.obtenerRolesPersonalizados(
+      parseInt(organizacionId),
+    );
+  }
+
   @Post('temporales')
   async crearPermisoTemporal(@Body() dto: CreatePermisoTemporalDto) {
     return this.permissionsService.crearPermisoTemporal(

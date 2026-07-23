@@ -124,4 +124,20 @@ export class PermissionsService {
       data: { activo: false },
     });
   }
+
+  // Obtener roles personalizados de una organización
+  async obtenerRolesPersonalizados(organizacionId: number) {
+    return this.prisma.rolPersonalizado.findMany({
+      where: {
+        organizacionId,
+      },
+      select: {
+        id: true,
+        nombre: true,
+      },
+      orderBy: {
+        nombre: 'asc',
+      },
+    });
+  }
 }

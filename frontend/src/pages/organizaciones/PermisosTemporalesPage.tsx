@@ -34,6 +34,11 @@ interface Miembro {
   };
 }
 
+interface RolPersonalizado {
+  id: number;
+  nombre: string;
+}
+
 const permisosApi = {
   listarActivos: (usuarioOrganizacionId: number) =>
     api.get(
@@ -51,9 +56,15 @@ const miembrosApi = {
     ),
 };
 
+const rolesApi = {
+  obtener: (organizacionId: number) =>
+    api.get(`/permisos/roles/${organizacionId}`),
+};
+
 export default function PermisosTemporalesPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const [miembroSeleccionado, setMiembroSeleccionado] = useState('');
+  const [rolSeleccionado, setRolSeleccionado] = useState('');
   const [fechaInicio, setFechaInicio] = useState(
     format(new Date(), 'yyyy-MM-dd'),
   );
@@ -68,6 +79,13 @@ export default function PermisosTemporalesPage() {
   const { data: miembrosData } = useQuery({
     queryKey: ['miembros', orgId],
     queryFn: () => miembrosApi.obtener(parseInt(orgId!)),
+    enabled: !!orgId,
+  });
+
+  // Query: listar roles personalizados
+  const { data: rolesData } = useQuery({
+    queryKey: ['roles', orgId],
+    queryFn: () => rolesApi.obtener(parseInt(orgId!)),
     enabled: !!orgId,
   });
 
@@ -88,7 +106,7 @@ export default function PermisosTemporalesPage() {
         usuarioOrganizacionId: miembrosData?.data?.find(
           (m: Miembro) => m.id === parseInt(miembroSeleccionado),
         )?.id,
-        rolPersonalizadoId: 1,
+        rolPersonalizadoId: parseInt(rolSeleccionado),
         fechaInicio: `${fechaInicio}T00:00:00Z`,
         fechaVencimiento: `${fechaVencimiento}T23:59:59Z`,
         recursoTipo: recursoTipo || null,
@@ -153,6 +171,21 @@ export default function PermisosTemporalesPage() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-1">Rol</label>
+            <select
+              value={rolSeleccionado}
+              onChange={(e) => setRolSeleccionado(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              disabled={!miembroSeleccionado}
+            >
+              <option value="">Selecciona un rol</option>
+              {(rolesData?.data || []).map((r: RolPersonalizado) => (
+                <option key={r.id} value={r.id}>
+                  {r.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
             <label className="block text-sm font-medium mb-1">
               Tipo de Recurso
             </label>
@@ -219,7 +252,7 @@ export default function PermisosTemporalesPage() {
 
         <button
           onClick={() => crearPermiso()}
-          disabled={!miembroSeleccionado || isPending}
+          disabled={!miembroSeleccionado || !rolSeleccionado || isPending}
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
         >
           <Plus size={18} />
