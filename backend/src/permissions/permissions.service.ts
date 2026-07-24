@@ -79,15 +79,21 @@ export class PermissionsService {
       throw new Error('Usuario/Organización no encontrada');
     }
 
-    // 2. Obtener un rol personalizado activo para asignarlo al permiso
-    const rolPersonalizado = await this.prisma.rolPersonalizado.findFirst({
+    // 2. Obtener o crear rol personalizado por defecto
+    let rolPersonalizado = await this.prisma.rolPersonalizado.findFirst({
       where: { organizacionId: usuarioOrg.organizacionId, activo: true },
     });
 
+    // Si no existe, crear uno por defecto
     if (!rolPersonalizado) {
-      throw new Error(
-        'No hay roles personalizados activos en la organización',
-      );
+      rolPersonalizado = await this.prisma.rolPersonalizado.create({
+        data: {
+          organizacionId: usuarioOrg.organizacionId,
+          nombre: 'Acceso Temporal',
+          descripcion: 'Rol para permisos temporales de recursos',
+          activo: true,
+        },
+      });
     }
 
     // 3. Crear permiso temporal con el rol personalizado
