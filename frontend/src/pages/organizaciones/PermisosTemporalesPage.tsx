@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { format, addDays } from 'date-fns';
 import { Clock, Plus, Trash2 } from 'lucide-react';
@@ -60,6 +60,7 @@ const TIPOS_RECURSO = [
 
 export default function PermisosTemporalesPage() {
   const { orgId } = useParams<{ orgId: string }>();
+  const queryClient = useQueryClient();
 
   // ============ ESTADO ============
   const [miembroSeleccionado, setMiembroSeleccionado] = useState('');
@@ -88,18 +89,20 @@ export default function PermisosTemporalesPage() {
   );
 
   // Permisos del miembro seleccionado
-  const { data: permisosData, refetch: refetchPermisos } = useQuery<{ data: Permiso[] }>({
-    queryKey: ['permisos', miembroSeleccionado],
-    queryFn: async () => {
-      if (!miembroSeleccionado) return { data: [] };
-      const miembroId = miembrosData?.find(
-        (m: Miembro) => m.id === parseInt(miembroSeleccionado),
-      )?.id;
-      const res = await permisosApi.listarActivos(miembroId);
-      return res.data;
+  const { data: permisosData, refetch: refetchPermisos } = useQuery<{ data: Permiso[] }>(
+    {
+      queryKey: ['permisos', miembroSeleccionado],
+      queryFn: async () => {
+        if (!miembroSeleccionado) return { data: [] };
+        const miembroId = miembrosData?.find(
+          (m: Miembro) => m.id === parseInt(miembroSeleccionado),
+        )?.id;
+        const res = await permisosApi.listarActivos(miembroId);
+        return res.data;
+      },
+      enabled: !!miembroSeleccionado && !!miembrosData,
     },
-    enabled: !!miembroSeleccionado && !!miembrosData,
-  });
+  );
 
   // ============ MUTATIONS ============
   const { mutate: crearPermiso, isPending } = useMutation({
@@ -123,7 +126,12 @@ export default function PermisosTemporalesPage() {
     },
     onSuccess: () => {
       toast.success('Permiso temporal creado exitosamente');
+      
+      // Refetch del miembro seleccionado
       refetchPermisos();
+      
+      // Invalidar caché general de permisos para que otros lo vean si recarga
+      queryClient.invalidateQueries({ queryKey: ['permisos'] });
 
       // Limpiar formulario
       setTipoRecursoSeleccionado('');
@@ -143,6 +151,7 @@ export default function PermisosTemporalesPage() {
     onSuccess: () => {
       toast.success('Permiso revocado');
       refetchPermisos();
+      queryClient.invalidateQueries({ queryKey: ['permisos'] });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Error al revocar permiso');
@@ -192,9 +201,6 @@ export default function PermisosTemporalesPage() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Nota: el rol del miembro ya está asignado
-            </p>
           </div>
 
           {/* Selector 2: Tipo de Recurso */}

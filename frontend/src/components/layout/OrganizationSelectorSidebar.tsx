@@ -8,7 +8,7 @@ import { organizacionesApi } from '../../api/organizations.api';
 export default function OrganizationSelectorSidebar() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { token, organizacionId, setOrganizacionId, organizaciones } = useAuthStore();
+  const { token, organizacionId, setOrganizacionId, organizaciones, usuario } = useAuthStore();
 
   const { data: orgs = [] } = useQuery({
     queryKey: ['organizaciones', token],
@@ -20,6 +20,9 @@ export default function OrganizationSelectorSidebar() {
   });
 
   const currentOrg = organizaciones.find((o) => o.id === organizacionId) || orgs.find((o) => o.id === organizacionId);
+
+  // Verificar si es OWNER
+  const isOwner = currentOrg && currentOrg.propietarioId === usuario?.id;
 
   if (!currentOrg || (organizaciones.length === 0 && orgs.length === 0)) {
     return null;
@@ -62,8 +65,8 @@ export default function OrganizationSelectorSidebar() {
                 <div className="h-px bg-white/10 my-1" />
               )}
 
-              {/* Miembros */}
-              {organizacionId && (
+              {/* SOLO PARA OWNER: Miembros */}
+              {organizacionId && isOwner && (
                 <button
                   onClick={() => {
                     navigate(`/organizaciones/${organizacionId}/miembros`);
@@ -76,8 +79,8 @@ export default function OrganizationSelectorSidebar() {
                 </button>
               )}
 
-              {/* Auditoría */}
-              {organizacionId && (
+              {/* SOLO PARA OWNER: Auditoría */}
+              {organizacionId && isOwner && (
                 <button
                   onClick={() => {
                     navigate(`/organizaciones/${organizacionId}/auditoria`);
@@ -90,8 +93,8 @@ export default function OrganizationSelectorSidebar() {
                 </button>
               )}
 
-              {/* Permisos Temporales */}
-              {organizacionId && (
+              {/* SOLO PARA OWNER: Permisos Temporales */}
+              {organizacionId && isOwner && (
                 <button
                   onClick={() => {
                     navigate(`/organizaciones/${organizacionId}/permisos-temporales`);
@@ -104,8 +107,8 @@ export default function OrganizationSelectorSidebar() {
                 </button>
               )}
 
-              {/* Roles */}
-              {organizacionId && (
+              {/* SOLO PARA OWNER: Roles */}
+              {organizacionId && isOwner && (
                 <button
                   onClick={() => {
                     navigate(`/organizaciones/${organizacionId}/roles`);
