@@ -89,14 +89,16 @@ export default function PermisosTemporalesPage() {
   );
 
   // Permisos del miembro seleccionado
+  // NOTA: antes se buscaba el miembro con .find() para obtener un `id` que
+  // ya conocíamos: el <select> de Miembro guarda directamente el id
+  // (value={m.id}), así que buscarlo de nuevo era redundante. Usamos
+  // parseInt(miembroSeleccionado) directamente.
   const { data: permisosData, refetch: refetchPermisos } = useQuery<{ data: Permiso[] }>(
     {
       queryKey: ['permisos', miembroSeleccionado],
       queryFn: async () => {
         if (!miembroSeleccionado) return { data: [] };
-        const miembroId = miembrosData?.find(
-          (m: Miembro) => m.id === parseInt(miembroSeleccionado),
-        )?.id;
+        const miembroId = parseInt(miembroSeleccionado);
         const res = await permisosApi.listarActivos(miembroId);
         return res.data;
       },
@@ -107,9 +109,17 @@ export default function PermisosTemporalesPage() {
   // ============ MUTATIONS ============
   const { mutate: crearPermiso, isPending } = useMutation({
     mutationFn: () => {
-      const miembroId = miembrosData?.find(
-        (m: Miembro) => m.id === parseInt(miembroSeleccionado),
-      )?.id;
+      // --- DEBUG: ver exactamente qué llega al hacer click ---
+      console.log('Entró al mutation');
+      console.log({
+        miembroSeleccionado,
+        tipoRecursoSeleccionado,
+        recursoSeleccionado,
+      });
+
+      // El <select> de Miembro ya guarda el id (value={m.id}), así que no
+      // hace falta volver a buscarlo en miembrosData con .find().
+      const miembroId = parseInt(miembroSeleccionado);
 
       if (!miembroId || !tipoRecursoSeleccionado || !recursoSeleccionado) {
         throw new Error('Faltan datos requeridos');
@@ -126,10 +136,10 @@ export default function PermisosTemporalesPage() {
     },
     onSuccess: () => {
       toast.success('Permiso temporal creado exitosamente');
-      
+
       // Refetch del miembro seleccionado
       refetchPermisos();
-      
+
       // Invalidar caché general de permisos para que otros lo vean si recarga
       queryClient.invalidateQueries({ queryKey: ['permisos'] });
 
