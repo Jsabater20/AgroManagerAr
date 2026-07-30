@@ -88,11 +88,6 @@ export default function PermisosTemporalesPage() {
     tipoRecursoSeleccionado,
   );
 
-  // Permisos del miembro seleccionado
-  // NOTA: antes se buscaba el miembro con .find() para obtener un `id` que
-  // ya conocíamos: el <select> de Miembro guarda directamente el id
-  // (value={m.id}), así que buscarlo de nuevo era redundante. Usamos
-  // parseInt(miembroSeleccionado) directamente.
   const { data: permisosData, refetch: refetchPermisos } = useQuery<{ data: Permiso[] }>(
     {
       queryKey: ['permisos', miembroSeleccionado],
@@ -108,42 +103,49 @@ export default function PermisosTemporalesPage() {
 
   // ============ MUTATIONS ============
   const { mutate: crearPermiso, isPending } = useMutation({
-    mutationFn: () => {
-      // --- DEBUG: ver exactamente qué llega al hacer click ---
-      console.log('Entró al mutation');
-      console.log({
-        miembroSeleccionado,
-        tipoRecursoSeleccionado,
-        recursoSeleccionado,
-      });
+    mutationFn: async () => {
+      console.log('========== CREAR PERMISO ==========');
+      console.log('1 - Entró al mutationFn');
+      console.log({ miembroSeleccionado, tipoRecursoSeleccionado, recursoSeleccionado });
 
-      // El <select> de Miembro ya guarda el id (value={m.id}), así que no
-      // hace falta volver a buscarlo en miembrosData con .find().
       const miembroId = parseInt(miembroSeleccionado);
 
+      console.log('2 - miembroId parseado:', miembroId);
+
       if (!miembroId || !tipoRecursoSeleccionado || !recursoSeleccionado) {
+        console.error('2.1 - Faltan datos requeridos', {
+          miembroId,
+          tipoRecursoSeleccionado,
+          recursoSeleccionado,
+        });
         throw new Error('Faltan datos requeridos');
       }
 
-      return permisosApi.crear({
+      const payload = {
         usuarioOrganizacionId: miembroId,
         fechaInicio: `${fechaInicio}T00:00:00Z`,
         fechaVencimiento: `${fechaVencimiento}T23:59:59Z`,
         recursoTipo: tipoRecursoSeleccionado,
         recursoId: parseInt(recursoSeleccionado),
         notas: notas || null,
-      });
+      };
+
+      console.log('3 - Payload a enviar:', payload);
+
+      const response = await permisosApi.crear(payload);
+
+      console.log('4 - Respuesta del servidor:', response);
+
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('SUCCESS - Permiso creado:', data);
       toast.success('Permiso temporal creado exitosamente');
 
-      // Refetch del miembro seleccionado
       refetchPermisos();
 
-      // Invalidar caché general de permisos para que otros lo vean si recarga
       queryClient.invalidateQueries({ queryKey: ['permisos'] });
 
-      // Limpiar formulario
       setTipoRecursoSeleccionado('');
       setRecursoSeleccionado('');
       setFechaInicio(format(new Date(), 'yyyy-MM-dd'));
@@ -151,6 +153,9 @@ export default function PermisosTemporalesPage() {
       setNotas('');
     },
     onError: (error: any) => {
+      console.error('ERROR - Falló la mutación:', error);
+      console.error('ERROR - response data:', error?.response?.data);
+      console.error('ERROR - status:', error?.response?.status);
       const mensaje = error.response?.data?.message || 'Error al crear permiso';
       toast.error(mensaje);
     },
@@ -305,7 +310,18 @@ export default function PermisosTemporalesPage() {
         {/* Botón Submit */}
         <div className="flex gap-2 pt-4 border-t">
           <button
-            onClick={() => crearPermiso()}
+            onClick={() => {
+              console.log('CLICK EN CREAR PERMISO');
+              console.log('Estado al hacer click:', {
+                miembroSeleccionado,
+                tipoRecursoSeleccionado,
+                recursoSeleccionado,
+                fechaInicio,
+                fechaVencimiento,
+                notas,
+              });
+              crearPermiso();
+            }}
             disabled={
               !miembroSeleccionado ||
               !tipoRecursoSeleccionado ||
