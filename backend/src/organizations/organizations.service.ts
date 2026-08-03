@@ -1,4 +1,3 @@
-// backend/src/organizaciones/organizaciones.service.ts - COMPLETO
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActualizarMiembroDto } from './dto/actualizar-miembro.dto';
@@ -23,6 +22,24 @@ const MODULOS_DISPONIBLES = [
 @Injectable()
 export class OrganizationsService {
   constructor(private prisma: PrismaService) {}
+
+  async obtenerOrganizaciones() {
+    return await this.prisma.organizacion.findMany({
+      select: {
+        id: true,
+        nombre: true,
+        propietarioId: true,
+        propietario: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
 
   async obtenerMiembros(organizacionId: number): Promise<MiembroResponseDto[]> {
     const miembros = await this.prisma.usuarioOrganizacion.findMany({

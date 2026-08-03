@@ -1,4 +1,3 @@
-// backend/src/organizaciones/organizaciones.controller.ts - COMPLETO
 import { Controller, Get, Patch, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OrganizationsService } from './organizations.service';
@@ -10,6 +9,11 @@ import { ActualizarVisibilidadModuloDto } from './dto/actualizar-visibilidad-mod
 @UseGuards(JwtAuthGuard)
 export class OrganizationsController {
   constructor(private organizacionesService: OrganizationsService) {}
+
+  @Get()
+  async obtenerOrganizaciones() {
+    return await this.organizacionesService.obtenerOrganizaciones();
+  }
 
   @Get(':orgId/miembros')
   async obtenerMiembros(@Param('orgId') orgId: string) {

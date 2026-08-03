@@ -79,28 +79,28 @@ export default function App() {
           <Route path="/privacidad" element={<PrivacyPage />} />
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/campos" element={<CamposPage />} />
-              <Route path="/campos/:id" element={<CampoDetailPage />} />
-              <Route path="/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />
-              <Route path="/cultivos" element={<CultivosPage />} />
-              <Route path="/siembras" element={<SiembrasPage />} />
-              <Route path="/insumos" element={<InsumosPage />} />
-              <Route path="/ganado" element={<GanadoPage />} />
-              <Route path="/tareas" element={<TareasPage />} />
-              <Route path="/maquinarias" element={<MaquinariasPage />} />
-              <Route path="/maquinarias/:id" element={<MaquinariaDetailPage />} />
-              <Route path="/reportes" element={<ReportesPage />} />
-              <Route path="/finanzas" element={<FinanzasPage />} />
-              <Route path="/campanias" element={<CampaniasPage />} />
-              <Route path="/rentabilidad" element={<RentabilidadPage />} />
-              <Route path="/clima" element={<ClimaPage />} />
+              <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
+              <Route path="/org/:orgId/campos" element={<CamposPage />} />
+              <Route path="/org/:orgId/campos/:id" element={<CampoDetailPage />} />
+              <Route path="/org/:orgId/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />
+              <Route path="/org/:orgId/cultivos" element={<CultivosPage />} />
+              <Route path="/org/:orgId/siembras" element={<SiembrasPage />} />
+              <Route path="/org/:orgId/insumos" element={<InsumosPage />} />
+              <Route path="/org/:orgId/ganado" element={<GanadoPage />} />
+              <Route path="/org/:orgId/tareas" element={<TareasPage />} />
+              <Route path="/org/:orgId/maquinarias" element={<MaquinariasPage />} />
+              <Route path="/org/:orgId/maquinarias/:id" element={<MaquinariaDetailPage />} />
+              <Route path="/org/:orgId/reportes" element={<ReportesPage />} />
+              <Route path="/org/:orgId/finanzas" element={<FinanzasPage />} />
+              <Route path="/org/:orgId/campanias" element={<CampaniasPage />} />
+              <Route path="/org/:orgId/rentabilidad" element={<RentabilidadPage />} />
+              <Route path="/org/:orgId/clima" element={<ClimaPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
               <Route path="/admin" element={<AdminPage />} />
-              <Route path="/organizaciones/:orgId/miembros" element={<OrganizationMembersPage />} />
-              <Route path="/organizaciones/:orgId/auditoria" element={<AuditoriaPage />} />
-              <Route path="/organizaciones/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
-              <Route path="/organizaciones/:orgId/roles" element={<RolesPage />} />
+              <Route path="/org/:orgId/miembros-admin" element={<OrganizationMembersPage />} />
+              <Route path="/org/:orgId/roles-y-permisos" element={<RolesPage />} />
+              <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
+              <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
