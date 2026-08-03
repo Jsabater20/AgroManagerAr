@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { Users, Edit2, Trash2, X } from 'lucide-react';
 import { api } from '../../api/client';
@@ -49,13 +49,11 @@ const MODULOS_DISPONIBLES = [
 
 export default function AdminMiembrosPage() {
   const { orgId } = useParams<{ orgId: string }>();
-  const queryClient = useQueryClient();
   const [modal, setModal] = useState<ModalState>({
     tipo: null,
     miembroId: null,
     miembro: null,
   });
-  const [rolesTemp, setRolesTemp] = useState<string[]>([]);
   const [camposTemp, setCamposTemp] = useState<number[]>([]);
   const [modulosTemp, setModulosTemp] = useState<Record<string, boolean>>({});
 
@@ -77,7 +75,7 @@ export default function AdminMiembrosPage() {
     enabled: !!orgId,
   });
 
-  const { mutate: actualizarRoles, isPending: updatingRoles } = useMutation({
+  useMutation({
     mutationFn: ({ miembroId, roles }: { miembroId: number; roles: string[] }) =>
       api.patch(`/organizaciones/${orgId}/miembros/${miembroId}`, { roles }),
     onSuccess: () => {

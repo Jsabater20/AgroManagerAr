@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
@@ -6,7 +6,6 @@ import {
   Users,
   Lock,
   Clock,
-  Settings,
   LayoutDashboard,
   Leaf,
   Sprout,
@@ -19,7 +18,7 @@ import {
   Cloud,
   ChevronRight,
 } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore } from '../../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client';
 
@@ -84,15 +83,15 @@ export default function OrganizationSelectorSidebar() {
   const { data: miembroData } = useQuery<MiembroData>({
     queryKey: ['miembro-actual', orgId],
     queryFn: async () => {
-      if (!usuario?.usuarioOrganizacionId || !orgId) return null;
+      if (!usuario?.id || !orgId) return null;
       const res = await api.get(`/organizaciones/${orgId}/miembros`);
       const miembros = res.data;
-      return miembros.find((m: any) => m.id === usuario.usuarioOrganizacionId);
+      return miembros.find((m: any) => m.usuarioId === usuario.id);
     },
-    enabled: !!usuario?.usuarioOrganizacionId && !!orgId,
+    enabled: !!usuario?.id && !!orgId,
   });
 
-  const currentOrg = organizaciones?.find((o) => o.id === parseInt(orgId || '0'));
+  const currentOrg = organizaciones?.find((o: Organizacion) => o.id === parseInt(orgId || '0'));
   const isOwner = currentOrg?.propietarioId === usuario?.id;
   const esOperario = miembroData?.roles?.includes('operario');
 
@@ -140,7 +139,7 @@ export default function OrganizationSelectorSidebar() {
 
         {isOpen && (
           <div className="mt-2 space-y-2 bg-emerald-50 p-2 rounded-lg">
-            {organizaciones?.map((org) => (
+            {organizaciones?.map((org: Organizacion) => (
               <button
                 key={org.id}
                 onClick={() => {
