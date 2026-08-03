@@ -153,6 +153,7 @@ export class AuthService {
         id: true,
         email: true,
         nombre: true,
+        apellido: true,
         password: true,
         rol: true,
         plan: true,
@@ -174,20 +175,34 @@ export class AuthService {
       );
     }
 
-    // Obtener org principal del usuario (la que es dueño)
-    const orgPrincipal = await this.prisma.organizacion.findFirst({
+    // Obtener todas las organizaciones del usuario (propias + miembro)
+    const orgsDelUsuario = await this.prisma.organizacion.findMany({
       where: { propietarioId: usuario.id },
-      select: { id: true },
+      select: { id: true, nombre: true },
     });
 
+    const orgsComoMiembro = await this.prisma.usuarioOrganizacion.findMany({
+      where: { usuarioId: usuario.id, activo: true },
+      select: {
+        organizacion: { select: { id: true, nombre: true } },
+      },
+    });
+
+    const organizaciones = [
+      ...orgsDelUsuario,
+      ...orgsComoMiembro.map((m) => m.organizacion),
+    ];
+
+    const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
     const token = this.generarToken(
       usuario.id,
       usuario.email,
       orgPrincipal?.id,
     );
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, emailVerificado, ...usuarioSinPassword } = usuario;
-    return { usuario: usuarioSinPassword, token };
+    return { usuario: { ...usuarioSinPassword, organizaciones }, token };
   }
 
   async verifyEmail(token: string) {

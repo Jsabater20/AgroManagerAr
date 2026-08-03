@@ -34,7 +34,8 @@ export default function LoginPage() {
         localStorage.removeItem(REMEMBER_KEY);
       }
       setAuth(data.usuario, data.token);
-      navigate('/dashboard');
+      const orgId = data.usuario?.organizaciones?.[0]?.id;
+      navigate(orgId ? `/org/${orgId}/dashboard` : '/');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || 'Email o contraseña incorrectos');
