@@ -95,12 +95,12 @@ export default function App() {
               <Route path="/org/:orgId/campanias" element={<CampaniasPage />} />
               <Route path="/org/:orgId/rentabilidad" element={<RentabilidadPage />} />
               <Route path="/org/:orgId/clima" element={<ClimaPage />} />
+              <Route path="/org/:orgId/miembros-admin" element={<OrganizationMembersPage />} />
+              <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
+              <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
+              <Route path="/org/:orgId/roles" element={<RolesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
               <Route path="/admin" element={<AdminPage />} />
-              <Route path="/org/:orgId/miembros-admin" element={<OrganizationMembersPage />} />
-              <Route path="/org/:orgId/roles-y-permisos" element={<RolesPage />} />
-              <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
-              <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

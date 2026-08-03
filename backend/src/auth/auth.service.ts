@@ -39,7 +39,6 @@ export class AuthService {
       throw new ConflictException('Ya existe un usuario con ese email');
     }
 
-    // Si hay token de invitación, validar que sea válido
     let invitacion:
       | (InvitacionOrganizacion & { organizacion: Organizacion })
       | null = null;
@@ -62,7 +61,6 @@ export class AuthService {
         throw new BadRequestException('Invitación expirada');
       }
 
-      // Validar que el email coincida
       if (foundInvitacion.email !== dto.email) {
         throw new BadRequestException(
           `Esta invitación es para el email ${foundInvitacion.email}`,
@@ -91,9 +89,7 @@ export class AuthService {
       select: { id: true, email: true, nombre: true, apellido: true },
     });
 
-    // Si hay invitación, aceptarla automáticamente
     if (invitacion) {
-      // Crear membresía con el rol de la invitación (NUNCA OWNER)
       await this.prisma.usuarioOrganizacion.create({
         data: {
           usuarioId: usuario.id,
@@ -103,7 +99,6 @@ export class AuthService {
         },
       });
 
-      // Marcar invitación como aceptada
       await this.prisma.invitacionOrganizacion.update({
         where: { id: invitacion.id },
         data: {
@@ -113,7 +108,6 @@ export class AuthService {
         },
       });
     } else {
-      // Si NO hay invitación, crear organización personal
       await this.prisma.organizacion.create({
         data: {
           nombre: `${usuario.nombre} ${dto.apellido}`,
@@ -175,7 +169,6 @@ export class AuthService {
       );
     }
 
-    // Obtener todas las organizaciones del usuario (propias + miembro)
     const orgsDelUsuario = await this.prisma.organizacion.findMany({
       where: { propietarioId: usuario.id },
       select: { id: true, nombre: true },
@@ -230,7 +223,6 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    // Respuesta genérica para no revelar si el email existe
     if (!usuario) {
       console.log(
         `[Auth] forgotPassword: email no encontrado en BD: ${dto.email}`,
@@ -246,7 +238,7 @@ export class AuthService {
       .createHash('sha256')
       .update(rawToken)
       .digest('hex');
-    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    const expiry = new Date(Date.now() + 60 * 60 * 1000);
 
     await this.prisma.usuario.update({
       where: { id: usuario.id },
@@ -306,7 +298,7 @@ export class AuthService {
         password: hash,
         resetToken: null,
         resetTokenExpiry: null,
-        emailVerificado: true, // si recibió el email, el address está verificado
+        emailVerificado: true,
         emailVerifToken: null,
       },
     });
@@ -324,83 +316,6 @@ export class AuthService {
       email,
       organizacionId: organizacionId || null,
     });
-  }
-
-  private buildWelcomeEmail(nombre: string): string {
-    return `
-<!DOCTYPE html>
-<html lang="es">
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-
-      <!-- Header verde -->
-      <tr>
-        <td style="background:#15803d;padding:28px 32px;text-align:center;">
-          <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">🌱 AgroManager AR</span>
-          <p style="color:#bbf7d0;margin:6px 0 0;font-size:13px;">Gestión agrícola para Argentina</p>
-        </td>
-      </tr>
-
-      <!-- Cuerpo -->
-      <tr>
-        <td style="padding:36px 32px;">
-          <h2 style="color:#111827;font-size:22px;margin:0 0 12px;">¡Bienvenido, ${nombre}! 👋</h2>
-          <p style="color:#4b5563;line-height:1.7;margin:0 0 24px;">
-            Tu cuenta en <strong>AgroManager AR</strong> fue creada exitosamente.
-            Ya podés ingresar y empezar a gestionar tu campo desde un solo lugar.
-          </p>
-
-          <!-- Botón CTA -->
-          <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
-            <tr>
-              <td style="background:#15803d;border-radius:10px;">
-                <a href="${this.frontendUrl}/dashboard"
-                   style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;">
-                  Ir a mi dashboard →
-                </a>
-              </td>
-            </tr>
-          </table>
-
-          <!-- Lo que podés hacer -->
-          <p style="color:#374151;font-weight:700;font-size:15px;margin:0 0 12px;">¿Qué podés hacer con tu cuenta Free?</p>
-          <table cellpadding="6" cellspacing="0" width="100%">
-            <tr><td style="color:#15803d;font-size:18px;width:28px;">✓</td><td style="color:#4b5563;font-size:14px;">1 campo con hasta 3 lotes</td></tr>
-            <tr><td style="color:#15803d;font-size:18px;">✓</td><td style="color:#4b5563;font-size:14px;">Hasta 20 animales y 10 siembras</td></tr>
-            <tr><td style="color:#15803d;font-size:18px;">✓</td><td style="color:#4b5563;font-size:14px;">Gestión de tareas, finanzas e insumos</td></tr>
-            <tr><td style="color:#15803d;font-size:18px;">✓</td><td style="color:#4b5563;font-size:14px;">Pronóstico del tiempo y mapa de Argentina</td></tr>
-          </table>
-
-          <!-- Upgrade hint -->
-          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;margin:28px 0 0;">
-            <p style="color:#15803d;font-weight:700;margin:0 0 6px;font-size:14px;">⚡ Querés más? Probá Pro 14 días gratis</p>
-            <p style="color:#4b5563;font-size:13px;margin:0 0 12px;">Campos, lotes y animales ilimitados · AgroBot IA · Reportes avanzados · Campañas</p>
-            <a href="${this.frontendUrl}/precios"
-               style="color:#15803d;font-weight:700;font-size:13px;text-decoration:underline;">
-              Ver planes y precios →
-            </a>
-          </div>
-        </td>
-      </tr>
-
-      <!-- Footer -->
-      <tr>
-        <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-          <p style="color:#9ca3af;font-size:12px;margin:0;">
-            AgroManager AR · <a href="${this.frontendUrl}" style="color:#9ca3af;">www.agromanagerar.com</a>
-          </p>
-          <p style="color:#d1d5db;font-size:11px;margin:6px 0 0;">
-            Recibiste este email porque te registraste en AgroManager AR.
-          </p>
-        </td>
-      </tr>
-
-    </table></td></tr>
-</table>
-</body>
-</html>`;
   }
 
   private buildResetEmail(nombre: string, resetUrl: string): string {
