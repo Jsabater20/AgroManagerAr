@@ -39,8 +39,8 @@ async function main() {
         data: {
           usuarioId: usuario.id,
           organizacionId: org.id,
-          rol: 'OWNER',
-          estado: 'ACTIVO',
+          roles: JSON.stringify(['OWNER']),
+          activo: true,
         },
       });
 

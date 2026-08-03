@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,122 +7,94 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── AUTH ─────────────────────────────────────────────────────────────────────
-
 model Usuario {
-  id              Int       @id @default(autoincrement())
-  email           String    @unique
-  nombre          String
-  apellido        String    @default("")
-  password        String
-  rol             Rol       @default(OPERADOR)
-  plan            PlanTipo  @default(FREE)
-  planExpira      DateTime?
-  mpSuscripcionId String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  resetToken       String?
-  resetTokenExpiry DateTime?
-
-  emailVerificado Boolean @default(false)
-  emailVerifToken String?
-
-  trialUsado Boolean @default(false)
-
-  campos      Campo[]
-  animales    Animal[]
-  tareas      TareaRural[]
-  movimientos MovimientoFinanciero[]
-  campanias   Campania[]
-  maquinarias Maquinaria[]
-
-  organizacionesQueEsDueno Organizacion[]           @relation("organizacion_owner")
-  membresiasOrganizacion   UsuarioOrganizacion[]
-  invitaciones             InvitacionOrganizacion[]
+  id                       Int                      @id @default(autoincrement())
+  email                    String                   @unique
+  nombre                   String
+  password                 String
+  rol                      Rol                      @default(OPERADOR)
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  resetToken               String?
+  resetTokenExpiry         DateTime?
+  mpSuscripcionId          String?
+  plan                     PlanTipo                 @default(FREE)
+  planExpira               DateTime?
+  emailVerificado          Boolean                  @default(false)
+  emailVerifToken          String?
+  apellido                 String                   @default("")
+  trialUsado               Boolean                  @default(false)
+  animales                 Animal[]
   auditoriasLogs           AuditoriaLog[]           @relation("auditoriaLogs")
+  campanias                Campania[]
+  campos                   Campo[]
+  invitaciones             InvitacionOrganizacion[]
+  maquinarias              Maquinaria[]
+  movimientos              MovimientoFinanciero[]
+  organizacionesQueEsDueno Organizacion[]           @relation("organizacion_owner")
+  tareas                   TareaRural[]
+  membresiasOrganizacion   UsuarioOrganizacion[]
 }
-
-enum Rol {
-  ADMIN
-  OPERADOR
-}
-
-enum PlanTipo {
-  FREE
-  PRO
-}
-
-// ─── MÓDULO 1: GESTIÓN DE CULTIVOS ────────────────────────────────────────────
 
 model Campo {
-  id             Int      @id @default(autoincrement())
-  nombre         String
-  hectareas      Float
-  ubicacion      String?
-  propietario    String?
-  latitud        Float?
-  longitud       Float?
-  usuarioId      Int
-  organizacionId Int?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  usuario      Usuario                @relation(fields: [usuarioId], references: [id])
-  organizacion Organizacion?          @relation(fields: [organizacionId], references: [id], onDelete: SetNull)
-  lotes        Lote[]
-  tareas       TareaRural[]
-  movimentos   MovimientoFinanciero[]
-  maquinarias  Maquinaria[]
+  id              Int                    @id @default(autoincrement())
+  nombre          String
+  hectareas       Float
+  ubicacion       String?
+  propietario     String?
+  usuarioId       Int
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  latitud         Float?
+  longitud        Float?
+  organizacionId  Int?
+  AsignacionCampo AsignacionCampo[]
+  organizacion    Organizacion?          @relation(fields: [organizacionId], references: [id])
+  usuario         Usuario                @relation(fields: [usuarioId], references: [id])
+  lotes           Lote[]
+  maquinarias     Maquinaria[]
+  movimentos      MovimientoFinanciero[]
+  tareas          TareaRural[]
 
   @@index([organizacionId])
 }
 
 model Lote {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   nombre    String
   hectareas Float
   campoId   Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  campo    Campo     @relation(fields: [campoId], references: [id])
-  siembras Siembra[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  campo     Campo     @relation(fields: [campoId], references: [id])
+  siembras  Siembra[]
 }
 
 model TipoCultivo {
-  id          Int      @id @default(autoincrement())
-  nombre      String   @unique
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
   descripcion String?
-  createdAt   DateTime @default(now())
-
-  siembras Siembra[]
+  createdAt   DateTime  @default(now())
+  siembras    Siembra[]
 }
 
 model Siembra {
-  id            Int           @id @default(autoincrement())
+  id            Int                    @id @default(autoincrement())
   loteId        Int
   tipoCultivoId Int
   fechaSiembra  DateTime
   densidad      Float?
   observaciones String?
-  estado        EstadoSiembra @default(EN_CURSO)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  lote         Lote                   @relation(fields: [loteId], references: [id])
-  tipoCultivo  TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
-  cosechas     Cosecha[]
-  aplicaciones AplicacionInsumo[]
-  movimentos   MovimientoFinanciero[]
-  campania     Campania?              @relation(fields: [campaniaId], references: [id])
-  campaniaId   Int?
-}
-
-enum EstadoSiembra {
-  EN_CURSO
-  COSECHADA
-  PERDIDA
+  estado        EstadoSiembra          @default(EN_CURSO)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  campaniaId    Int?
+  aplicaciones  AplicacionInsumo[]
+  cosechas      Cosecha[]
+  movimentos    MovimientoFinanciero[]
+  campania      Campania?              @relation(fields: [campaniaId], references: [id])
+  lote          Lote                   @relation(fields: [loteId], references: [id])
+  tipoCultivo   TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
 }
 
 model Cosecha {
@@ -138,29 +107,18 @@ model Cosecha {
   observaciones   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
-  siembra Siembra @relation(fields: [siembraId], references: [id])
+  siembra         Siembra  @relation(fields: [siembraId], references: [id])
 }
 
 model Insumo {
-  id          Int        @id @default(autoincrement())
-  nombre      String
-  tipo        TipoInsumo
-  unidad      String
-  descripcion String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
+  id           Int                @id @default(autoincrement())
+  nombre       String
+  tipo         TipoInsumo
+  unidad       String
+  descripcion  String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   aplicaciones AplicacionInsumo[]
-}
-
-enum TipoInsumo {
-  FERTILIZANTE
-  HERBICIDA
-  FUNGICIDA
-  INSECTICIDA
-  SEMILLA
-  OTRO
 }
 
 model AplicacionInsumo {
@@ -173,17 +131,13 @@ model AplicacionInsumo {
   observaciones String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  siembra Siembra @relation(fields: [siembraId], references: [id])
-  insumo  Insumo  @relation(fields: [insumoId], references: [id])
+  insumo        Insumo   @relation(fields: [insumoId], references: [id])
+  siembra       Siembra  @relation(fields: [siembraId], references: [id])
 }
-
-// ─── MÓDULO 2: GANADERÍA ──────────────────────────────────────────────────────
 
 model Animal {
   id              Int             @id @default(autoincrement())
   usuarioId       Int
-  organizacionId  Int?
   nombre          String
   especie         Especie
   sexo            Sexo
@@ -193,11 +147,11 @@ model Animal {
   observaciones   String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-
-  usuario      Usuario        @relation(fields: [usuarioId], references: [id])
-  organizacion Organizacion?  @relation(fields: [organizacionId], references: [id], onDelete: SetNull)
-  preneces     Prenez[]
-  pesos        RegistroPeso[]
+  organizacionId  Int?
+  organizacion    Organizacion?   @relation(fields: [organizacionId], references: [id])
+  usuario         Usuario         @relation(fields: [usuarioId], references: [id])
+  preneces        Prenez[]
+  pesos           RegistroPeso[]
 
   @@index([organizacionId])
 }
@@ -211,8 +165,321 @@ model Prenez {
   observaciones      String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+  animal             Animal       @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
 
-  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+model TareaRural {
+  id              Int           @id @default(autoincrement())
+  usuarioId       Int
+  titulo          String
+  descripcion     String?
+  tipo            TipoTarea
+  estado          EstadoTarea   @default(PENDIENTE)
+  prioridad       Prioridad     @default(MEDIA)
+  fechaProgramada DateTime
+  fechaCompletada DateTime?
+  campoId         Int?
+  observaciones   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  fechaLimite     DateTime?
+  repetir         RepetirTarea  @default(UNICA)
+  organizacionId  Int?
+  campo           Campo?        @relation(fields: [campoId], references: [id])
+  organizacion    Organizacion? @relation(fields: [organizacionId], references: [id])
+  usuario         Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([organizacionId])
+}
+
+model Maquinaria {
+  id                Int                       @id @default(autoincrement())
+  usuarioId         Int
+  campoId           Int?
+  nombre            String
+  tipo              TipoMaquinaria
+  marca             String?
+  modelo            String?
+  anio              Int?
+  patente           String?
+  estado            EstadoMaquinaria          @default(OPERATIVA)
+  horasUso          Float?
+  seguroVencimiento DateTime?
+  vtvVencimiento    DateTime?
+  observaciones     String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  organizacionId    Int?
+  gastos            GastoMaquinaria[]
+  mantenimientos    MantenimientoMaquinaria[]
+  campo             Campo?                    @relation(fields: [campoId], references: [id])
+  organizacion      Organizacion?             @relation(fields: [organizacionId], references: [id])
+  usuario           Usuario                   @relation(fields: [usuarioId], references: [id])
+
+  @@index([organizacionId])
+}
+
+model MantenimientoMaquinaria {
+  id                   Int               @id @default(autoincrement())
+  maquinariaId         Int
+  tipo                 TipoMantenimiento
+  descripcion          String?
+  fecha                DateTime
+  horasUso             Float?
+  costo                Float?
+  proximoMantenimiento DateTime?
+  observaciones        String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  maquinaria           Maquinaria        @relation(fields: [maquinariaId], references: [id], onDelete: Cascade)
+}
+
+model GastoMaquinaria {
+  id            Int          @id @default(autoincrement())
+  maquinariaId  Int
+  tipo          TipoGastoMaq
+  descripcion   String
+  monto         Float
+  fecha         DateTime
+  observaciones String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  maquinaria    Maquinaria   @relation(fields: [maquinariaId], references: [id], onDelete: Cascade)
+}
+
+model MovimientoFinanciero {
+  id             Int                 @id @default(autoincrement())
+  usuarioId      Int
+  tipo           TipoMovimiento
+  concepto       String
+  monto          Float
+  fecha          DateTime
+  categoria      CategoriaMovimiento
+  campoId        Int?
+  siembraId      Int?
+  observaciones  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  organizacionId Int?
+  campo          Campo?              @relation(fields: [campoId], references: [id])
+  organizacion   Organizacion?       @relation(fields: [organizacionId], references: [id])
+  siembra        Siembra?            @relation(fields: [siembraId], references: [id])
+  usuario        Usuario             @relation(fields: [usuarioId], references: [id])
+
+  @@index([organizacionId])
+}
+
+model Campania {
+  id             Int           @id @default(autoincrement())
+  usuarioId      Int
+  nombre         String
+  fechaInicio    DateTime
+  fechaFin       DateTime?
+  descripcion    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organizacionId Int?
+  organizacion   Organizacion? @relation(fields: [organizacionId], references: [id])
+  usuario        Usuario       @relation(fields: [usuarioId], references: [id])
+  siembras       Siembra[]
+
+  @@index([organizacionId])
+}
+
+model RegistroPeso {
+  id            Int      @id @default(autoincrement())
+  animalId      Int
+  peso          Float
+  fecha         DateTime
+  observaciones String?
+  createdAt     DateTime @default(now())
+  animal        Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
+
+model Organizacion {
+  id                   Int                      @id @default(autoincrement())
+  nombre               String
+  email                String                   @unique
+  plan                 PlanTipo                 @default(FREE)
+  propietarioId        Int
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  animales             Animal[]
+  asignacionesRecursos AsignacionRecurso[]
+  auditoriasLogs       AuditoriaLog[]           @relation("auditoriaLogs")
+  campanias            Campania[]
+  campos               Campo[]
+  invitaciones         InvitacionOrganizacion[]
+  maquinarias          Maquinaria[]
+  movimientos          MovimientoFinanciero[]
+  propietario          Usuario                  @relation("organizacion_owner", fields: [propietarioId], references: [id])
+  rolesPersonalizados  RolPersonalizado[]
+  tareas               TareaRural[]
+  miembros             UsuarioOrganizacion[]
+
+  @@index([propietarioId])
+}
+
+model UsuarioOrganizacion {
+  id                  Int                 @id @default(autoincrement())
+  usuarioId           Int
+  organizacionId      Int
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  roles               String              @default("[]")
+  activo              Boolean             @default(true)
+  fechaInvitacion     DateTime            @default(now())
+  AsignacionCampo     AsignacionCampo[]
+  asignacionesPermiso AsignacionPermiso[] @relation("asignacionesPermiso")
+  asignaciones        AsignacionRecurso[]
+  organizacion        Organizacion        @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario             Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  VisibilidadModulo   VisibilidadModulo[]
+
+  @@unique([usuarioId, organizacionId])
+  @@index([usuarioId])
+  @@index([organizacionId])
+}
+
+model AsignacionRecurso {
+  id                    Int                 @id @default(autoincrement())
+  usuarioOrganizacionId Int
+  organizacionId        Int
+  recursoTipo           TipoRecurso
+  recursoId             Int
+  permisosTipo          String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  Organizacion          Organizacion        @relation(fields: [organizacionId], references: [id])
+  usuarioOrganizacion   UsuarioOrganizacion @relation(fields: [usuarioOrganizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioOrganizacionId, recursoTipo, recursoId])
+  @@index([usuarioOrganizacionId])
+  @@index([organizacionId, recursoTipo, recursoId])
+}
+
+model InvitacionOrganizacion {
+  id             Int              @id @default(autoincrement())
+  organizacionId Int
+  email          String
+  rol            RolOrganizacion  @default(OPERARIO)
+  token          String           @unique
+  estado         EstadoInvitacion @default(PENDIENTE)
+  expiresAt      DateTime
+  aceptadoEn     DateTime?
+  usuarioId      Int?
+  createdAt      DateTime         @default(now())
+  organizacion   Organizacion     @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario        Usuario?         @relation(fields: [usuarioId], references: [id])
+
+  @@index([email])
+  @@index([token])
+  @@index([organizacionId])
+}
+
+model RolPersonalizado {
+  id             Int                 @id @default(autoincrement())
+  organizacionId Int
+  nombre         String
+  descripcion    String?
+  activo         Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  asignaciones   AsignacionPermiso[]
+  organizacion   Organizacion        @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, nombre])
+  @@index([organizacionId])
+}
+
+model AsignacionPermiso {
+  id                    Int                 @id @default(autoincrement())
+  usuarioOrganizacionId Int
+  rolPersonalizadoId    Int
+  recursoTipo           String?
+  recursoId             Int?
+  fechaInicio           DateTime
+  fechaVencimiento      DateTime
+  activo                Boolean             @default(true)
+  notas                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  rolPersonalizado      RolPersonalizado    @relation(fields: [rolPersonalizadoId], references: [id], onDelete: Cascade)
+  usuarioOrganizacion   UsuarioOrganizacion @relation("asignacionesPermiso", fields: [usuarioOrganizacionId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioOrganizacionId])
+  @@index([rolPersonalizadoId])
+  @@index([fechaVencimiento])
+}
+
+model AuditoriaLog {
+  id             Int           @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int?
+  accion         String
+  entidad        String?
+  entidadId      Int?
+  cambios        String?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime      @default(now())
+  organizacion   Organizacion? @relation("auditoriaLogs", fields: [organizacionId], references: [id])
+  usuario        Usuario       @relation("auditoriaLogs", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([organizacionId])
+  @@index([createdAt])
+  @@index([accion])
+}
+
+model AsignacionCampo {
+  id                    Int                 @id @default(autoincrement())
+  usuarioOrganizacionId Int
+  campoId               Int
+  activo                Boolean             @default(true)
+  fechaAsignacion       DateTime            @default(now())
+  Campo                 Campo               @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  UsuarioOrganizacion   UsuarioOrganizacion @relation(fields: [usuarioOrganizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioOrganizacionId, campoId])
+  @@index([campoId])
+}
+
+model VisibilidadModulo {
+  id                    Int                 @id @default(autoincrement())
+  usuarioOrganizacionId Int
+  moduloNombre          String
+  activo                Boolean             @default(true)
+  fechaHabilitacion     DateTime            @default(now())
+  UsuarioOrganizacion   UsuarioOrganizacion @relation(fields: [usuarioOrganizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioOrganizacionId, moduloNombre])
+  @@index([usuarioOrganizacionId])
+}
+
+enum Rol {
+  ADMIN
+  OPERADOR
+}
+
+enum PlanTipo {
+  FREE
+  PRO
+}
+
+enum EstadoSiembra {
+  EN_CURSO
+  COSECHADA
+  PERDIDA
+}
+
+enum TipoInsumo {
+  FERTILIZANTE
+  HERBICIDA
+  FUNGICIDA
+  INSECTICIDA
+  SEMILLA
+  OTRO
 }
 
 enum Especie {
@@ -230,32 +497,26 @@ enum Sexo {
 }
 
 enum CategoriaAnimal {
-  // Bovino
   VACA
   VAQUILLONA
   TERNERA
   TORO
   NOVILLO
   TERNERO
-  // Porcino
   CERDA
   VERRACO
   LECHON
-  // Equino
   YEGUA
   POTRANCA
   PADRILLO
   POTRO
-  // Ovino
   OVEJA
   BORREGA
   CARNERO
   CORDERO
-  // Caprino
   CABRA
   CABRIO
   CABRITO
-  // Aviar
   GALLINA
   GALLO
   POLLO
@@ -266,33 +527,6 @@ enum EstadoPrenez {
   EN_CURSO
   COMPLETADA
   PERDIDA
-}
-
-// ─── MÓDULO 3: TAREAS RURALES ─────────────────────────────────────────────────
-
-model TareaRural {
-  id              Int          @id @default(autoincrement())
-  usuarioId       Int
-  organizacionId  Int?
-  titulo          String
-  descripcion     String?
-  tipo            TipoTarea
-  estado          EstadoTarea  @default(PENDIENTE)
-  prioridad       Prioridad    @default(MEDIA)
-  fechaProgramada DateTime
-  fechaLimite     DateTime?
-  fechaCompletada DateTime?
-  repetir         RepetirTarea @default(UNICA)
-  campoId         Int?
-  observaciones   String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  usuario      Usuario       @relation(fields: [usuarioId], references: [id])
-  organizacion Organizacion? @relation(fields: [organizacionId], references: [id], onDelete: SetNull)
-  campo        Campo?        @relation(fields: [campoId], references: [id])
-
-  @@index([organizacionId])
 }
 
 enum TipoTarea {
@@ -325,66 +559,6 @@ enum RepetirTarea {
   SEMANAL
   QUINCENAL
   MENSUAL
-}
-
-// ─── MÓDULO 5: MAQUINARIAS ────────────────────────────────────────────────────
-
-model Maquinaria {
-  id                Int              @id @default(autoincrement())
-  usuarioId         Int
-  organizacionId    Int?
-  campoId           Int?
-  nombre            String
-  tipo              TipoMaquinaria
-  marca             String?
-  modelo            String?
-  anio              Int?
-  patente           String?
-  estado            EstadoMaquinaria @default(OPERATIVA)
-  horasUso          Float?
-  seguroVencimiento DateTime?
-  vtvVencimiento    DateTime?
-  observaciones     String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-
-  usuario        Usuario                   @relation(fields: [usuarioId], references: [id])
-  organizacion   Organizacion?             @relation(fields: [organizacionId], references: [id], onDelete: SetNull)
-  campo          Campo?                    @relation(fields: [campoId], references: [id])
-  mantenimientos MantenimientoMaquinaria[]
-  gastos         GastoMaquinaria[]
-
-  @@index([organizacionId])
-}
-
-model MantenimientoMaquinaria {
-  id                   Int               @id @default(autoincrement())
-  maquinariaId         Int
-  tipo                 TipoMantenimiento
-  descripcion          String?
-  fecha                DateTime
-  horasUso             Float?
-  costo                Float?
-  proximoMantenimiento DateTime?
-  observaciones        String?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-
-  maquinaria Maquinaria @relation(fields: [maquinariaId], references: [id], onDelete: Cascade)
-}
-
-model GastoMaquinaria {
-  id            Int          @id @default(autoincrement())
-  maquinariaId  Int
-  tipo          TipoGastoMaq
-  descripcion   String
-  monto         Float
-  fecha         DateTime
-  observaciones String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  maquinaria Maquinaria @relation(fields: [maquinariaId], references: [id], onDelete: Cascade)
 }
 
 enum TipoMaquinaria {
@@ -422,31 +596,6 @@ enum TipoGastoMaq {
   OTRO
 }
 
-// ─── MÓDULO 4: FINANZAS ───────────────────────────────────────────────────────
-
-model MovimientoFinanciero {
-  id             Int                 @id @default(autoincrement())
-  usuarioId      Int
-  organizacionId Int?
-  tipo           TipoMovimiento
-  concepto       String
-  monto          Float
-  fecha          DateTime
-  categoria      CategoriaMovimiento
-  campoId        Int?
-  siembraId      Int?
-  observaciones  String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-
-  usuario      Usuario       @relation(fields: [usuarioId], references: [id])
-  organizacion Organizacion? @relation(fields: [organizacionId], references: [id], onDelete: SetNull)
-  campo        Campo?        @relation(fields: [campoId], references: [id])
-  siembra      Siembra?      @relation(fields: [siembraId], references: [id])
-
-  @@index([organizacionId])
-}
-
 enum TipoMovimiento {
   INGRESO
   EGRESO
@@ -463,126 +612,6 @@ enum CategoriaMovimiento {
   MANO_DE_OBRA
   OTRO
 }
-
-// ─── MÓDULO 5: CAMPAÑAS AGRÍCOLAS ─────────────────────────────────────────────
-
-model Campania {
-  id             Int       @id @default(autoincrement())
-  usuarioId      Int
-  organizacionId Int?
-  nombre         String
-  fechaInicio    DateTime
-  fechaFin       DateTime?
-  descripcion    String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  usuario      Usuario       @relation(fields: [usuarioId], references: [id])
-  organizacion Organizacion? @relation(fields: [organizacionId], references: [id], onDelete: SetNull)
-  siembras     Siembra[]
-
-  @@index([organizacionId])
-}
-
-// ─── MÓDULO 6: HISTORIAL DE PESOS ─────────────────────────────────────────────
-
-model RegistroPeso {
-  id            Int      @id @default(autoincrement())
-  animalId      Int
-  peso          Float
-  fecha         DateTime
-  observaciones String?
-  createdAt     DateTime @default(now())
-
-  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
-}
-
-// ─── MULTIORG: ORGANIZACIONES ──────────────────────────────────────────────────
-
-model Organizacion {
-  id            Int      @id @default(autoincrement())
-  nombre        String
-  email         String   @unique
-  plan          PlanTipo @default(FREE)
-  propietarioId Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  propietario          Usuario                  @relation("organizacion_owner", fields: [propietarioId], references: [id])
-  miembros             UsuarioOrganizacion[]
-  campos               Campo[]
-  animales             Animal[]
-  maquinarias          Maquinaria[]
-  tareas               TareaRural[]
-  movimientos          MovimientoFinanciero[]
-  campanias            Campania[]
-  invitaciones         InvitacionOrganizacion[]
-  asignacionesRecursos AsignacionRecurso[]
-  rolesPersonalizados  RolPersonalizado[]
-  auditoriasLogs       AuditoriaLog[]           @relation("auditoriaLogs")
-
-  @@index([propietarioId])
-}
-
-model UsuarioOrganizacion {
-  id             Int                 @id @default(autoincrement())
-  usuarioId      Int
-  organizacionId Int
-  rol            RolOrganizacion     @default(OPERARIO)
-  estado         EstadoMiembro       @default(ACTIVO)
-  asignaciones   AsignacionRecurso[]
-  asignacionesPermiso AsignacionPermiso[] @relation("asignacionesPermiso")
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-
-  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-
-  @@unique([usuarioId, organizacionId])
-  @@index([usuarioId])
-  @@index([organizacionId])
-  @@index([rol])
-}
-
-model AsignacionRecurso {
-  id                    Int         @id @default(autoincrement())
-  usuarioOrganizacionId Int
-  organizacionId        Int
-  recursoTipo           TipoRecurso
-  recursoId             Int
-  permisosTipo          String? // JSON: {"ver": true, "editar": false}
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
-
-  usuarioOrganizacion UsuarioOrganizacion @relation(fields: [usuarioOrganizacionId], references: [id], onDelete: Cascade)
-  Organizacion        Organizacion        @relation(fields: [organizacionId], references: [id])
-
-  @@unique([usuarioOrganizacionId, recursoTipo, recursoId])
-  @@index([usuarioOrganizacionId])
-  @@index([organizacionId, recursoTipo, recursoId])
-}
-
-model InvitacionOrganizacion {
-  id             Int              @id @default(autoincrement())
-  organizacionId Int
-  email          String
-  rol            RolOrganizacion  @default(OPERARIO)
-  token          String           @unique
-  estado         EstadoInvitacion @default(PENDIENTE)
-  expiresAt      DateTime
-  aceptadoEn     DateTime?
-  usuarioId      Int?
-  createdAt      DateTime         @default(now())
-
-  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  usuario      Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-
-  @@index([email])
-  @@index([token])
-  @@index([organizacionId])
-}
-
-// ─── ENUMS: MULTIORG ───────────────────────────────────────────────────────────
 
 enum RolOrganizacion {
   OWNER
@@ -615,64 +644,4 @@ enum EstadoInvitacion {
   ACEPTADA
   RECHAZADA
   EXPIRADA
-}
-
-// ─── ROLES Y PERMISOS AVANZADOS ────────────────────────────────────────────────
-
-model RolPersonalizado {
-  id             Int      @id @default(autoincrement())
-  organizacionId Int
-  nombre         String   // ASESOR, CONTRATISTA, etc.
-  descripcion    String?
-  activo         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organizacion   Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  asignaciones   AsignacionPermiso[]
-
-  @@unique([organizacionId, nombre])
-  @@index([organizacionId])
-}
-
-model AsignacionPermiso {
-  id                    Int      @id @default(autoincrement())
-  usuarioOrganizacionId Int
-  rolPersonalizadoId    Int
-  recursoTipo           String?  // "CAMPO", "TAREA", null = acceso general
-  recursoId             Int?     // ID específico del recurso
-  fechaInicio           DateTime
-  fechaVencimiento      DateTime
-  activo                Boolean  @default(true)
-  notas                 String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  usuarioOrganizacion UsuarioOrganizacion @relation("asignacionesPermiso", fields: [usuarioOrganizacionId], references: [id], onDelete: Cascade)
-  rolPersonalizado    RolPersonalizado    @relation(fields: [rolPersonalizadoId], references: [id], onDelete: Cascade)
-
-  @@index([usuarioOrganizacionId])
-  @@index([rolPersonalizadoId])
-  @@index([fechaVencimiento])
-}
-
-model AuditoriaLog {
-  id             Int      @id @default(autoincrement())
-  usuarioId      Int
-  organizacionId Int?
-  accion         String   // "login", "crear_campo", "modificar_tarea", etc.
-  entidad        String?  // "Campo", "Tarea", "Maquinaria"
-  entidadId      Int?
-  cambios        String?  // JSON con detalles del cambio
-  ipAddress      String?
-  userAgent      String?
-  createdAt      DateTime @default(now())
-
-  usuario      Usuario        @relation("auditoriaLogs", fields: [usuarioId], references: [id], onDelete: Cascade)
-  organizacion Organizacion?  @relation("auditoriaLogs", fields: [organizacionId], references: [id], onDelete: SetNull)
-
-  @@index([usuarioId])
-  @@index([organizacionId])
-  @@index([createdAt])
-  @@index([accion])
 }

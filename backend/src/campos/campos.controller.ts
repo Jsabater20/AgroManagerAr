@@ -1,3 +1,4 @@
+// backend/src/campos/campos.controller.ts - COMPLETO
 import {
   Controller,
   Get,
@@ -9,6 +10,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { CamposService } from './campos.service';
 import {
@@ -22,7 +24,7 @@ import { OrganizationGuard } from '../organizations/organization.guard';
 import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
-  user: { id: number; email: string; nombre: string; rol: string };
+  user: { id: number; email: string; nombre: string; rol: string; usuarioOrganizacionId?: number };
   organizacionId: number;
 }
 
@@ -32,8 +34,18 @@ export class CamposController {
   constructor(private camposService: CamposService) {}
 
   @Get()
-  findAll(@Request() req: AuthRequest) {
-    return this.camposService.findAll(req.user.id, req.organizacionId);
+  findAll(@Request() req: AuthRequest, @Query('campoId') campoId?: string) {
+    // Si viene un campoId específico, retornar solo ese
+    if (campoId) {
+      return this.camposService.findOne(parseInt(campoId), req.user.id, req.organizacionId);
+    }
+
+    // Si no, retornar con filtro automático si tiene usuarioOrganizacionId
+    return this.camposService.findAll(
+      req.user.id,
+      req.organizacionId,
+      req.user.usuarioOrganizacionId,
+    );
   }
 
   @Get(':id')
@@ -70,6 +82,11 @@ export class CamposController {
     @Body() dto: CreateLoteDto,
     @Request() req: AuthRequest,
   ) {
-    return this.camposService.addLote(campoId, dto, req.user.id, req.organizacionId);
+    return this.camposService.addLote(
+      campoId,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 }

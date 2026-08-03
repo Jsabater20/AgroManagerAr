@@ -98,8 +98,8 @@ export class AuthService {
         data: {
           usuarioId: usuario.id,
           organizacionId: invitacion.organizacionId,
-          rol: invitacion.rol,
-          estado: 'ACTIVO',
+          roles: JSON.stringify([invitacion.rol]),
+          activo: true,
         },
       });
 

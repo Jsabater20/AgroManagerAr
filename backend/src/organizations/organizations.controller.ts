@@ -1,155 +1,88 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  UseGuards,
-  Request,
-  ParseIntPipe,
-  Logger,
-} from '@nestjs/common';
+// backend/src/organizaciones/organizaciones.controller.ts - COMPLETO
+import { Controller, Get, Patch, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OrganizationsService } from './organizations.service';
-import {
-  CreateOrganizacionDto,
-  UpdateOrganizacionDto,
-  InvitarMiembroDto,
-} from './organizations.dto';
-import { Auditar } from '../audit/decorators/audit.decorator';
+import { ActualizarMiembroDto } from './dto/actualizar-miembro.dto';
+import { AsignarCampoDto } from './dto/asignar-campo.dto';
+import { ActualizarVisibilidadModuloDto } from './dto/actualizar-visibilidad-modulo.dto';
 
 @Controller('organizaciones')
+@UseGuards(JwtAuthGuard)
 export class OrganizationsController {
-  private readonly logger = new Logger(OrganizationsController.name);
+  constructor(private organizacionesService: OrganizationsService) {}
 
-  constructor(private organizationsService: OrganizationsService) {}
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // PÚBLICO: Obtener invitación por token (sin autenticación)
-  // ────────────────────────────────────────────────────────────────────────────
-  @Get('invitaciones/:token')
-  async obtenerInvitacion(@Param('token') token: string) {
-    return this.organizationsService.obtenerInvitacionPorToken(token);
+  @Get(':orgId/miembros')
+  async obtenerMiembros(@Param('orgId') orgId: string) {
+    return await this.organizacionesService.obtenerMiembros(parseInt(orgId));
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // PROTEGIDO: Resto de endpoints
-  // ────────────────────────────────────────────────────────────────────────────
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  @Auditar('crear_organizacion', 'Organizacion')
-  async crearOrganizacion(
-    @Request() req: { user: { id: number } },
-    @Body() dto: CreateOrganizacionDto,
+  @Patch(':orgId/miembros/:usuarioOrgId')
+  async actualizarMiembro(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Body() dto: ActualizarMiembroDto,
   ) {
-    return this.organizationsService.crearOrganizacion(req.user.id, dto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  async obtenerOrganizaciones(
-    @Request() req: { user: { id: number } },
-  ) {
-    return this.organizationsService.obtenerOrganizacionesDelUsuario(
-      req.user.id,
-    );
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  async obtenerOrganizacion(
-    @Param('id', ParseIntPipe) id: number,
-    @Request() req: { user: { id: number } },
-  ) {
-    return this.organizationsService.obtenerOrganizacion(id, req.user.id);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id')
-  @Auditar('actualizar_organizacion', 'Organizacion')
-  async actualizarOrganizacion(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateOrganizacionDto,
-    @Request() req: { user: { id: number } },
-  ) {
-    return this.organizationsService.actualizarOrganizacion(
-      id,
-      req.user.id,
+    return await this.organizacionesService.actualizarMiembro(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
       dto,
     );
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Post(':id/invitar')
-  @Auditar('invitar_miembro', 'UsuarioOrganizacion')
-  async invitarMiembro(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: InvitarMiembroDto,
-    @Request() req: { user: { id: number } },
-  ) {
-    this.logger.log(`[invitarMiembro] START - orgId=${id}, email=${dto.email}, rol=${dto.rol}, userId=${req.user.id}`);
-    this.logger.debug(`[invitarMiembro] DTO object: ${JSON.stringify(dto)}`);
-    
-    try {
-      const result = await this.organizationsService.invitarMiembro(id, req.user.id, dto);
-      this.logger.log(`[invitarMiembro] SUCCESS - invitationId=${result.id}`);
-      return result;
-    } catch (error: any) {
-      this.logger.error(`[invitarMiembro] FAILED - ${error.message}`, error.stack);
-      throw error;
-    }
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('invitaciones/:token/aceptar')
-  @Auditar('aceptar_invitacion', 'UsuarioOrganizacion')
-  async aceptarInvitacion(
-    @Param('token') token: string,
-    @Request() req: { user: { id: number } },
-  ) {
-    return this.organizationsService.aceptarInvitacion(token, req.user.id);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get(':id/miembros')
-  async obtenerMiembros(
-    @Param('id', ParseIntPipe) id: number,
-    @Request() req: { user: { id: number } },
-  ) {
-    return this.organizationsService.obtenerMiembros(id, req.user.id);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id/miembros/:miembroId')
-  @Auditar('eliminar_miembro', 'UsuarioOrganizacion')
+  @Delete(':orgId/miembros/:usuarioOrgId')
   async eliminarMiembro(
-    @Param('id', ParseIntPipe) id: number,
-    @Param('miembroId', ParseIntPipe) miembroId: number,
-    @Request() req: { user: { id: number } },
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
   ) {
-    return this.organizationsService.eliminarMiembro(
-      id,
-      req.user.id,
-      miembroId,
-    );
+    await this.organizacionesService.eliminarMiembro(parseInt(orgId), parseInt(usuarioOrgId));
+    return { mensaje: 'Miembro eliminado' };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id/miembros/:miembroId/rol')
-  @Auditar('cambiar_rol_miembro', 'UsuarioOrganizacion')
-  async cambiarRolMiembro(
-    @Param('id', ParseIntPipe) id: number,
-    @Param('miembroId', ParseIntPipe) miembroId: number,
-    @Body() dto: { rol: string },
-    @Request() req: { user: { id: number } },
+  @Post(':orgId/miembros/:usuarioOrgId/campos')
+  async asignarCampo(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Body() dto: AsignarCampoDto,
   ) {
-    return this.organizationsService.cambiarRolMiembro(
-      id,
-      miembroId,
-      dto.rol as 'OWNER' | 'ADMIN' | 'OPERARIO' | 'ASESOR' | 'CONTRATISTA' | 'CONTADOR',
-      req.user.id,
+    await this.organizacionesService.asignarCampo(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      dto,
     );
+    return { mensaje: 'Campo asignado' };
+  }
+
+  @Delete(':orgId/miembros/:usuarioOrgId/campos/:campoId')
+  async desasignarCampo(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Param('campoId') campoId: string,
+  ) {
+    await this.organizacionesService.desasignarCampo(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      parseInt(campoId),
+    );
+    return { mensaje: 'Campo desasignado' };
+  }
+
+  @Patch(':orgId/miembros/:usuarioOrgId/modulos')
+  async actualizarVisibilidadModulo(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Body() dto: ActualizarVisibilidadModuloDto,
+  ) {
+    await this.organizacionesService.actualizarVisibilidadModulo(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      dto,
+    );
+    return { mensaje: 'Visibilidad actualizada' };
+  }
+
+  @Get('modulos/disponibles')
+  async obtenerModulosDisponibles() {
+    const modulos = await this.organizacionesService.obtenerModulosDisponibles();
+    return { modulos };
   }
 }
