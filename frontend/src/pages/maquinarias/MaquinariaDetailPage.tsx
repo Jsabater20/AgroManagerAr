@@ -90,7 +90,7 @@ const EMPTY_GASTO: CreateGastoDto = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function MaquinariaDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, orgId } = useParams<{ id: string; orgId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const maqId = Number(id);
@@ -109,9 +109,9 @@ export default function MaquinariaDetailPage() {
     enabled: !isNaN(maqId),
   });
 
-  const { data: campos = [] } = useQuery({
-    queryKey: ['campos'],
-    queryFn: camposApi.getAll,
+  const { data: campos = [] as any[] } = useQuery({
+    queryKey: ['campos', orgId],
+    queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }),
   });
 
   // Mutations
@@ -352,7 +352,7 @@ export default function MaquinariaDetailPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Sin campo</option>
-                  {campos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {campos.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
               <div>

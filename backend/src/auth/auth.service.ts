@@ -246,7 +246,7 @@ export class AuthService {
     });
 
     console.log(
-      `[Auth] forgotPassword: usuario encontrado id=${usuario.id}, resend=${!!this.resend}, from=${this.fromEmail}, to=${usuario.email}`,
+      `[Auth] forgotPassword: usuario encontrado id=${usuario.id}, resend=${!!this.resend}`,
     );
     if (this.resend) {
       const resetUrl = `${this.frontendUrl}/reset-password?token=${rawToken}`;

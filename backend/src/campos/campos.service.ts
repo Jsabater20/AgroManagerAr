@@ -25,7 +25,7 @@ export class CamposService {
     if (usuarioOrganizacionId) {
       whereClause = {
         organizacionId,
-        asignacionesCampos: {
+        AsignacionCampo: {
           some: {
             usuarioOrganizacionId,
             activo: true,

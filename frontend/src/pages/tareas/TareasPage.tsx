@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import {
   ClipboardList, Plus, Loader2, CheckCircle2, Clock, AlertTriangle,
   XCircle, ChevronLeft, ChevronRight, X, Trash2, Pencil, RefreshCw,
@@ -88,6 +89,7 @@ function formatDate(iso: string) {
 function today() { return new Date().toISOString().split('T')[0]; }
 
 export default function TareasPage() {
+  const { orgId } = useParams<{ orgId: string }>();
   const queryClient = useQueryClient();
   const [showModal, setShowModal]         = useState(false);
   const [editTarget, setEditTarget]       = useState<TareaRural | null>(null);
@@ -98,8 +100,8 @@ export default function TareasPage() {
   const [filterTipo, setFilterTipo]       = useState<TipoTarea | ''>('');
   const [page, setPage]                   = useState(1);
 
-  const { data: tareas, isLoading } = useQuery({ queryKey: ['tareas'], queryFn: tareasApi.getAll });
-  const { data: campos }            = useQuery({ queryKey: ['campos'], queryFn: camposApi.getAll });
+  const { data: tareas = [] as any[], isLoading } = useQuery({ queryKey: ['tareas', orgId], queryFn: () => tareasApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: campos = [] as any[] }            = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
 
   const filtered = useMemo(() => (tareas ?? []).filter((t) => {
     if (filterEstado && t.estado !== filterEstado) return false;
@@ -372,7 +374,7 @@ export default function TareasPage() {
               <Field label="Campo">
                 <select value={form.campoId ?? 0} onChange={(e) => setForm({ ...form, campoId: Number(e.target.value) || undefined })} className="input">
                   <option value={0}>Sin campo</option>
-                  {campos?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {campos?.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </Field>
             </div>

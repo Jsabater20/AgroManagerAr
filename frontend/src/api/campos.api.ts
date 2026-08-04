@@ -2,9 +2,12 @@ import { api } from './client';
 import type { Campo, CreateCampoDto, CreateLoteDto } from './types';
 
 export const camposApi = {
-  getAll: () =>
-    api.get<Campo[]>('/campos').then((r) => r.data),
-
+  getAll: async (params?: { orgId?: number }) => {
+    const { data } = await api.get('/campos', {
+      params: params?.orgId ? { orgId: params.orgId } : undefined,
+    });
+    return data;
+  },
   getOne: (id: number) =>
     api.get<Campo>(`/campos/${id}`).then((r) => r.data),
 

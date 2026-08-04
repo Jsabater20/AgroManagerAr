@@ -2,7 +2,7 @@ import {
   Sprout, Map, Wheat, FlaskConical, ArrowRight, PawPrint, ClipboardList,
   AlertTriangle, TrendingUp, TrendingDown, DollarSign, Activity, Cloud,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { wmoInfo } from '../clima/ClimaPage';
 import {
@@ -30,23 +30,25 @@ const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'O
 
 export default function DashboardPage() {
   const usuario = useAuthStore((s) => s.usuario);
+  const { orgId } = useParams<{ orgId: string }>();
 
-  const { data: campos,   isLoading: lCampos }   = useQuery({ queryKey: ['campos'],   queryFn: camposApi.getAll });
-  const { data: siembras, isLoading: lSiembras } = useQuery({ queryKey: ['siembras'], queryFn: siembrasApi.getAll });
-  const { data: insumos                        } = useQuery({ queryKey: ['insumos'],  queryFn: insumosApi.getAll });
-  const { data: animales, isLoading: lAnimales } = useQuery({ queryKey: ['ganado'],   queryFn: ganadoApi.getAll });
-  const { data: tareas,   isLoading: lTareas   } = useQuery({ queryKey: ['tareas'],   queryFn: tareasApi.getAll });
-  const { data: finanzas, isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas'], queryFn: finanzasApi.getAll });
+  const { data: campos = [] as any[],   isLoading: lCampos }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: siembras = [] as any[], isLoading: lSiembras } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: insumos = [] as any[]                        } = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: animales = [] as any[], isLoading: lAnimales } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: tareas = [] as any[],   isLoading: lTareas   } = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: finanzas = [] as any[], isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll({ orgId: parseInt(orgId!) }) });
 
   const isLoading = lCampos || lSiembras || lAnimales;
 
   const totalCampos      = campos?.length ?? 0;
-  const totalHectareas   = campos?.reduce((a, c) => a + c.hectareas, 0) ?? 0;
-  const siembrasEnCurso  = siembras?.filter((s) => s.estado === 'EN_CURSO').length ?? 0;
+  const totalHectareas   = campos?.reduce((a: number, c: any) => a + c.hectareas, 0) ?? 0;
+  const siembrasEnCurso  = siembras?.filter((s: any) => s.estado === 'EN_CURSO').length ?? 0;
   const totalAnimales    = animales?.length ?? 0;
-  const prenecesActivas  = animales?.reduce((a, an) => a + an.preneces.filter((p) => p.estado === 'EN_CURSO').length, 0) ?? 0;
-  const tareasPendientes = tareas?.filter((t) => t.estado === 'PENDIENTE' || t.estado === 'EN_CURSO').length ?? 0;
-  const tareasVencidas   = tareas?.filter((t) => {
+  const prenecesActivas  = animales?.reduce((a: number, an: any) => a + an.preneces.filter((p: any) => p.estado === 'EN_CURSO').length, 0) ?? 0;
+  const tareasPendientes = tareas?.filter((t: any) => t.estado === 'PENDIENTE' || t.estado === 'EN_CURSO').length ?? 0;
+  const tareasVencidas   = tareas?.filter((t: any) => {
+    if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA') return false;
     if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA') return false;
     return new Date(t.fechaProgramada) < new Date(new Date().toDateString());
   }) ?? [];

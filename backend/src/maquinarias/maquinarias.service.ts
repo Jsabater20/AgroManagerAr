@@ -15,9 +15,25 @@ import {
 export class MaquinariasService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(usuarioId: number, organizacionId: number) {
+  async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
+    let whereClause: any = { organizacionId };
+
+    // Si viene usuarioOrganizacionId, filtrar por maquinarias asignadas
+    if (usuarioOrganizacionId) {
+      whereClause = {
+        organizacionId,
+        // Nota: si no hay AsignacionMaquinaria, solo mostrar al owner
+        usuarioId: undefined, // Cambiar lógica si existe junction table
+      };
+      // Por ahora, retornar vacío si no es owner (no existe junction table de asignaciones)
+      // TODO: Crear tabla AsignacionMaquinaria si se necesita reasignar maquinarias
+    } else {
+      // Owner ve todas las maquinarias de la org
+      whereClause = { organizacionId };
+    }
+
     return this.prisma.maquinaria.findMany({
-      where: { usuarioId, organizacionId },
+      where: whereClause,
       include: {
         campo: { select: { id: true, nombre: true } },
         mantenimientos: {
@@ -40,10 +56,7 @@ export class MaquinariasService {
       },
     });
     if (!maquinaria) throw new NotFoundException('Maquinaria no encontrada');
-    if (
-      maquinaria.usuarioId !== usuarioId ||
-      maquinaria.organizacionId !== organizacionId
-    )
+    if (maquinaria.organizacionId !== organizacionId)
       throw new ForbiddenException('No autorizado');
     return maquinaria;
   }

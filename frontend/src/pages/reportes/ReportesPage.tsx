@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import { FileSpreadsheet, FileText, Wheat, FlaskConical, PawPrint, ClipboardList, Download } from 'lucide-react';
 import { camposApi } from '../../api/campos.api';
 import { siembrasApi } from '../../api/siembras.api';
@@ -39,14 +40,15 @@ type Tab = typeof TABS[number]['key'];
 
 function ReportesContent() {
   const [tab, setTab] = useState<Tab>('siembras');
+  const { orgId } = useParams<{ orgId: string }>();
 
-  const { data: campos }   = useQuery({ queryKey: ['campos'],   queryFn: camposApi.getAll });
-  const { data: siembras } = useQuery({ queryKey: ['siembras'], queryFn: siembrasApi.getAll });
-  const { data: insumos }  = useQuery({ queryKey: ['insumos'],  queryFn: insumosApi.getAll });
-  const { data: animales } = useQuery({ queryKey: ['ganado'],   queryFn: ganadoApi.getAll });
-  const { data: tareas }   = useQuery({ queryKey: ['tareas'],   queryFn: tareasApi.getAll });
+  const { data: campos = [] as any[] }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: siembras = [] as any[] } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: insumos = [] as any[] }  = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: animales = [] as any[] } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: tareas = [] as any[] }   = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll({ orgId: parseInt(orgId!) }) });
 
-  const totalHa = campos?.reduce((a, c) => a + c.hectareas, 0) ?? 0;
+  const totalHa = campos?.reduce((a: number, c: any) => a + c.hectareas, 0) ?? 0;
 
   return (
     <div>
@@ -60,9 +62,9 @@ function ReportesContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Campos', value: campos?.length ?? 0, sub: `${totalHa.toLocaleString('es-AR')} ha` },
-          { label: 'Siembras', value: siembras?.length ?? 0, sub: `${siembras?.filter(s => s.estado === 'EN_CURSO').length ?? 0} en curso` },
-          { label: 'Animales', value: animales?.length ?? 0, sub: `${animales?.reduce((a, an) => a + an.preneces.filter(p => p.estado === 'EN_CURSO').length, 0) ?? 0} preñeces` },
-          { label: 'Tareas', value: tareas?.length ?? 0, sub: `${tareas?.filter(t => t.estado === 'PENDIENTE').length ?? 0} pendientes` },
+          { label: 'Siembras', value: siembras?.length ?? 0, sub: `${siembras?.filter((s: any) => s.estado === 'EN_CURSO').length ?? 0} en curso` },
+          { label: 'Animales', value: animales?.length ?? 0, sub: `${animales?.reduce((a: number, an: any) => a + an.preneces.filter((p: any) => p.estado === 'EN_CURSO').length, 0) ?? 0} preñeces` },
+          { label: 'Tareas', value: tareas?.length ?? 0, sub: `${tareas?.filter((t: any) => t.estado === 'PENDIENTE').length ?? 0} pendientes` },
         ].map(({ label, value, sub }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-2xl font-bold text-gray-900">{value}</p>

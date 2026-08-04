@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Wallet, Plus, Pencil, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { finanzasApi } from '../../api/finanzas.api';
@@ -28,14 +29,15 @@ const EMPTY: CreateMovimientoDto = {
 
 export default function FinanzasPage() {
   const qc = useQueryClient();
+  const { orgId } = useParams<{ orgId: string }>();
   const [tipoFiltro, setTipoFiltro] = useState<'' | TipoMovimiento>('');
   const [modal, setModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<CreateMovimientoDto>(EMPTY);
 
-  const { data: movimientos = [], isLoading } = useQuery({ queryKey: ['finanzas'], queryFn: finanzasApi.getAll });
-  const { data: resumen } = useQuery({ queryKey: ['finanzas-resumen'], queryFn: finanzasApi.resumen });
-  const { data: campos = [] } = useQuery({ queryKey: ['campos'], queryFn: camposApi.getAll });
+  const { data: movimientos = [], isLoading } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: resumen } = useQuery({ queryKey: ['finanzas-resumen', orgId], queryFn: () => finanzasApi.resumen({ orgId: parseInt(orgId!) }) });
+  const { data: campos = [] as any[] } = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
 
   const createMut = useMutation({
     mutationFn: finanzasApi.create,
@@ -241,7 +243,7 @@ export default function FinanzasPage() {
                 <select value={form.campoId ?? ''} onChange={e => setForm(f => ({ ...f, campoId: e.target.value ? Number(e.target.value) : undefined }))}
                   className="input">
                   <option value="">Sin campo</option>
-                  {campos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {campos.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
 

@@ -15,6 +15,8 @@ interface Usuario {
   apellido: string;
   rol: string;
   plan: 'FREE' | 'PRO';
+  rolGlobal?: string;
+  organizaciones?: Organizacion[];
 }
 
 interface Organizacion {

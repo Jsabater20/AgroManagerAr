@@ -1,4 +1,3 @@
-// backend/src/campos/campos.controller.ts - COMPLETO
 import {
   Controller,
   Get,
@@ -24,7 +23,13 @@ import { OrganizationGuard } from '../organizations/organization.guard';
 import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
-  user: { id: number; email: string; nombre: string; rol: string; usuarioOrganizacionId?: number };
+  user: {
+    id: number;
+    email: string;
+    nombre: string;
+    rol: string;
+    usuarioOrganizacionId?: number;
+  };
   organizacionId: number;
 }
 
@@ -54,12 +59,14 @@ export class CamposController {
   }
 
   @Post()
+  @UseGuards(DemoGuard)
   @Auditar('crear_campo', 'Campo')
   create(@Body() dto: CreateCampoDto, @Request() req: AuthRequest) {
     return this.camposService.create(dto, req.user.id, req.organizacionId);
   }
 
   @Patch(':id')
+  @UseGuards(DemoGuard)
   @Auditar('modificar_campo', 'Campo')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -70,12 +77,14 @@ export class CamposController {
   }
 
   @Delete(':id')
+  @UseGuards(DemoGuard)
   @Auditar('eliminar_campo', 'Campo')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.camposService.remove(id, req.user.id, req.organizacionId);
   }
 
   @Post(':id/lotes')
+  @UseGuards(DemoGuard)
   @Auditar('crear_lote', 'Lote')
   addLote(
     @Param('id', ParseIntPipe) campoId: number,

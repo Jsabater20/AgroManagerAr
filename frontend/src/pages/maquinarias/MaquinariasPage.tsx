@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Wrench,
   Plus,
@@ -62,19 +62,20 @@ function fmtDate(d: string) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MaquinariasPage() {
+  const { orgId } = useParams<{ orgId: string }>();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<CreateMaquinariaDto>(EMPTY);
 
   const { data: maquinarias = [], isLoading } = useQuery({
-    queryKey: ['maquinarias'],
-    queryFn: maquinariasApi.getAll,
+    queryKey: ['maquinarias', orgId],
+    queryFn: () => maquinariasApi.getAll({ orgId: parseInt(orgId!) }),
   });
 
   const { data: campos = [] } = useQuery({
-    queryKey: ['campos'],
-    queryFn: camposApi.getAll,
+    queryKey: ['campos', orgId],
+    queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }),
   });
 
   const createMut = useMutation({
@@ -124,7 +125,7 @@ export default function MaquinariasPage() {
 
   // Resumen alertas
   const alertas = maquinarias.filter(
-    (m) =>
+    (m: any) =>
       isAlertDate(m.seguroVencimiento) ||
       isAlertDate(m.vtvVencimiento) ||
       isExpired(m.seguroVencimiento) ||
@@ -132,9 +133,9 @@ export default function MaquinariasPage() {
   ).length;
 
   const totales = {
-    operativas: maquinarias.filter((m) => m.estado === 'OPERATIVA').length,
-    enMant:     maquinarias.filter((m) => m.estado === 'EN_MANTENIMIENTO').length,
-    fuera:      maquinarias.filter((m) => m.estado === 'FUERA_DE_SERVICIO').length,
+    operativas: maquinarias.filter((m: any) => m.estado === 'OPERATIVA').length,
+    enMant:     maquinarias.filter((m: any) => m.estado === 'EN_MANTENIMIENTO').length,
+    fuera:      maquinarias.filter((m: any) => m.estado === 'FUERA_DE_SERVICIO').length,
   };
 
   return (
@@ -190,13 +191,13 @@ export default function MaquinariasPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {maquinarias.map((m) => {
+          {maquinarias.map((m: any) => {
             const est = ESTADO_CONFIG[m.estado];
             const EstIcon = est.icon;
             const seguroAlert = isAlertDate(m.seguroVencimiento) || isExpired(m.seguroVencimiento);
             const vtvAlert    = isAlertDate(m.vtvVencimiento)    || isExpired(m.vtvVencimiento);
             const lastMant    = m.mantenimientos?.[0];
-            const totalGastos = m.gastos?.reduce((s, g) => s + g.monto, 0) ?? 0;
+            const totalGastos = m.gastos?.reduce((s: number, g: any) => s + g.monto, 0) ?? 0;
 
             return (
               <div
@@ -382,7 +383,7 @@ export default function MaquinariasPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="">Sin campo</option>
-                    {campos.map((c) => (
+                    {campos.map((c: any) => (
                       <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
                   </select>

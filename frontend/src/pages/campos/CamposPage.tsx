@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Map, Plus, Loader2, ChevronRight, Tractor, User } from 'lucide-react';
 import { camposApi } from '../../api/campos.api';
 import NuevoCampoWizard from './NuevoCampoWizard';
+import EmptyState from '../../components/EmptyState';
 
 interface Campo {
   id: number;
@@ -19,11 +21,12 @@ interface Campo {
 }
 
 export default function CamposPage() {
+  const { orgId } = useParams<{ orgId: string }>();
   const [showWizard, setShowWizard] = useState(false);
 
   const { data: campos, isLoading } = useQuery({
-    queryKey: ['campos'],
-    queryFn: camposApi.getAll,
+    queryKey: ['campos', orgId],
+    queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }),
   });
 
   return (
@@ -49,13 +52,19 @@ export default function CamposPage() {
           <Loader2 size={32} className="animate-spin text-green-600" />
         </div>
       ) : campos?.length === 0 ? (
-        <EmptyState onAdd={() => setShowWizard(true)} />
+        <EmptyState
+          title="No tenés campos registrados"
+          description="Creá tu primer campo para empezar a gestionar tus lotes"
+          icon={Tractor}
+          actionLabel="Crear primer campo"
+          onAction={() => setShowWizard(true)}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {campos?.map((campo: Campo) => (
             <Link
               key={campo.id}
-              to={`/campos/${campo.id}`}
+              to={`/org/${orgId}/campos/${campo.id}`}
               className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all group"
             >
               <div className="flex items-start justify-between">
@@ -93,25 +102,6 @@ export default function CamposPage() {
       )}
 
       {showWizard && <NuevoCampoWizard onClose={() => setShowWizard(false)} />}
-    </div>
-  );
-}
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="bg-emerald-50 p-5 rounded-2xl mb-4">
-        <Tractor size={40} className="text-emerald-600" />
-      </div>
-      <h2 className="text-lg font-semibold text-gray-900">No tenés campos registrados</h2>
-      <p className="text-gray-500 text-sm mt-1 mb-5">Creá tu primer campo para empezar a gestionar tus lotes</p>
-      <button
-        onClick={onAdd}
-        className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-      >
-        <Plus size={16} />
-        Crear primer campo
-      </button>
     </div>
   );
 }

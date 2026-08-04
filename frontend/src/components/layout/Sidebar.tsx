@@ -3,29 +3,26 @@ import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, 
 import { useAuthStore } from '../../store/auth.store';
 import type { ElementType } from 'react';
 
-type RolType = 'OWNER' | 'ADMIN' | 'OPERARIO' | 'ASESOR' | 'CONTRATISTA' | 'CONTADOR';
-
 interface NavItem {
   to: (orgId: string) => string;
   label: string;
   icon: ElementType;
-  roles: RolType[];
 }
 
 const navItems: NavItem[] = [
-  { to: (id) => `/org/${id}/dashboard`,    label: 'Dashboard',    icon: LayoutDashboard, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR', 'CONTRATISTA', 'CONTADOR'] },
-  { to: (id) => `/org/${id}/campos`,       label: 'Campos',       icon: Map, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR', 'CONTRATISTA'] },
-  { to: (id) => `/org/${id}/cultivos`,     label: 'Cultivos',     icon: Leaf, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
-  { to: (id) => `/org/${id}/siembras`,     label: 'Siembras',     icon: Sprout, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
-  { to: (id) => `/org/${id}/insumos`,      label: 'Insumos',      icon: FlaskConical, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
-  { to: (id) => `/org/${id}/ganado`,       label: 'Ganadería',    icon: PawPrint, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
-  { to: (id) => `/org/${id}/tareas`,       label: 'Tareas',       icon: ClipboardList, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'CONTRATISTA'] },
-  { to: (id) => `/org/${id}/maquinarias`,  label: 'Maquinarias',  icon: Wrench, roles: ['OWNER', 'ADMIN', 'OPERARIO'] },
-  { to: (id) => `/org/${id}/finanzas`,     label: 'Finanzas',     icon: DollarSign, roles: ['OWNER', 'ADMIN', 'CONTADOR'] },
-  { to: (id) => `/org/${id}/campanias`,    label: 'Campañas',     icon: CalendarRange, roles: ['OWNER', 'ADMIN', 'CONTADOR'] },
-  { to: (id) => `/org/${id}/rentabilidad`, label: 'Rentabilidad', icon: TrendingUp, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
-  { to: (id) => `/org/${id}/reportes`,     label: 'Reportes',     icon: FileBarChart2, roles: ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'] },
-  { to: (id) => `/org/${id}/clima`,        label: 'Clima',        icon: CloudSun, roles: ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR'] },
+  { to: (id) => `/org/${id}/dashboard`,    label: 'Dashboard',    icon: LayoutDashboard },
+  { to: (id) => `/org/${id}/campos`,       label: 'Campos',       icon: Map },
+  { to: (id) => `/org/${id}/cultivos`,     label: 'Cultivos',     icon: Leaf },
+  { to: (id) => `/org/${id}/siembras`,     label: 'Siembras',     icon: Sprout },
+  { to: (id) => `/org/${id}/insumos`,      label: 'Insumos',      icon: FlaskConical },
+  { to: (id) => `/org/${id}/ganado`,       label: 'Ganadería',    icon: PawPrint },
+  { to: (id) => `/org/${id}/tareas`,       label: 'Tareas',       icon: ClipboardList },
+  { to: (id) => `/org/${id}/maquinarias`,  label: 'Maquinarias',  icon: Wrench },
+  { to: (id) => `/org/${id}/finanzas`,     label: 'Finanzas',     icon: DollarSign },
+  { to: (id) => `/org/${id}/campanias`,    label: 'Campañas',     icon: CalendarRange },
+  { to: (id) => `/org/${id}/rentabilidad`, label: 'Rentabilidad', icon: TrendingUp },
+  { to: (id) => `/org/${id}/reportes`,     label: 'Reportes',     icon: FileBarChart2 },
+  { to: (id) => `/org/${id}/clima`,        label: 'Clima',        icon: CloudSun },
 ];
 
 interface SidebarProps {
@@ -37,7 +34,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const { orgId } = useParams<{ orgId: string }>();
   const { usuario, logout, isPro } = useAuthStore();
   const navigate = useNavigate();
-  const userRole = (usuario?.rol as RolType) || 'OPERARIO';
 
   const handleLogout = () => {
     logout();
@@ -49,8 +45,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     usuario?.apellido?.[0] ?? '',
   ].join('').toUpperCase() || '?';
 
-  const visibleItems = navItems.filter(item => item.roles.includes(userRole));
   const currentOrgId = orgId || '1';
+  const isOwner = usuario?.organizaciones?.some((o: any) => o.id === parseInt(currentOrgId));
+  const isSuperAdmin = usuario?.rolGlobal === 'SUPERADMIN';
 
   return (
     <aside
@@ -77,7 +74,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </div>
 
       <nav className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">
-        {visibleItems.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={label}
             to={to(currentOrgId)}
@@ -95,7 +92,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </NavLink>
         ))}
 
-        {userRole === 'OWNER' && (
+        {isOwner && (
           <>
             <div className="my-2 border-t border-white/10" />
             <div className="px-3 py-2 text-xs font-bold text-green-400 uppercase tracking-wider">
@@ -147,14 +144,16 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <Settings size={20} />
           </NavLink>
 
-          <NavLink
-            to="/admin"
-            onClick={onClose}
-            className="text-green-300 hover:text-white transition-colors"
-            title="Panel de Administración"
-          >
-            <User size={20} />
-          </NavLink>
+          {isSuperAdmin && (
+            <NavLink
+              to="/admin"
+              onClick={onClose}
+              className="text-green-300 hover:text-white transition-colors"
+              title="Panel de Administración"
+            >
+              <User size={20} />
+            </NavLink>
+          )}
 
           <button
             onClick={handleLogout}
