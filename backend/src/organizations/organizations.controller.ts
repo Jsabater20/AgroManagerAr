@@ -1,9 +1,23 @@
-import { Controller, Get, Patch, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OrganizationsService } from './organizations.service';
 import { ActualizarMiembroDto } from './dto/actualizar-miembro.dto';
 import { AsignarCampoDto } from './dto/asignar-campo.dto';
 import { ActualizarVisibilidadModuloDto } from './dto/actualizar-visibilidad-modulo.dto';
+
+interface AuthRequest extends Request {
+  user?: { id: number; email: string };
+}
 
 @Controller('organizaciones')
 @UseGuards(JwtAuthGuard)
@@ -11,8 +25,8 @@ export class OrganizationsController {
   constructor(private organizacionesService: OrganizationsService) {}
 
   @Get()
-  async obtenerOrganizaciones() {
-    return await this.organizacionesService.obtenerOrganizaciones();
+  async obtenerOrganizaciones(@Request() req: AuthRequest) {
+    return await this.organizacionesService.obtenerOrganizaciones(req.user?.id);
   }
 
   @Get(':orgId/miembros')
@@ -86,7 +100,7 @@ export class OrganizationsController {
 
   @Get('modulos/disponibles')
   async obtenerModulosDisponibles() {
-    const modulos = await this.organizacionesService.obtenerModulosDisponibles();
+     const modulos = await this.organizacionesService.obtenerModulosDisponibles();
     return { modulos };
   }
 }

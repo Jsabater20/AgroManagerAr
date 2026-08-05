@@ -24,6 +24,7 @@ export class UsersService {
         id: true,
         email: true,
         nombre: true,
+        apellido: true,
         rol: true,
         plan: true,
         planExpira: true,

@@ -23,22 +23,58 @@ const MODULOS_DISPONIBLES = [
 export class OrganizationsService {
   constructor(private prisma: PrismaService) {}
 
-  async obtenerOrganizaciones() {
-    return await this.prisma.organizacion.findMany({
+  async obtenerOrganizaciones(userId?: number) {
+    // Si userId viene en el contexto (via JWT), filtrar solo sus organizaciones
+    // De lo contrario, devolver todas (para compatibilidad)
+    // NOTA: Este método se llama desde un controller con @UseGuards(JwtAuthGuard)
+    // Se debe pasar userId como parámetro desde el controller
+
+    if (!userId) {
+      // Si no hay userId, devolver todas (comportamiento anterior)
+      return await this.prisma.organizacion.findMany({
+        select: {
+          id: true,
+          nombre: true,
+          propietarioId: true,
+        },
+      });
+    }
+
+    // Devolver solo las organizaciones donde el usuario es propietario
+    // O donde tiene membresía activa
+    const orgsComoOwner = await this.prisma.organizacion.findMany({
+      where: { propietarioId: userId },
       select: {
         id: true,
         nombre: true,
         propietarioId: true,
-        propietario: {
+      },
+    });
+
+    const orgsComoMiembro = await this.prisma.usuarioOrganizacion.findMany({
+      where: { usuarioId: userId, activo: true },
+      select: {
+        organizacion: {
           select: {
             id: true,
             nombre: true,
-            apellido: true,
-            email: true,
+            propietarioId: true,
           },
         },
       },
     });
+
+    // Combinar y eliminar duplicados por id
+    const allOrgs = [
+      ...orgsComoOwner,
+      ...orgsComoMiembro.map((m) => m.organizacion),
+    ];
+
+    const uniqueOrgs = Array.from(
+      new Map(allOrgs.map((org) => [org.id, org])).values(),
+    );
+
+    return uniqueOrgs;
   }
 
   async obtenerMiembros(organizacionId: number): Promise<MiembroResponseDto[]> {
@@ -59,7 +95,6 @@ export class OrganizationsService {
         },
         VisibilidadModulo: {
           where: { activo: true },
-          select: { moduloNombre: true, activo: true },
         },
       },
     });

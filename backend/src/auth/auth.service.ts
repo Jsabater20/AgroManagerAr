@@ -197,7 +197,6 @@ export class AuthService {
     const { password, emailVerificado, ...usuarioSinPassword } = usuario;
     return { usuario: { ...usuarioSinPassword, organizaciones }, token };
   }
-
   async verifyEmail(token: string) {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const usuario = await this.prisma.usuario.findFirst({

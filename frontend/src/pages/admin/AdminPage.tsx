@@ -16,8 +16,10 @@ export default function AdminPage() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [msg, setMsg] = useState('');
 
-  // Solo tú (joaquinsabater@agromanagerar.com) puedes acceder al panel de admin
-  if (usuario?.email !== 'joaquinsabater@agromanagerar.com') return <Navigate to="/" replace />;
+  // Solo usuarios con rolGlobal === 'SUPERADMIN' pueden acceder
+  if (usuario?.rolGlobal !== 'SUPERADMIN') {
+    return <Navigate to="/" replace />;
+  }
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -101,8 +103,8 @@ export default function AdminPage() {
                         mutRol.mutate({ id: u.id, rol: e.target.value as 'ADMIN' | 'OPERADOR' })
                       }
                     >
-                      <option value="OPERADOR">Operador</option>
                       <option value="ADMIN">Admin</option>
+                      <option value="OPERADOR">Operador</option>
                     </select>
                   </td>
 
@@ -120,33 +122,32 @@ export default function AdminPage() {
                     </select>
                   </td>
 
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                  {/* Fecha */}
+                  <td className="px-4 py-3 text-gray-600 text-xs">
                     {new Date(u.createdAt).toLocaleDateString('es-AR')}
                   </td>
 
-                  {/* Eliminar */}
-                  <td className="px-4 py-3">
-                    {u.id === usuario?.id ? (
-                      <span className="text-gray-400 text-xs">Tu cuenta</span>
-                    ) : confirmDelete === u.id ? (
-                      <div className="flex items-center gap-2">
+                  {/* Acciones */}
+                  <td className="px-4 py-3 space-x-2">
+                    {confirmDelete === u.id ? (
+                      <>
                         <button
                           onClick={() => mutDelete.mutate(u.id)}
-                          className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-md"
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
                         >
                           Confirmar
                         </button>
                         <button
                           onClick={() => setConfirmDelete(null)}
-                          className="text-xs text-gray-500 hover:text-gray-700"
+                          className="text-xs bg-gray-300 text-gray-900 px-2 py-1 rounded hover:bg-gray-400"
                         >
                           Cancelar
                         </button>
-                      </div>
+                      </>
                     ) : (
                       <button
                         onClick={() => setConfirmDelete(u.id)}
-                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        className="text-xs text-red-600 hover:text-red-800"
                       >
                         Eliminar
                       </button>
