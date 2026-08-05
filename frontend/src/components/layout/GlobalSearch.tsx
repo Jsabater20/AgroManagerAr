@@ -42,9 +42,9 @@ export default function GlobalSearch({ open, onClose }: Props) {
   const navigate = useNavigate();
   const { orgId } = useParams<{ orgId: string }>();
 
-  const { data: campos = [] as any[] }  = useQuery({ queryKey: ['campos', orgId],  queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }),  enabled: open && !!orgId });
-  const { data: animales = [] as any[] } = useQuery({ queryKey: ['ganado', orgId],  queryFn: () => ganadoApi.getAll({ orgId: parseInt(orgId!) }),  enabled: open && !!orgId });
-  const { data: tareas = [] as any[] }   = useQuery({ queryKey: ['tareas', orgId],  queryFn: () => tareasApi.getAll({ orgId: parseInt(orgId!) }),  enabled: open && !!orgId });
+  const { data: campos = [] as any[] }  = useQuery({ queryKey: ['campos', orgId],  queryFn: () => camposApi.getAll(),  enabled: open && !!orgId });
+  const { data: animales = [] as any[] } = useQuery({ queryKey: ['ganado', orgId],  queryFn: () => ganadoApi.getAll(),  enabled: open && !!orgId });
+  const { data: tareas = [] as any[] }   = useQuery({ queryKey: ['tareas', orgId],  queryFn: () => tareasApi.getAll(),  enabled: open && !!orgId });
 
   useEffect(() => {
     if (open) { setQuery(''); setTimeout(() => inputRef.current?.focus(), 50); }

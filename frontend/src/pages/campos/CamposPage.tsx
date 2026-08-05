@@ -26,7 +26,7 @@ export default function CamposPage() {
 
   const { data: campos, isLoading } = useQuery({
     queryKey: ['campos', orgId],
-    queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }),
+    queryFn: () => camposApi.getAll(),
   });
 
   return (

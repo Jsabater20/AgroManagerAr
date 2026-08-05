@@ -93,7 +93,7 @@ export default function GanadoPage() {
   const [filterSexo, setFilterSexo]         = useState<Sexo | ''>('');
   const [page, setPage]                     = useState(1);
 
-  const { data: animales, isLoading } = useQuery({ queryKey: ['ganado'], queryFn: ganadoApi.getAll });
+  const { data: animales, isLoading } = useQuery({ queryKey: ['ganado'], queryFn: () => ganadoApi.getAll() });
 
   const { data: pesosData = [], isLoading: pesosLoading } = useQuery({
     queryKey: ['ganado-pesos', pesosTarget?.id],
@@ -101,7 +101,7 @@ export default function GanadoPage() {
     enabled: !!pesosTarget,
   });
 
-  const filtered = useMemo(() => (animales ?? []).filter((a) => {
+  const filtered = useMemo(() => (animales ?? []).filter((a: any) => {
     if (filterEspecie && a.especie !== filterEspecie) return false;
     if (filterSexo && a.sexo !== filterSexo) return false;
     return true;
@@ -257,19 +257,19 @@ export default function GanadoPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {paged.map((a) => {
-                  const activePrenez = a.preneces.find((p) => p.estado === 'EN_CURSO');
+                {paged.map((a: any) => {
+                  const activePrenez = a.preneces.find((p: any) => p.estado === 'EN_CURSO');
                   const canPrenez    = a.sexo === 'HEMBRA';
                   return (
                     <tr key={a.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-3.5 font-medium text-gray-900">{a.nombre}</td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${ESPECIE_COLORS[a.especie]}`}>
-                          {ESPECIE_LABELS[a.especie]}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${ESPECIE_COLORS[a.especie as Especie]}`}>
+                          {ESPECIE_LABELS[a.especie as Especie]}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-gray-600">
-                        {a.sexo === 'HEMBRA' ? 'Hembra' : 'Macho'} · {CATEGORIA_LABELS[a.categoria]}
+                        {a.sexo === 'HEMBRA' ? 'Hembra' : 'Macho'} · {CATEGORIA_LABELS[a.categoria as CategoriaAnimal]}
                       </td>
                       <td className="px-5 py-3.5 text-gray-600">{a.peso ? `${a.peso} kg` : '—'}</td>
                       <td className="px-5 py-3.5">

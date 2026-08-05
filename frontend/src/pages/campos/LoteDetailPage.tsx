@@ -30,11 +30,11 @@ export default function LoteDetailPage() {
 
   const { data: siembras, isLoading: lSiembras } = useQuery({
     queryKey: ['siembras'],
-    queryFn: siembrasApi.getAll,
+    queryFn: () => siembrasApi.getAll(),
   });
 
   const lote = campo?.lotes.find((l) => l.id === lId);
-  const loteSiembras = (siembras ?? []).filter((s) => s.loteId === lId);
+  const loteSiembras = (siembras ?? []).filter((s: any) => s.loteId === lId);
 
   const isLoading = lCampo || lSiembras;
 
@@ -58,13 +58,13 @@ export default function LoteDetailPage() {
   }
 
   const totalKg = loteSiembras.reduce(
-    (a, s) => a + s.cosechas.reduce((b, c) => b + c.totalKg, 0),
+    (a: any, s: any) => a + s.cosechas.reduce((b: any, c: any) => b + c.totalKg, 0),
     0,
   );
-  const totalAplicaciones = loteSiembras.reduce((a, s) => a + s.aplicaciones.length, 0);
+  const totalAplicaciones = loteSiembras.reduce((a: any, s: any) => a + s.aplicaciones.length, 0);
   const avgRendimiento = (() => {
-    const all = loteSiembras.flatMap((s) => s.cosechas.map((c) => c.rendimientoKgHa));
-    return all.length ? Math.round(all.reduce((a, v) => a + v, 0) / all.length) : 0;
+    const all = loteSiembras.flatMap((s: any) => s.cosechas.map((c: any) => c.rendimientoKgHa));
+    return all.length ? Math.round(all.reduce((a: any, v: any) => a + v, 0) / all.length) : 0;
   })();
 
   return (

@@ -30,7 +30,7 @@ export function CampaniasContent() {
   const [seleccionadas, setSeleccionadas] = useState<number[]>([]);
 
   const { data: campanias = [], isLoading } = useQuery({ queryKey: ['campanias'], queryFn: campaniasApi.getAll });
-  const { data: todasSiembras = [] } = useQuery({ queryKey: ['siembras'], queryFn: siembrasApi.getAll });
+  const { data: todasSiembras = [] } = useQuery({ queryKey: ['siembras'], queryFn: () => siembrasApi.getAll() });
 
   const createMut = useMutation({
     mutationFn: campaniasApi.create,

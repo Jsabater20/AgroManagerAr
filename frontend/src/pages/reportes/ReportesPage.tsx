@@ -42,11 +42,11 @@ function ReportesContent() {
   const [tab, setTab] = useState<Tab>('siembras');
   const { orgId } = useParams<{ orgId: string }>();
 
-  const { data: campos = [] as any[] }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: siembras = [] as any[] } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: insumos = [] as any[] }  = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: animales = [] as any[] } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: tareas = [] as any[] }   = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: campos = [] as any[] }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll() });
+  const { data: siembras = [] as any[] } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll() });
+  const { data: insumos = [] as any[] }  = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll() });
+  const { data: animales = [] as any[] } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll() });
+  const { data: tareas = [] as any[] }   = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll() });
 
   const totalHa = campos?.reduce((a: number, c: any) => a + c.hectareas, 0) ?? 0;
 

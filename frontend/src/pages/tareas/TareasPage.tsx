@@ -100,8 +100,8 @@ export default function TareasPage() {
   const [filterTipo, setFilterTipo]       = useState<TipoTarea | ''>('');
   const [page, setPage]                   = useState(1);
 
-  const { data: tareas = [] as any[], isLoading } = useQuery({ queryKey: ['tareas', orgId], queryFn: () => tareasApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: campos = [] as any[] }            = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: tareas = [] as any[], isLoading } = useQuery({ queryKey: ['tareas', orgId], queryFn: () => tareasApi.getAll() });
+  const { data: campos = [] as any[] }            = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll() });
 
   const filtered = useMemo(() => (tareas ?? []).filter((t) => {
     if (filterEstado && t.estado !== filterEstado) return false;
@@ -251,10 +251,10 @@ export default function TareasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {paged.map((t) => {
-                  const estadoCfg = ESTADO_CONFIG[t.estado];
+                {paged.map((t: any) => {
+                  const estadoCfg = ESTADO_CONFIG[t.estado as EstadoTarea];
                   const EstadoIcon = estadoCfg.Icon;
-                  const priCfg    = PRIORIDAD_CONFIG[t.prioridad];
+                  const priCfg    = PRIORIDAD_CONFIG[t.prioridad as Prioridad];
                   const overdue   = isOverdue(t);
                   return (
                     <tr key={t.id} className={`hover:bg-gray-50 transition-colors ${overdue ? 'bg-red-50/40' : ''}`}>
@@ -269,8 +269,8 @@ export default function TareasPage() {
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TIPO_COLORS[t.tipo]}`}>
-                          {TIPO_LABELS[t.tipo]}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TIPO_COLORS[t.tipo as TipoTarea]}`}>
+                          {TIPO_LABELS[t.tipo as TipoTarea]}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-gray-600">{t.campo?.nombre ?? '—'}</td>

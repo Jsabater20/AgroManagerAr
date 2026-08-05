@@ -111,7 +111,7 @@ export default function MaquinariaDetailPage() {
 
   const { data: campos = [] as any[] } = useQuery({
     queryKey: ['campos', orgId],
-    queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }),
+    queryFn: () => camposApi.getAll(),
   });
 
   // Mutations

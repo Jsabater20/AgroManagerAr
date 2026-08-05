@@ -9,10 +9,8 @@ import type {
 } from './types';
 
 export const maquinariasApi = {
-  getAll: async (params?: { orgId?: number }) => {
-    const { data } = await api.get('/maquinarias', {
-      params: params?.orgId ? { orgId: params.orgId } : undefined,
-    });
+  getAll: async () => {
+    const { data } = await api.get('/maquinarias');
     return data;
   },
 

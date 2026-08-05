@@ -12,7 +12,7 @@ export default function CultivosPage() {
 
   const { data: cultivos, isLoading } = useQuery({
     queryKey: ['cultivos'],
-    queryFn: cultivosApi.getAll,
+    queryFn: () => cultivosApi.getAll(),
   });
 
   const createMutation = useMutation({
@@ -65,7 +65,7 @@ export default function CultivosPage() {
         <EmptyState onAdd={() => setShowModal(true)} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {cultivos?.map((c) => (
+          {cultivos?.map((c: any) => (
             <div
               key={c.id}
               className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start justify-between gap-3 group"

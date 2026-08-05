@@ -32,7 +32,7 @@ export default function InsumosPage() {
 
   const { data: insumos, isLoading } = useQuery({
     queryKey: ['insumos'],
-    queryFn: insumosApi.getAll,
+    queryFn: () => insumosApi.getAll(),
   });
 
   const createMutation = useMutation({
@@ -56,7 +56,7 @@ export default function InsumosPage() {
     onError: () => toast.error('Error al eliminar el insumo'),
   });
 
-  const filtered = (insumos ?? []).filter((i) => !filterTipo || i.tipo === filterTipo);
+  const filtered = (insumos ?? []).filter((i: any) => !filterTipo || i.tipo === filterTipo);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -114,7 +114,7 @@ export default function InsumosPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {paged.map((insumo) => {
+              {paged.map((insumo: any) => {
                 const cfg = tipoLabel(insumo.tipo);
                 return (
                   <tr key={insumo.id} className="hover:bg-gray-50 transition-colors">

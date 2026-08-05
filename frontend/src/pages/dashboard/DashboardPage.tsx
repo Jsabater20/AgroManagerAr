@@ -32,12 +32,12 @@ export default function DashboardPage() {
   const usuario = useAuthStore((s) => s.usuario);
   const { orgId } = useParams<{ orgId: string }>();
 
-  const { data: campos = [] as any[],   isLoading: lCampos }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: siembras = [] as any[], isLoading: lSiembras } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: insumos = [] as any[]                        } = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: animales = [] as any[], isLoading: lAnimales } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: tareas = [] as any[],   isLoading: lTareas   } = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: finanzas = [] as any[], isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: campos = [] as any[],   isLoading: lCampos }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll() });
+  const { data: siembras = [] as any[], isLoading: lSiembras } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll() });
+  const { data: insumos = [] as any[]                        } = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll() });
+  const { data: animales = [] as any[], isLoading: lAnimales } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll() });
+  const { data: tareas = [] as any[],   isLoading: lTareas   } = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll() });
+  const { data: finanzas = [] as any[], isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll() });
 
   const isLoading = lCampos || lSiembras || lAnimales;
 
@@ -64,8 +64,8 @@ export default function DashboardPage() {
 
   // Producción por mes
   const cosechasPorMes: Record<number, number> = {};
-  siembras?.forEach((s) =>
-    s.cosechas.forEach((c) => {
+  siembras?.forEach((s: any) =>
+    s.cosechas.forEach((c: any) => {
       const m = new Date(c.fechaCosecha).getMonth();
       cosechasPorMes[m] = (cosechasPorMes[m] ?? 0) + c.totalKg;
     }),
@@ -326,11 +326,11 @@ export default function DashboardPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <QuickStat label="Total cosechas" value={siembras?.reduce((a, s) => a + s.cosechas.length, 0) ?? 0}                                       unit="cosechas" to="/reportes" />
-        <QuickStat label="Lotes activos"  value={campos?.reduce((a, c) => a + c.lotes.length, 0) ?? 0}                                            unit="lotes"    to="/campos" />
+        <QuickStat label="Total cosechas" value={siembras?.reduce((a: number, s: any) => a + s.cosechas.length, 0) ?? 0}                                       unit="cosechas" to="/reportes" />
+        <QuickStat label="Lotes activos"  value={campos?.reduce((a: number, c: any) => a + c.lotes.length, 0) ?? 0}                                            unit="lotes"    to="/campos" />
         <QuickStat label="Insumos"        value={insumos?.length ?? 0}                                                                             unit="tipos"    to="/insumos" />
         <QuickStat label="Total producción"
-          value={siembras?.reduce((a, s) => a + s.cosechas.reduce((b, c) => b + c.totalKg, 0), 0) ?? 0}
+          value={siembras?.reduce((a: number, s: any) => a + s.cosechas.reduce((b: number, c: any) => b + c.totalKg, 0), 0) ?? 0}
           unit="kg" to="/reportes" big />
       </div>
     </div>

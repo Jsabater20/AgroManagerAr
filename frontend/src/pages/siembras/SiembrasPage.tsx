@@ -52,10 +52,10 @@ export default function SiembrasPage() {
   const [filterCampoId, setFilterCampoId] = useState<number>(0);
   const [page, setPage] = useState(1);
 
-  const { data: siembras, isLoading } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: campos = [] as any[] } = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: cultivos = [] as any[] } = useQuery({ queryKey: ['cultivos', orgId], queryFn: () => cultivosApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: insumos = [] as any[] } = useQuery({ queryKey: ['insumos', orgId], queryFn: () => insumosApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: siembras, isLoading } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll() });
+  const { data: campos = [] as any[] } = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll() });
+  const { data: cultivos = [] as any[] } = useQuery({ queryKey: ['cultivos', orgId], queryFn: () => cultivosApi.getAll() });
+  const { data: insumos = [] as any[] } = useQuery({ queryKey: ['insumos', orgId], queryFn: () => insumosApi.getAll() });
 
   const lotesDisponibles = campos?.find((c: any) => c.id === selectedCampoId)?.lotes ?? [];
 

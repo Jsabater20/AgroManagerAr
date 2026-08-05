@@ -70,12 +70,12 @@ export default function MaquinariasPage() {
 
   const { data: maquinarias = [], isLoading } = useQuery({
     queryKey: ['maquinarias', orgId],
-    queryFn: () => maquinariasApi.getAll({ orgId: parseInt(orgId!) }),
+    queryFn: maquinariasApi.getAll,
   });
 
   const { data: campos = [] } = useQuery({
     queryKey: ['campos', orgId],
-    queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }),
+    queryFn: () => camposApi.getAll(),
   });
 
   const createMut = useMutation({
@@ -192,7 +192,7 @@ export default function MaquinariasPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {maquinarias.map((m: any) => {
-            const est = ESTADO_CONFIG[m.estado];
+            const est = ESTADO_CONFIG[m.estado as EstadoMaquinaria];
             const EstIcon = est.icon;
             const seguroAlert = isAlertDate(m.seguroVencimiento) || isExpired(m.seguroVencimiento);
             const vtvAlert    = isAlertDate(m.vtvVencimiento)    || isExpired(m.vtvVencimiento);
@@ -211,7 +211,7 @@ export default function MaquinariasPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 truncate">{m.nombre}</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {TIPO_LABEL[m.tipo]}
+                        {TIPO_LABEL[m.tipo as TipoMaquinaria]}
                         {m.marca && ` · ${m.marca}`}
                         {m.modelo && ` ${m.modelo}`}
                         {m.anio && ` (${m.anio})`}

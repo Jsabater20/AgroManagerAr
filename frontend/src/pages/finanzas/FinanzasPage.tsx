@@ -35,9 +35,9 @@ export default function FinanzasPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<CreateMovimientoDto>(EMPTY);
 
-  const { data: movimientos = [], isLoading } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll({ orgId: parseInt(orgId!) }) });
-  const { data: resumen } = useQuery({ queryKey: ['finanzas-resumen', orgId], queryFn: () => finanzasApi.resumen({ orgId: parseInt(orgId!) }) });
-  const { data: campos = [] as any[] } = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll({ orgId: parseInt(orgId!) }) });
+  const { data: movimientos = [], isLoading } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll() });
+  const { data: resumen } = useQuery({ queryKey: ['finanzas-resumen', orgId], queryFn: () => finanzasApi.resumen() });
+  const { data: campos = [] as any[] } = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll() });
 
   const createMut = useMutation({
     mutationFn: finanzasApi.create,
