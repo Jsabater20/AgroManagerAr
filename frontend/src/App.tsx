@@ -1,3 +1,5 @@
+// src/App.tsx (RESTAURAR RUTAS COMPLETAS)
+
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -41,6 +43,7 @@ import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 import RolesPage from './pages/organizaciones/RolesPage';
+import { OwnerPanelPage } from './pages/organizaciones/OwnerPanelPage';
 import MiembrosPage from './pages/miembros/MiembrosPage';
 
 const queryClient = new QueryClient();
@@ -117,6 +120,7 @@ export default function App() {
               <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
               <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
               <Route path="/org/:orgId/roles" element={<RolesPage />} />
+              <Route path="/org/:orgId/admin" element={<OwnerPanelPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
             </Route>
             <Route path="/admin" element={<AdminPage />} />

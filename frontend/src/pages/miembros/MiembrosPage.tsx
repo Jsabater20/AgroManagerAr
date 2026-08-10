@@ -1,3 +1,5 @@
+// src/pages/miembros/MiembrosPage.tsx (CORREGIDO)
+
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/auth.store';
@@ -8,7 +10,7 @@ import { Loader2, Users, Shield, Briefcase, CheckCircle2, Clock, AlertCircle } f
 
 export default function MiembrosPage() {
   const { orgId } = useParams<{ orgId: string }>();
-  const { usuario } = useAuthStore();
+  const { usuario, isLoading: authLoading } = useAuthStore();
   const { isOwner, isMember, isLoading: permissionsLoading } = usePermissions();
   
   const orgIdNum = orgId ? parseInt(orgId) : 0;
@@ -17,10 +19,10 @@ export default function MiembrosPage() {
   const { data: miembros, isLoading: miembrosLoading } = useQuery({
     queryKey: ['miembros-panel', orgIdNum],
     queryFn: () => ownerAdminApi.obtenerMiembrosPanel(orgIdNum),
-    enabled: orgIdNum > 0,
+    enabled: orgIdNum > 0 && !authLoading && !permissionsLoading,
   });
 
-  const isLoading = permissionsLoading || miembrosLoading;
+  const isLoading = authLoading || permissionsLoading || miembrosLoading;
 
   if (isLoading) {
     return (
@@ -36,8 +38,8 @@ export default function MiembrosPage() {
   }
 
   // MIEMBRO: mostrar solo su información
-  if (isMember) {
-    const miembro = miembros?.find((m: any) => m.id === usuario?.usuarioOrganizacionId);
+  if (isMember && usuario) {
+    const miembro = miembros?.find((m: any) => m.id === usuario.usuarioOrganizacionId);
 
     if (!miembro) {
       return (
