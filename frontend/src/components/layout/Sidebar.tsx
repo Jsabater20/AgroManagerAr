@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Wrench, Settings, User } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Wrench, Settings, User, Users } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import type { ElementType } from 'react';
 
@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { to: (id) => `/org/${id}/insumos`,      label: 'Insumos',      icon: FlaskConical },
   { to: (id) => `/org/${id}/ganado`,       label: 'Ganadería',    icon: PawPrint },
   { to: (id) => `/org/${id}/tareas`,       label: 'Tareas',       icon: ClipboardList },
+  { to: (id) => `/org/${id}/miembros`,     label: 'Miembros',     icon: Users },
   { to: (id) => `/org/${id}/maquinarias`,  label: 'Maquinarias',  icon: Wrench },
   { to: (id) => `/org/${id}/finanzas`,     label: 'Finanzas',     icon: DollarSign },
   { to: (id) => `/org/${id}/campanias`,    label: 'Campañas',     icon: CalendarRange },

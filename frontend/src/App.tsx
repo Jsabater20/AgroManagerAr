@@ -43,6 +43,7 @@ import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 import RolesPage from './pages/organizaciones/RolesPage';
 import { OwnerPanelPage } from './pages/organizaciones/OwnerPanelPage';
+import MiembrosPage from './pages/miembros/MiembrosPage';
 
 const queryClient = new QueryClient();
 setQueryClientRef(queryClient);
@@ -97,6 +98,7 @@ export default function App() {
               <Route path="/org/:orgId/insumos" element={<InsumosPage />} />
               <Route path="/org/:orgId/ganado" element={<GanadoPage />} />
               <Route path="/org/:orgId/tareas" element={<TareasPage />} />
+              <Route path="/org/:orgId/miembros" element={<MiembrosPage />} />
               <Route path="/org/:orgId/maquinarias" element={<MaquinariasPage />} />
               <Route path="/org/:orgId/maquinarias/:id" element={<MaquinariaDetailPage />} />
               <Route path="/org/:orgId/reportes" element={<ReportesPage />} />
