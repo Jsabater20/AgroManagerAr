@@ -1,4 +1,3 @@
-// frontend/src/api/users.api.ts (COMPLETO)
 import { api } from './client';
 
 export interface UserProfile {
@@ -10,6 +9,14 @@ export interface UserProfile {
   rolGlobal?: string;
   plan?: 'FREE' | 'PRO';
   planExpira?: string | null;
+  usuarioOrganizacionId?: number;
+  organizaciones?: Array<{
+    id: number;
+    nombre: string;
+    email: string;
+    plan: 'FREE' | 'PRO';
+    propietarioId: number;
+  }>;
   createdAt: string;
 }
 

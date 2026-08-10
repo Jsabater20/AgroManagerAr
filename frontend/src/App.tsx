@@ -38,36 +38,44 @@ import PreciosPage from './pages/precios/PreciosPage';
 import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
 import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
-import OrganizationMembersPage from './pages/organizaciones/OrganizationMembersPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 import RolesPage from './pages/organizaciones/RolesPage';
-import { OwnerPanelPage } from './pages/organizaciones/OwnerPanelPage';
 import MiembrosPage from './pages/miembros/MiembrosPage';
 
 const queryClient = new QueryClient();
 setQueryClientRef(queryClient);
 
 export default function App() {
-  const { token, setAuth, logout } = useAuthStore();
+  const { token, setAuth, setIsLoading, logout } = useAuthStore();
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    
     getProfile()
-      .then((profile) => setAuth({
-        id: profile.id,
-        email: profile.email,
-        nombre: profile.nombre,
-        apellido: profile.apellido,
-        rol: profile.rol || 'OPERADOR',
-        plan: (profile.plan || 'FREE') as 'FREE' | 'PRO',
-        rolGlobal: profile.rolGlobal,
-      }, token))
+      .then((profile) => {
+        setAuth({
+          id: profile.id,
+          email: profile.email,
+          nombre: profile.nombre,
+          apellido: profile.apellido,
+          rol: profile.rol || 'OPERADOR',
+          plan: (profile.plan || 'FREE') as 'FREE' | 'PRO',
+          rolGlobal: profile.rolGlobal,
+          usuarioOrganizacionId: profile.usuarioOrganizacionId,
+          organizaciones: profile.organizaciones || [],
+        }, token);
+        setIsLoading(false);
+      })
       .catch(() => {
         logout();
+        setIsLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -106,11 +114,9 @@ export default function App() {
               <Route path="/org/:orgId/campanias" element={<CampaniasPage />} />
               <Route path="/org/:orgId/rentabilidad" element={<RentabilidadPage />} />
               <Route path="/org/:orgId/clima" element={<ClimaPage />} />
-              <Route path="/org/:orgId/miembros-admin" element={<OrganizationMembersPage />} />
               <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
               <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
               <Route path="/org/:orgId/roles" element={<RolesPage />} />
-              <Route path="/org/:orgId/admin" element={<OwnerPanelPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
             </Route>
             <Route path="/admin" element={<AdminPage />} />

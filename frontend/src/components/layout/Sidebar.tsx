@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
-import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Wrench, Settings, User, Users } from 'lucide-react';
+import { Sprout, Map, FlaskConical, LayoutDashboard, LogOut, X, Leaf, PawPrint, ClipboardList, FileBarChart2, DollarSign, CalendarRange, TrendingUp, CloudSun, Wrench, Settings, Users } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import type { ElementType } from 'react';
 
@@ -47,8 +47,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   ].join('').toUpperCase() || '?';
 
   const currentOrgId = orgId || '1';
-  const isOwner = usuario?.organizaciones?.some((o: any) => o.id === parseInt(currentOrgId));
-  const isSuperAdmin = usuario?.rolGlobal === 'SUPERADMIN';
 
   return (
     <aside
@@ -92,29 +90,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <span>{label}</span>
           </NavLink>
         ))}
-
-        {isOwner && (
-          <>
-            <div className="my-2 border-t border-white/10" />
-            <div className="px-3 py-2 text-xs font-bold text-green-400 uppercase tracking-wider">
-              Administración
-            </div>
-            <NavLink
-              to={`/org/${currentOrgId}/miembros-admin`}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium
-                ${isActive
-                  ? 'bg-white/15 text-white ring-1 ring-white/10'
-                  : 'text-green-300 hover:bg-white/10 hover:text-white'
-                }`
-              }
-            >
-              <User size={18} className="shrink-0" />
-              <span>Admin de Miembros</span>
-            </NavLink>
-          </>
-        )}
       </nav>
 
       <div className="border-t border-white/10 p-3 space-y-2">
@@ -145,20 +120,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <Settings size={20} />
           </NavLink>
 
-          {isSuperAdmin && (
-            <NavLink
-              to="/admin"
-              onClick={onClose}
-              className="text-green-300 hover:text-white transition-colors"
-              title="Panel de Administración"
-            >
-              <User size={20} />
-            </NavLink>
-          )}
-
           <button
             onClick={handleLogout}
-            className="text-green-300 hover:text-white transition-colors"
+            className="text-green-300 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
             title="Cerrar sesión"
           >
             <LogOut size={20} />

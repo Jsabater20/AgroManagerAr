@@ -9,16 +9,18 @@ import { Loader2, Users, Shield, Briefcase, CheckCircle2, Clock, AlertCircle } f
 export default function MiembrosPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const { usuario } = useAuthStore();
-  const { isOwner, isMember } = usePermissions();
+  const { isOwner, isMember, isLoading: permissionsLoading } = usePermissions();
   
   const orgIdNum = orgId ? parseInt(orgId) : 0;
 
   // Datos de miembros (para ambos roles)
-  const { data: miembros, isLoading } = useQuery({
+  const { data: miembros, isLoading: miembrosLoading } = useQuery({
     queryKey: ['miembros-panel', orgIdNum],
     queryFn: () => ownerAdminApi.obtenerMiembrosPanel(orgIdNum),
     enabled: orgIdNum > 0,
   });
+
+  const isLoading = permissionsLoading || miembrosLoading;
 
   if (isLoading) {
     return (
@@ -28,7 +30,7 @@ export default function MiembrosPage() {
     );
   }
 
-  // OWNER: mostrar panel completo de administración
+  // OWNER o SUPERADMIN+OWNER: mostrar panel completo de administración
   if (isOwner) {
     return <OwnerPanelPage />;
   }
@@ -166,7 +168,7 @@ export default function MiembrosPage() {
     );
   }
 
-  // Sin permisos
+  // Sin permisos (ni owner ni member)
   return (
     <div className="text-center py-12 text-gray-500">
       No tienes acceso a esta sección.

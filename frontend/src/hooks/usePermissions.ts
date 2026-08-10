@@ -1,4 +1,3 @@
-// src/hooks/usePermissions.ts (COMPLETO)
 import { useAuthStore } from '../store/auth.store';
 import { useParams } from 'react-router-dom';
 import { useMemo } from 'react';
@@ -12,17 +11,31 @@ interface PermissionsContext {
   usuarioOrganizacionId: number | null;
   role: UserRole;
   organizacionId: number;
+  isLoading: boolean;
 }
 
 export const usePermissions = (): PermissionsContext => {
   const { orgId } = useParams<{ orgId: string }>();
-  const { usuario } = useAuthStore();
+  const { usuario, isLoading } = useAuthStore();
 
   return useMemo(() => {
     const organizacionId = parseInt(orgId || '0');
-    const isSuperAdmin = usuario?.rolGlobal === 'SUPERADMIN';
-    const isOwner = usuario?.organizaciones?.some((o: any) => o.id === organizacionId);
-    const usuarioOrganizacionId = usuario?.usuarioOrganizacionId || null;
+    
+    if (isLoading || !usuario) {
+      return {
+        isOwner: false,
+        isMember: false,
+        isSuperAdmin: false,
+        usuarioOrganizacionId: null,
+        role: 'member',
+        organizacionId,
+        isLoading: true,
+      };
+    }
+
+    const isSuperAdmin = usuario.rolGlobal === 'SUPERADMIN';
+    const isOwner = usuario.organizaciones?.some((o: any) => o.id === organizacionId);
+    const usuarioOrganizacionId = usuario.usuarioOrganizacionId || null;
     const isMember = !isOwner && !!usuarioOrganizacionId;
 
     let role: UserRole = 'member';
@@ -36,6 +49,7 @@ export const usePermissions = (): PermissionsContext => {
       usuarioOrganizacionId,
       role,
       organizacionId,
+      isLoading: false,
     };
-  }, [orgId, usuario]);
+  }, [orgId, usuario, isLoading]);
 };

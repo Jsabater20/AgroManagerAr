@@ -1,4 +1,3 @@
-// src/store/auth.store.ts (COMPLETO - ACTUALIZADO)
 import { create } from 'zustand';
 import type { QueryClient } from '@tanstack/react-query';
 
@@ -33,11 +32,11 @@ interface AuthState {
   token: string | null;
   organizacionId: number | null;
   organizaciones: Organizacion[];
-  hydrating: boolean;
+  isLoading: boolean;
   setAuth: (usuario: Usuario, token: string, organizacionId?: number) => void;
   setOrganizacionId: (id: number) => void;
   setOrganizaciones: (orgs: Organizacion[]) => void;
-  setHydrating: (v: boolean) => void;
+  setIsLoading: (v: boolean) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
   isPro: () => boolean;
@@ -48,32 +47,26 @@ const storedOrgId = localStorage.getItem('organizacionId');
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   usuario: null,
-  token: storedToken,
+  token: storedToken || null,
   organizacionId: storedOrgId ? parseInt(storedOrgId) : null,
   organizaciones: [],
-  hydrating: !!storedToken,
+  isLoading: true,
 
   setAuth: (usuario, token, organizacionId) => {
-    if (!organizacionId) {
-      try {
-        const decoded = JSON.parse(atob(token.split('.')[1]));
-        organizacionId = decoded.organizacionId;
-      } catch (e) {
-        organizacionId = undefined;
-      }
-    }
+    const orgId = organizacionId || usuario.organizaciones?.[0]?.id || 1;
     localStorage.setItem('token', token);
-    if (organizacionId) {
-      localStorage.setItem('organizacionId', organizacionId.toString());
-    }
-    set({ usuario, token, organizacionId, hydrating: false });
+    localStorage.setItem('organizacionId', String(orgId));
+    set({
+      usuario,
+      token,
+      organizacionId: orgId,
+      organizaciones: usuario.organizaciones || [],
+      isLoading: false,
+    });
   },
 
   setOrganizacionId: (id) => {
-    localStorage.setItem('organizacionId', id.toString());
-    if (queryClientRef) {
-      queryClientRef.invalidateQueries();
-    }
+    localStorage.setItem('organizacionId', String(id));
     set({ organizacionId: id });
   },
 
@@ -81,14 +74,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ organizaciones: orgs });
   },
 
-  setHydrating: (v: boolean) => set({ hydrating: v }),
+  setIsLoading: (v) => {
+    set({ isLoading: v });
+  },
 
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('organizacionId');
-    set({ usuario: null, token: null, organizacionId: null, organizaciones: [], hydrating: false });
+    set({
+      usuario: null,
+      token: null,
+      organizacionId: null,
+      organizaciones: [],
+      isLoading: false,
+    });
+    if (queryClientRef) {
+      queryClientRef.clear();
+    }
   },
 
-  isAuthenticated: () => !!get().token,
+  isAuthenticated: () => !!get().token && !!get().usuario,
   isPro: () => get().usuario?.plan === 'PRO',
 }));
