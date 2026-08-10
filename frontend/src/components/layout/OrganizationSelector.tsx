@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Building2, Check, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
-import { organizacionesApi } from '../../api/organizations.api';
+import { organizacionesApi } from '../../api/organizaciones.api';
+import type { Organizacion } from '../../api/types';
 
 export default function OrganizationSelector() {
   const [open, setOpen] = useState(false);
@@ -40,7 +41,7 @@ export default function OrganizationSelector() {
     });
   }, [organizacionId, organizaciones]);
 
-  const currentOrg = organizaciones.find((o) => o.id === organizacionId) || orgs.find((o) => o.id === organizacionId);
+  const currentOrg = organizaciones.find((o: Organizacion) => o.id === organizacionId) || orgs.find((o: Organizacion) => o.id === organizacionId);
   
   // Debug final
   console.log('[OrganizationSelector] render:', {
@@ -106,7 +107,7 @@ export default function OrganizationSelector() {
 
           <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg z-50">
             <div className="p-2">
-              {(organizaciones.length > 0 ? organizaciones : orgs).map((org) => (
+              {(organizaciones.length > 0 ? organizaciones : orgs).map((org: Organizacion) => (
                 <button
                   key={org.id}
                   onClick={() => handleSelectOrg(org.id)}

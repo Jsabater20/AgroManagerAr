@@ -61,7 +61,7 @@ export default function SiembrasPage() {
 
   const filtered = (siembras ?? []).filter((s) => {
     if (filterEstado && s.estado !== filterEstado) return false;
-    if (filterCampoId && s.lote.campo.id !== filterCampoId) return false;
+    if (filterCampoId && s.lote?.campo?.id !== filterCampoId) return false;
     return true;
   });
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -178,13 +178,13 @@ export default function SiembrasPage() {
                   return (
                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-3.5 font-medium text-gray-900">
-                        {s.lote.campo.nombre}<span className="text-gray-400 font-normal"> / {s.lote.nombre}</span>
+                        {s.lote?.campo?.nombre ?? '-'}<span className="text-gray-400 font-normal"> / {s.lote?.nombre ?? '-'}</span>
                       </td>
-                      <td className="px-5 py-3.5 text-gray-700">{s.tipoCultivo.nombre}</td>
+                      <td className="px-5 py-3.5 text-gray-700">{s.tipoCultivo?.nombre ?? '-'}</td>
                       <td className="px-5 py-3.5 text-gray-600">{formatDate(s.fechaSiembra)}</td>
                       <td className="px-5 py-3.5 text-gray-600">{s.densidad ? `${s.densidad} kg/ha` : '-'}</td>
                       <td className="px-5 py-3.5 text-gray-600">
-                        {s.cosechas.length > 0 ? <span className="font-medium text-green-700">{s.cosechas.length}</span> : '-'}
+                        {((s.cosechas?.length ?? 0) > 0) ? <span className="font-medium text-green-700">{s.cosechas?.length ?? 0}</span> : '-'}
                       </td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => openEstadoModal(s)}
@@ -275,7 +275,7 @@ export default function SiembrasPage() {
       {estadoTarget && (
         <Modal title="Cambiar estado" onClose={() => setEstadoTarget(null)}>
           <p className="text-sm text-gray-600 mb-4">
-            <strong>{estadoTarget.tipoCultivo.nombre}</strong> en <strong>{estadoTarget.lote.campo.nombre} / {estadoTarget.lote.nombre}</strong>
+            <strong>{estadoTarget?.tipoCultivo?.nombre ?? 'Cultivo'}</strong> en <strong>{estadoTarget?.lote?.campo?.nombre ?? 'Campo'} / {estadoTarget?.lote?.nombre ?? 'Lote'}</strong>
           </p>
           <div className="flex flex-col gap-2 mb-5">
             {ESTADOS.map((e) => {
@@ -302,7 +302,7 @@ export default function SiembrasPage() {
       {cosechaTarget && (
         <Modal title="Registrar cosecha" onClose={() => setCosechaTarget(null)}>
           <p className="text-sm text-gray-600 mb-4">
-            <strong>{cosechaTarget.tipoCultivo.nombre}</strong> - {cosechaTarget.lote.campo.nombre} / {cosechaTarget.lote.nombre}
+            <strong>{cosechaTarget?.tipoCultivo?.nombre ?? 'Cultivo'}</strong> - {cosechaTarget?.lote?.campo?.nombre ?? 'Campo'}/ {cosechaTarget?.lote?.nombre ?? 'Lote'}
           </p>
           <form onSubmit={(e) => { e.preventDefault(); cosechaMutation.mutate({ id: cosechaTarget.id, dto: cosechaForm }); }} className="space-y-4">
             <Field label="Fecha de cosecha *">
@@ -333,7 +333,7 @@ export default function SiembrasPage() {
       {aplicacionTarget && (
         <Modal title="Registrar aplicacion de insumo" onClose={() => setAplicacionTarget(null)}>
           <p className="text-sm text-gray-600 mb-4">
-            <strong>{aplicacionTarget.tipoCultivo.nombre}</strong> - {aplicacionTarget.lote.campo.nombre} / {aplicacionTarget.lote.nombre}
+            <strong>{aplicacionTarget?.tipoCultivo?.nombre ?? 'Cultivo'}</strong> - {aplicacionTarget?.lote?.campo?.nombre ?? 'Campo'} / {aplicacionTarget?.lote?.nombre ?? 'Lote'}
           </p>
           <form onSubmit={(e) => { e.preventDefault(); aplicacionMutation.mutate({ id: aplicacionTarget.id, dto: aplicacionForm }); }} className="space-y-4">
             <Field label="Insumo *">

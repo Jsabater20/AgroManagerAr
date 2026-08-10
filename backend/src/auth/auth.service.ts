@@ -150,6 +150,7 @@ export class AuthService {
         apellido: true,
         password: true,
         rol: true,
+        rolGlobal: true,
         plan: true,
         emailVerificado: true,
       },
@@ -191,6 +192,7 @@ export class AuthService {
       usuario.id,
       usuario.email,
       orgPrincipal?.id,
+      usuario.rolGlobal,
     );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -309,11 +311,13 @@ export class AuthService {
     userId: number,
     email: string,
     organizacionId?: number,
+    rolGlobal?: string,
   ): string {
     return this.jwtService.sign({
       sub: userId,
       email,
       organizacionId: organizacionId || null,
+      rolGlobal: rolGlobal || 'USER',
     });
   }
 

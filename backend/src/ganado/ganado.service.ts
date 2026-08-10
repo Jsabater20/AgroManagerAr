@@ -52,7 +52,7 @@ export class GanadoService {
   }
 
   async create(dto: CreateAnimalDto, usuarioId: number, organizacionId: number) {
-    await this.planService.checkAnimalesLimit(usuarioId);
+    await this.planService.checkAnimalesLimit(organizacionId);
     return this.prisma.animal.create({
       data: {
         nombre: dto.nombre,

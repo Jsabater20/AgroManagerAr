@@ -1,4 +1,4 @@
-// ─── Organizaciones ───────────────────────────────────────────────────────────
+// ─── Organizaciones ───────────────────────────────────────────────────────
 
 export interface Organizacion {
   id: number;
@@ -11,18 +11,55 @@ export interface Organizacion {
 export interface MiembroOrganizacion {
   id: number;
   usuarioId: number;
-  organizacionId: number;
-  rol: 'OWNER' | 'ADMIN' | 'OPERARIO' | 'CONTADOR';
-  estado: 'ACTIVO' | 'INVITADO' | 'INACTIVO' | 'SUSPENDIDO';
-  usuario?: {
+  usuario: {
     id: number;
     email: string;
     nombre: string;
     apellido: string;
   };
+  roles: string[];
+  activo: boolean;
+  campos: Array<{ id: number; nombre: string }>;
+  modulos: Array<{ moduloNombre: string; activo: boolean }>;
 }
 
-// ─── Campos ───────────────────────────────────────────────────────────────────
+export interface InvitacionOrganizacion {
+  id: number;
+  email: string;
+  rol: string;
+  estado: 'PENDIENTE' | 'ACEPTADA' | 'RECHAZADA' | 'EXPIRADA' | 'CANCELADA';
+  mensaje?: string;
+  fechaInvitacion: string;
+  expiresAt: string;
+  token: string;
+}
+
+export interface ActivityCountDto {
+  pendientes: number;
+  enProgreso: number;
+  completadas: number;
+}
+
+export interface MiembroPanelDto {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  rol: string;
+  activo: boolean;
+  fechaIncorporacion: string;
+  actividades: ActivityCountDto;
+  recursosCampos: string[];
+}
+
+export interface RecursoAsignableDto {
+  id: number;
+  nombre: string;
+  tipo: 'CAMPO' | 'CULTIVO' | 'SIEMBRA' | 'INSUMO' | 'GANADO' | 'TAREA' | 'MAQUINARIA';
+  asignado: boolean;
+}
+
+// ─── Campos ───────────────────────────────────────────────────────────────
 
 export interface Lote {
   id: number;
@@ -34,14 +71,14 @@ export interface Lote {
 export interface Campo {
   id: number;
   nombre: string;
-  hectareas: number;
   ubicacion?: string;
+  hectareas: number;
+  lotes?: Lote[];
+  usuarioId: number;
+  organizacionId?: number;
   propietario?: string;
   latitud?: number;
   longitud?: number;
-  usuarioId: number;
-  createdAt: string;
-  lotes: Lote[];
 }
 
 export interface CreateCampoDto {
@@ -58,9 +95,7 @@ export interface CreateLoteDto {
   hectareas: number;
 }
 
-// ─── Siembras ─────────────────────────────────────────────────────────────────
-
-export type EstadoSiembra = 'EN_CURSO' | 'COSECHADA' | 'PERDIDA';
+// ─── Cultivos ─────────────────────────────────────────────────────────────
 
 export interface TipoCultivo {
   id: number;
@@ -68,51 +103,21 @@ export interface TipoCultivo {
   descripcion?: string;
 }
 
+export type EstadoSiembra = 'EN_CURSO' | 'COSECHADA' | 'PERDIDA';
+
 export interface Siembra {
   id: number;
   loteId: number;
   tipoCultivoId: number;
+  tipoCultivo?: TipoCultivo;
+  lote?: Lote & { campo: Campo };
   fechaSiembra: string;
-  densidad?: number;
-  observaciones?: string;
   estado: EstadoSiembra;
-  lote: Lote & { campo: Campo };
-  tipoCultivo: TipoCultivo;
-  cosechas: Cosecha[];
-  aplicaciones: AplicacionInsumo[];
-}
-
-// ─── Insumos ──────────────────────────────────────────────────────────────────
-
-export type TipoInsumo =
-  | 'FERTILIZANTE'
-  | 'HERBICIDA'
-  | 'FUNGICIDA'
-  | 'INSECTICIDA'
-  | 'SEMILLA'
-  | 'OTRO';
-
-export interface Insumo {
-  id: number;
-  nombre: string;
-  tipo: TipoInsumo;
-  unidad: string;
-  descripcion?: string;
-}
-
-export interface CreateInsumoDto {
-  nombre: string;
-  tipo: TipoInsumo;
-  unidad: string;
-  descripcion?: string;
-}
-
-export interface CreateSiembraDto {
-  loteId: number;
-  tipoCultivoId: number;
-  fechaSiembra: string;
   densidad?: number;
   observaciones?: string;
+  cosechas?: Cosecha[];
+  aplicaciones?: AplicacionInsumo[];
+  campaniaId?: number;
 }
 
 export interface Cosecha {
@@ -125,7 +130,17 @@ export interface Cosecha {
   observaciones?: string;
 }
 
+export interface CreateSiembraDto {
+  loteId: number;
+  tipoCultivoId: number;
+  fechaSiembra: string;
+  densidad?: number;
+  observaciones?: string;
+  campaniaId?: number;
+}
+
 export interface CreateCosechaDto {
+  siembraId?: number;
   fechaCosecha: string;
   rendimientoKgHa: number;
   totalKg: number;
@@ -133,18 +148,38 @@ export interface CreateCosechaDto {
   observaciones?: string;
 }
 
+// ─── Insumos ──────────────────────────────────────────────────────────────
+
+export type TipoInsumo = 'FERTILIZANTE' | 'HERBICIDA' | 'FUNGICIDA' | 'INSECTICIDA' | 'SEMILLA' | 'OTRO';
+
+export interface Insumo {
+  id: number;
+  nombre: string;
+  tipo: TipoInsumo;
+  unidad: string;
+  descripcion?: string;
+}
+
 export interface AplicacionInsumo {
   id: number;
   siembraId: number;
   insumoId: number;
+  insumo?: Insumo;
   fecha: string;
   cantidad: number;
   unidad: string;
   observaciones?: string;
-  insumo: Insumo;
+}
+
+export interface CreateInsumoDto {
+  nombre: string;
+  tipo: TipoInsumo;
+  unidad: string;
+  descripcion?: string;
 }
 
 export interface CreateAplicacionDto {
+  siembraId?: number;
   insumoId: number;
   fecha: string;
   cantidad: number;
@@ -152,19 +187,32 @@ export interface CreateAplicacionDto {
   observaciones?: string;
 }
 
-// ─── Ganadería ────────────────────────────────────────────────────────────────
+// ─── Ganadería ────────────────────────────────────────────────────────────
 
 export type Especie = 'BOVINO' | 'PORCINO' | 'EQUINO' | 'OVINO' | 'CAPRINO' | 'AVIAR';
 export type Sexo = 'MACHO' | 'HEMBRA';
 export type CategoriaAnimal =
-  | 'VACA' | 'VAQUILLONA' | 'TERNERA'
-  | 'TORO' | 'NOVILLO' | 'TERNERO'
+  | 'VACA' | 'VAQUILLONA' | 'TERNERA' | 'TORO' | 'NOVILLO' | 'TERNERO'
   | 'CERDA' | 'VERRACO' | 'LECHON'
   | 'YEGUA' | 'POTRANCA' | 'PADRILLO' | 'POTRO'
   | 'OVEJA' | 'BORREGA' | 'CARNERO' | 'CORDERO'
   | 'CABRA' | 'CABRIO' | 'CABRITO'
   | 'GALLINA' | 'GALLO' | 'POLLO' | 'POLLA';
 export type EstadoPrenez = 'EN_CURSO' | 'COMPLETADA' | 'PERDIDA';
+
+export interface Animal {
+  id: number;
+  nombre: string;
+  especie: Especie;
+  sexo: Sexo;
+  categoria: CategoriaAnimal;
+  peso?: number;
+  fechaNacimiento?: string;
+  observaciones?: string;
+  preneces?: Prenez[];
+  usuarioId: number;
+  organizacionId?: number;
+}
 
 export interface Prenez {
   id: number;
@@ -173,21 +221,14 @@ export interface Prenez {
   fechaEstimadaParto: string;
   estado: EstadoPrenez;
   observaciones?: string;
-  createdAt: string;
 }
 
-export interface Animal {
+export interface RegistroPeso {
   id: number;
-  usuarioId: number;
-  nombre: string;
-  especie: Especie;
-  sexo: Sexo;
-  categoria: CategoriaAnimal;
-  peso?: number;
-  fechaNacimiento?: string;
+  animalId: number;
+  peso: number;
+  fecha: string;
   observaciones?: string;
-  createdAt: string;
-  preneces: Prenez[];
 }
 
 export interface CreateAnimalDto {
@@ -201,11 +242,20 @@ export interface CreateAnimalDto {
 }
 
 export interface CreatePrenezDto {
+  animalId?: number;
   fechaInicio: string;
+  fechaEstimadaParto: string;
   observaciones?: string;
 }
 
-// ─── Tareas Rurales ───────────────────────────────────────────────────────────
+export interface CreateRegistroPesoDto {
+  animalId?: number;
+  peso: number;
+  fecha: string;
+  observaciones?: string;
+}
+
+// ─── Tareas ───────────────────────────────────────────────────────────────
 
 export type TipoTarea =
   | 'SIEMBRA' | 'COSECHA' | 'FUMIGACION' | 'FERTILIZACION'
@@ -213,12 +263,10 @@ export type TipoTarea =
 
 export type EstadoTarea = 'PENDIENTE' | 'EN_CURSO' | 'COMPLETADA' | 'CANCELADA';
 export type Prioridad = 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
-
 export type RepetirTarea = 'UNICA' | 'SEMANAL' | 'QUINCENAL' | 'MENSUAL';
 
 export interface TareaRural {
   id: number;
-  usuarioId: number;
   titulo: string;
   descripcion?: string;
   tipo: TipoTarea;
@@ -227,18 +275,19 @@ export interface TareaRural {
   fechaProgramada: string;
   fechaLimite?: string;
   fechaCompletada?: string;
-  repetir: RepetirTarea;
+  repetir?: RepetirTarea;
+  usuarioId: number;
+  organizacionId?: number;
   campoId?: number;
-  campo?: { id: number; nombre: string };
+  campo?: Campo;
   observaciones?: string;
-  createdAt: string;
 }
 
 export interface CreateTareaDto {
   titulo: string;
   descripcion?: string;
   tipo: TipoTarea;
-  prioridad?: Prioridad;
+  prioridad: Prioridad;
   fechaProgramada: string;
   fechaLimite?: string;
   repetir?: RepetirTarea;
@@ -246,17 +295,103 @@ export interface CreateTareaDto {
   observaciones?: string;
 }
 
-// ─── Finanzas ─────────────────────────────────────────────────────────────────
+// ─── Maquinarias ──────────────────────────────────────────────────────────
+
+export type TipoMaquinaria =
+  | 'TRACTOR' | 'SEMBRADORA' | 'PULVERIZADORA' | 'COSECHADORA'
+  | 'CAMIONETA' | 'MIXER' | 'ACOPLADO' | 'TOLVA' | 'HERRAMIENTA' | 'OTRO';
+
+export type EstadoMaquinaria = 'OPERATIVA' | 'EN_MANTENIMIENTO' | 'FUERA_DE_SERVICIO';
+export type TipoMantenimiento = 'CAMBIO_ACEITE' | 'REVISION_GENERAL' | 'REPARACION' | 'OTRO';
+export type TipoGastoMaq = 'COMBUSTIBLE' | 'REPARACION' | 'REPUESTO' | 'SERVICIO' | 'SEGURO' | 'OTRO';
+
+export interface Maquinaria {
+  id: number;
+  nombre: string;
+  tipo: TipoMaquinaria;
+  marca?: string;
+  modelo?: string;
+  anio?: number;
+  patente?: string;
+  estado: EstadoMaquinaria;
+  horasUso?: number;
+  seguroVencimiento?: string;
+  vtvVencimiento?: string;
+  observaciones?: string;
+  gastos?: GastoMaquinaria[];
+  mantenimientos?: MantenimientoMaquinaria[];
+  usuarioId: number;
+  organizacionId?: number;
+  campoId?: number;
+}
+
+export interface MantenimientoMaquinaria {
+  id: number;
+  maquinariaId: number;
+  tipo: TipoMantenimiento;
+  descripcion?: string;
+  fecha: string;
+  horasUso?: number;
+  costo?: number;
+  proximoMantenimiento?: string;
+  observaciones?: string;
+}
+
+export interface GastoMaquinaria {
+  id: number;
+  maquinariaId: number;
+  tipo: TipoGastoMaq;
+  descripcion: string;
+  monto: number;
+  fecha: string;
+  observaciones?: string;
+}
+
+export interface CreateMaquinariaDto {
+  nombre: string;
+  tipo: TipoMaquinaria;
+  marca?: string;
+  modelo?: string;
+  anio?: number;
+  patente?: string;
+  estado?: EstadoMaquinaria;
+  horasUso?: number;
+  campoId?: number;
+  seguroVencimiento?: string;
+  vtvVencimiento?: string;
+  observaciones?: string;
+}
+
+export interface CreateMantenimientoDto {
+  maquinariaId?: number;
+  tipo: TipoMantenimiento;
+  descripcion?: string;
+  fecha: string;
+  horasUso?: number;
+  costo?: number;
+  proximoMantenimiento?: string;
+  observaciones?: string;
+}
+
+export interface CreateGastoDto {
+  maquinariaId?: number;
+  tipo: TipoGastoMaq;
+  descripcion: string;
+  monto: number;
+  fecha: string;
+  observaciones?: string;
+}
+
+// ─── Finanzas ─────────────────────────────────────────────────────────────
 
 export type TipoMovimiento = 'INGRESO' | 'EGRESO';
-
 export type CategoriaMovimiento =
   | 'COSECHA' | 'VENTA_ANIMAL' | 'INSUMO' | 'SERVICIO'
-  | 'MANTENIMIENTO' | 'VETERINARIA' | 'COMBUSTIBLE' | 'MANO_DE_OBRA' | 'OTRO';
+  | 'MANTENIMIENTO' | 'VETERINARIA' | 'COMBUSTIBLE'
+  | 'MANO_DE_OBRA' | 'OTRO';
 
 export interface MovimientoFinanciero {
   id: number;
-  usuarioId: number;
   tipo: TipoMovimiento;
   concepto: string;
   monto: number;
@@ -265,8 +400,8 @@ export interface MovimientoFinanciero {
   campoId?: number;
   siembraId?: number;
   observaciones?: string;
-  createdAt: string;
-  campo?: { id: number; nombre: string };
+  usuarioId: number;
+  organizacionId?: number;
 }
 
 export interface CreateMovimientoDto {
@@ -281,22 +416,24 @@ export interface CreateMovimientoDto {
 }
 
 export interface ResumenFinanciero {
-  ingresos: number;
-  egresos: number;
+  totalIngresos: number;
+  totalEgresos: number;
   saldo: number;
+  porCategoriaIngreso: Record<string, number>;
+  porCategoriaEgreso: Record<string, number>;
 }
 
-// ─── Campañas ─────────────────────────────────────────────────────────────────
+// ─── Campañas ─────────────────────────────────────────────────────────────
 
 export interface Campania {
   id: number;
-  usuarioId: number;
   nombre: string;
   fechaInicio: string;
   fechaFin?: string;
   descripcion?: string;
-  createdAt: string;
-  siembras: Siembra[];
+  usuarioId: number;
+  organizacionId?: number;
+  siembras?: Siembra[];
 }
 
 export interface CreateCampaniaDto {
@@ -306,118 +443,44 @@ export interface CreateCampaniaDto {
   descripcion?: string;
 }
 
-// ─── Historial de pesos ───────────────────────────────────────────────────────
+// ─── Usuarios ─────────────────────────────────────────────────────────────
 
-export interface RegistroPeso {
+export interface UserProfile {
   id: number;
-  animalId: number;
-  peso: number;
-  fecha: string;
-  observaciones?: string;
-  createdAt: string;
-}
-
-export interface CreateRegistroPesoDto {
-  peso: number;
-  fecha: string;
-  observaciones?: string;
-}
-
-// ─── Maquinarias ─────────────────────────────────────────────────────────────
-
-export type TipoMaquinaria =
-  | 'TRACTOR'
-  | 'SEMBRADORA'
-  | 'PULVERIZADORA'
-  | 'COSECHADORA'
-  | 'CAMIONETA'
-  | 'MIXER'
-  | 'ACOPLADO'
-  | 'TOLVA'
-  | 'HERRAMIENTA'
-  | 'OTRO';
-
-export type EstadoMaquinaria = 'OPERATIVA' | 'EN_MANTENIMIENTO' | 'FUERA_DE_SERVICIO';
-
-export type TipoMantenimiento = 'CAMBIO_ACEITE' | 'REVISION_GENERAL' | 'REPARACION' | 'OTRO';
-
-export type TipoGastoMaq = 'COMBUSTIBLE' | 'REPARACION' | 'REPUESTO' | 'SERVICIO' | 'SEGURO' | 'OTRO';
-
-export interface MantenimientoMaquinaria {
-  id: number;
-  maquinariaId: number;
-  tipo: TipoMantenimiento;
-  descripcion?: string;
-  fecha: string;
-  horasUso?: number;
-  costo?: number;
-  proximoMantenimiento?: string;
-  observaciones?: string;
-  createdAt: string;
-}
-
-export interface GastoMaquinaria {
-  id: number;
-  maquinariaId: number;
-  tipo: TipoGastoMaq;
-  descripcion: string;
-  monto: number;
-  fecha: string;
-  observaciones?: string;
-  createdAt: string;
-}
-
-export interface Maquinaria {
-  id: number;
-  usuarioId: number;
-  campoId?: number;
+  email: string;
   nombre: string;
-  tipo: TipoMaquinaria;
-  marca?: string;
-  modelo?: string;
-  anio?: number;
-  patente?: string;
-  estado: EstadoMaquinaria;
-  horasUso?: number;
-  seguroVencimiento?: string;
-  vtvVencimiento?: string;
-  observaciones?: string;
-  campo?: { id: number; nombre: string };
-  mantenimientos: MantenimientoMaquinaria[];
-  gastos: GastoMaquinaria[];
+  apellido: string;
+  rol: string;
+  rolGlobal?: string;
+  plan: 'FREE' | 'PRO';
+  planExpira?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
-export interface CreateMaquinariaDto {
+// ─── Usuarios ─────────────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id: number;
+  email: string;
   nombre: string;
-  tipo: TipoMaquinaria;
-  marca?: string;
-  modelo?: string;
-  anio?: number;
-  patente?: string;
-  estado?: EstadoMaquinaria;
-  horasUso?: number;
-  seguroVencimiento?: string;
-  vtvVencimiento?: string;
-  observaciones?: string;
-  campoId?: number;
+  apellido: string;
+  rol: string;
+  rolGlobal?: string;
+  plan: 'FREE' | 'PRO';
+  planExpira?: string;
+  createdAt: string;
 }
 
-export interface CreateMantenimientoDto {
-  tipo: TipoMantenimiento;
-  descripcion?: string;
-  fecha: string;
-  horasUso?: number;
-  costo?: number;
-  proximoMantenimiento?: string;
-  observaciones?: string;
-}
+// ─── Usuarios ─────────────────────────────────────────────────────────────
 
-export interface CreateGastoDto {
-  tipo: TipoGastoMaq;
-  descripcion: string;
-  monto: number;
-  fecha: string;
-  observaciones?: string;
+export interface UserProfile {
+  id: number;
+  email: string;
+  nombre: string;
+  apellido: string;
+  rol: string;
+  rolGlobal?: string;
+  plan: 'FREE' | 'PRO';
+  planExpira?: string;
+  createdAt: string;
 }

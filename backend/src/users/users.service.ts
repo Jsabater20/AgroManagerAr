@@ -26,6 +26,7 @@ export class UsersService {
         nombre: true,
         apellido: true,
         rol: true,
+        rolGlobal: true,
         plan: true,
         planExpira: true,
         createdAt: true,
@@ -67,18 +68,19 @@ export class UsersService {
   async getAllUsers(adminId: number) {
     const admin = await this.prisma.usuario.findUnique({
       where: { id: adminId },
-      select: { rol: true },
+      select: { rolGlobal: true },
     });
-    if (admin?.rol !== 'ADMIN') throw new ForbiddenException('Solo admins');
+
+    if (admin?.rolGlobal !== 'SUPERADMIN')
+      throw new ForbiddenException('Solo SUPERADMIN');
 
     return this.prisma.usuario.findMany({
       select: {
         id: true,
         email: true,
         nombre: true,
-        rol: true,
-        plan: true,
-        planExpira: true,
+        apellido: true,
+        rolGlobal: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -121,74 +123,48 @@ export class UsersService {
   ) {
     const admin = await this.prisma.usuario.findUnique({
       where: { id: adminId },
-      select: { rol: true },
+      select: { rolGlobal: true },
     });
-    if (admin?.rol !== 'ADMIN') throw new ForbiddenException('Solo admins');
+  if (admin?.rolGlobal !== 'SUPERADMIN') throw new ForbiddenException('Solo SUPERADMIN');
 
     return this.prisma.usuario.update({
       where: { id: targetId },
-      data: { rol: dto.rol },
-      select: { id: true, email: true, nombre: true, rol: true },
+      data: { rolGlobal: dto.rol },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        apellido: true,
+        rolGlobal: true,
+        createdAt: true,
+      },
     });
   }
 
   async deleteUser(adminId: number, targetId: number) {
     const admin = await this.prisma.usuario.findUnique({
       where: { id: adminId },
-      select: { rol: true },
+      select: { rolGlobal: true },
     });
-    if (admin?.rol !== 'ADMIN') throw new ForbiddenException('Solo admins');
-    if (adminId === targetId)
-      throw new ForbiddenException(
-        'No podés eliminar tu propia cuenta desde el panel',
-      );
+    if (admin?.rolGlobal !== 'SUPERADMIN') throw new ForbiddenException('Solo SUPERADMIN');
 
-    // Borrado cascada: primero eliminar todas las referencias
-    // 1. Miembro de organizaciones
-    await this.prisma.usuarioOrganizacion.deleteMany({
-      where: { usuarioId: targetId },
-    });
-
-    // 2. Invitaciones recibidas
-    await this.prisma.invitacionOrganizacion.deleteMany({
-      where: { usuarioId: targetId },
-    });
-
-    // 3. Invitaciones pendientes con este email
     const user = await this.prisma.usuario.findUnique({
       where: { id: targetId },
-      select: { email: true },
+      select: { id: true, email: true },
     });
-    if (user) {
-      await this.prisma.invitacionOrganizacion.deleteMany({
-        where: { email: user.email },
-      });
-    }
+    if (!user) throw new NotFoundException('Usuario no encontrado');
 
-    // 4. Organizaciones donde es propietario (transferir o eliminar)
-    const organizacionesOwner = await this.prisma.organizacion.findMany({
-      where: { propietarioId: targetId },
+    return this.prisma.usuario.delete({
+      where: { id: targetId },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        apellido: true,
+        rolGlobal: true,
+        createdAt: true,
+      },
     });
-
-    // Eliminar las organizaciones que posee (también elimina datos cascada en DB)
-    for (const org of organizacionesOwner) {
-      // Primero eliminar miembros
-      await this.prisma.usuarioOrganizacion.deleteMany({
-        where: { organizacionId: org.id },
-      });
-      // Luego eliminar invitaciones
-      await this.prisma.invitacionOrganizacion.deleteMany({
-        where: { organizacionId: org.id },
-      });
-      // Finalmente eliminar la organización
-      await this.prisma.organizacion.delete({
-        where: { id: org.id },
-      });
-    }
-
-    // 5. Finalmente eliminar el usuario
-    await this.prisma.usuario.delete({ where: { id: targetId } });
-    return { ok: true };
   }
 
   // ─── SEED DEMO ────────────────────────────────────────────────────────────

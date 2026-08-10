@@ -42,6 +42,7 @@ import OrganizationMembersPage from './pages/organizaciones/OrganizationMembersP
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 import RolesPage from './pages/organizaciones/RolesPage';
+import { OwnerPanelPage } from './pages/organizaciones/OwnerPanelPage';
 
 const queryClient = new QueryClient();
 setQueryClientRef(queryClient);
@@ -52,7 +53,15 @@ export default function App() {
   useEffect(() => {
     if (!token) return;
     getProfile()
-      .then((profile) => setAuth(profile, token))
+      .then((profile) => setAuth({
+        id: profile.id,
+        email: profile.email,
+        nombre: profile.nombre,
+        apellido: profile.apellido,
+        rol: profile.rol || 'OPERADOR',
+        plan: (profile.plan || 'FREE') as 'FREE' | 'PRO',
+        rolGlobal: profile.rolGlobal,
+      }, token))
       .catch(() => {
         logout();
       });
@@ -99,9 +108,10 @@ export default function App() {
               <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
               <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
               <Route path="/org/:orgId/roles" element={<RolesPage />} />
+              <Route path="/org/:orgId/admin" element={<OwnerPanelPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
-              <Route path="/admin" element={<AdminPage />} />
             </Route>
+            <Route path="/admin" element={<AdminPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

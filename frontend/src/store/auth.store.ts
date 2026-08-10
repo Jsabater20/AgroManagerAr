@@ -1,7 +1,7 @@
+// src/store/auth.store.ts (COMPLETO - ACTUALIZADO)
 import { create } from 'zustand';
 import type { QueryClient } from '@tanstack/react-query';
 
-// Global queryClient reference for invalidating queries on org change
 let queryClientRef: QueryClient | null = null;
 
 export const setQueryClientRef = (qc: QueryClient) => {
@@ -16,6 +16,7 @@ interface Usuario {
   rol: string;
   plan: 'FREE' | 'PRO';
   rolGlobal?: string;
+  usuarioOrganizacionId?: number;
   organizaciones?: Organizacion[];
 }
 
@@ -53,7 +54,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hydrating: !!storedToken,
 
   setAuth: (usuario, token, organizacionId) => {
-    // Si no viene organizacionId, intentar extraerlo del token JWT
     if (!organizacionId) {
       try {
         const decoded = JSON.parse(atob(token.split('.')[1]));
@@ -71,7 +71,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setOrganizacionId: (id) => {
     localStorage.setItem('organizacionId', id.toString());
-    // Invalidar todas las queries cuando cambia de org
     if (queryClientRef) {
       queryClientRef.invalidateQueries();
     }

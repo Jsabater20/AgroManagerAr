@@ -8,32 +8,36 @@ datasource db {
 }
 
 model Usuario {
-  id                       Int                      @id @default(autoincrement())
-  email                    String                   @unique
-  nombre                   String
-  password                 String
-  rol                      Rol                      @default(OPERADOR)
-  createdAt                DateTime                 @default(now())
-  updatedAt                DateTime                 @updatedAt
-  resetToken               String?
-  resetTokenExpiry         DateTime?
-  mpSuscripcionId          String?
-  plan                     PlanTipo                 @default(FREE)
-  planExpira               DateTime?
-  emailVerificado          Boolean                  @default(false)
-  emailVerifToken          String?
-  apellido                 String                   @default("")
-  trialUsado               Boolean                  @default(false)
-  animales                 Animal[]
-  auditoriasLogs           AuditoriaLog[]           @relation("auditoriaLogs")
-  campanias                Campania[]
-  campos                   Campo[]
-  invitaciones             InvitacionOrganizacion[]
-  maquinarias              Maquinaria[]
-  movimientos              MovimientoFinanciero[]
-  organizacionesQueEsDueno Organizacion[]           @relation("organizacion_owner")
-  tareas                   TareaRural[]
-  membresiasOrganizacion   UsuarioOrganizacion[]
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  nombre           String
+  password         String
+  rol              Rol       @default(OPERADOR)
+  rolGlobal        String    @default("USER")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  mpSuscripcionId  String?
+  plan             PlanTipo  @default(FREE)
+  planExpira       DateTime?
+  emailVerificado  Boolean   @default(false)
+  emailVerifToken  String?
+  apellido         String    @default("")
+  trialUsado       Boolean   @default(false)
+
+  animales                       Animal[]
+  auditoriasLogs                 AuditoriaLog[]           @relation("auditoriaLogs")
+  campanias                      Campania[]
+  campos                         Campo[]
+  invitaciones                   InvitacionOrganizacion[]
+  maquinarias                    Maquinaria[]
+  movimientos                    MovimientoFinanciero[]
+  organizacionesQueEsDueno       Organizacion[]           @relation("organizacion_owner")
+  tareas                         TareaRural[]
+  membresiasOrganizacion         UsuarioOrganizacion[]
+  actividadesCreadasParaMiembros ActividadMiembro[]       @relation("creadoPor")
+  observacionesActividades       ObservacionActividad[]   @relation("autorObservaciones")
 }
 
 model Campo {
@@ -316,6 +320,7 @@ model Organizacion {
   rolesPersonalizados  RolPersonalizado[]
   tareas               TareaRural[]
   miembros             UsuarioOrganizacion[]
+  actividades          ActividadMiembro[]
 
   @@index([propietarioId])
 }
@@ -335,6 +340,7 @@ model UsuarioOrganizacion {
   organizacion        Organizacion        @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   usuario             Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   VisibilidadModulo   VisibilidadModulo[]
+  actividades         ActividadMiembro[]
 
   @@unique([usuarioId, organizacionId])
   @@index([usuarioId])
@@ -365,6 +371,7 @@ model InvitacionOrganizacion {
   rol            RolOrganizacion  @default(OPERARIO)
   token          String           @unique
   estado         EstadoInvitacion @default(PENDIENTE)
+  mensaje        String?
   expiresAt      DateTime
   aceptadoEn     DateTime?
   usuarioId      Int?
@@ -455,6 +462,58 @@ model VisibilidadModulo {
 
   @@unique([usuarioOrganizacionId, moduloNombre])
   @@index([usuarioOrganizacionId])
+}
+
+model ActividadMiembro {
+  id                    Int  @id @default(autoincrement())
+  organizacionId        Int
+  usuarioOrganizacionId Int
+  creadoPorId           Int?
+
+  titulo      String
+  descripcion String?
+
+  recursoTipo TipoRecursoActividad
+  recursoId   Int?
+  contexto    String?
+
+  fechaInicio      DateTime
+  fechaEstimadaFin DateTime
+  fechaRealFin     DateTime?
+
+  estado    EstadoActividad @default(PENDIENTE)
+  prioridad Prioridad       @default(MEDIA)
+
+  activo Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  observaciones       ObservacionActividad[]
+  organizacion        Organizacion           @relation(fields: [organizacionId], references: [id], onDelete: Restrict)
+  usuarioOrganizacion UsuarioOrganizacion    @relation(fields: [usuarioOrganizacionId], references: [id], onDelete: Restrict)
+  creadoPor           Usuario?               @relation("creadoPor", fields: [creadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([organizacionId, estado])
+  @@index([usuarioOrganizacionId, estado])
+  @@index([creadoPorId])
+  @@index([organizacionId, activo])
+}
+
+model ObservacionActividad {
+  id                 Int  @id @default(autoincrement())
+  actividadMiembroId Int
+  autorId            Int?
+
+  contenido                String
+  estadoActividadAlMomento EstadoActividad
+
+  createdAt DateTime @default(now())
+
+  actividad ActividadMiembro @relation(fields: [actividadMiembroId], references: [id], onDelete: Restrict)
+  autor     Usuario?         @relation("autorObservaciones", fields: [autorId], references: [id], onDelete: SetNull)
+
+  @@index([actividadMiembroId, createdAt])
 }
 
 enum Rol {
@@ -644,4 +703,24 @@ enum EstadoInvitacion {
   ACEPTADA
   RECHAZADA
   EXPIRADA
+  CANCELADA
+}
+
+enum EstadoActividad {
+  PENDIENTE
+  EN_PROGRESO
+  PAUSADA
+  COMPLETADA
+  CANCELADA
+}
+
+enum TipoRecursoActividad {
+  CAMPO
+  LOTE
+  SIEMBRA
+  ANIMAL
+  TAREA
+  MAQUINARIA
+  CAMPANIA
+  GENERAL
 }

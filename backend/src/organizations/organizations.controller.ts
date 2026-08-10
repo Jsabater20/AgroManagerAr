@@ -14,6 +14,9 @@ import { OrganizationsService } from './organizations.service';
 import { ActualizarMiembroDto } from './dto/actualizar-miembro.dto';
 import { AsignarCampoDto } from './dto/asignar-campo.dto';
 import { ActualizarVisibilidadModuloDto } from './dto/actualizar-visibilidad-modulo.dto';
+import { InvitarMiembroDto } from './dto/invitar-miembro.dto';
+import { IsOwnerGuard } from './guards/is-owner.guard';
+import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
 
 interface AuthRequest extends Request {
   user?: { id: number; email: string };
@@ -24,14 +27,29 @@ interface AuthRequest extends Request {
 export class OrganizationsController {
   constructor(private organizacionesService: OrganizationsService) {}
 
+  // ─── ORGANIZACIONES ───────────────────────────────────────────────────────
+
   @Get()
   async obtenerOrganizaciones(@Request() req: AuthRequest) {
     return await this.organizacionesService.obtenerOrganizaciones(req.user?.id);
   }
 
+  // ─── MIEMBROS ─────────────────────────────────────────────────────────────
+
   @Get(':orgId/miembros')
   async obtenerMiembros(@Param('orgId') orgId: string) {
     return await this.organizacionesService.obtenerMiembros(parseInt(orgId));
+  }
+
+  @Post(':orgId/miembros/invitar')
+  async invitarMiembro(
+    @Param('orgId') orgId: string,
+    @Body() dto: InvitarMiembroDto,
+  ) {
+    return await this.organizacionesService.invitarMiembro(
+      parseInt(orgId),
+      dto,
+    );
   }
 
   @Patch(':orgId/miembros/:usuarioOrgId')
@@ -52,9 +70,177 @@ export class OrganizationsController {
     @Param('orgId') orgId: string,
     @Param('usuarioOrgId') usuarioOrgId: string,
   ) {
-    await this.organizacionesService.eliminarMiembro(parseInt(orgId), parseInt(usuarioOrgId));
+    await this.organizacionesService.eliminarMiembro(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+    );
     return { mensaje: 'Miembro eliminado' };
   }
+
+  // ─── INVITACIONES ─────────────────────────────────────────────────────────
+
+  @Get(':orgId/invitaciones')
+  async obtenerInvitaciones(@Param('orgId') orgId: string) {
+    return await this.organizacionesService.obtenerInvitaciones(parseInt(orgId));
+  }
+
+  @Post(':orgId/invitaciones/:invitacionId/reenviar')
+  async reenviarInvitacion(
+    @Param('orgId') orgId: string,
+    @Param('invitacionId') invitacionId: string,
+  ) {
+    await this.organizacionesService.reenviarInvitacion(
+      parseInt(orgId),
+      parseInt(invitacionId),
+    );
+    return { mensaje: 'Invitación reenviada' };
+  }
+
+  @Delete(':orgId/invitaciones/:invitacionId')
+  async cancelarInvitacion(
+    @Param('orgId') orgId: string,
+    @Param('invitacionId') invitacionId: string,
+  ) {
+    await this.organizacionesService.cancelarInvitacion(
+      parseInt(orgId),
+      parseInt(invitacionId),
+    );
+    return { mensaje: 'Invitación cancelada' };
+  }
+
+  @Post('invitaciones/:token/aceptar')
+  async aceptarInvitacion(
+    @Param('token') token: string,
+    @Request() req: AuthRequest,
+  ) {
+    await this.organizacionesService.aceptarInvitacion(
+      token,
+      req.user?.id || 0,
+    );
+    return { mensaje: 'Invitación aceptada' };
+  }
+
+  // ─── PANEL DEL OWNER ───────────────────────────────────────────────────────
+
+  @Get(':orgId/panel/miembros')
+  @UseGuards(IsOwnerGuard)
+  async obtenerMiembrosPanel(
+    @Param('orgId') orgId: string,
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.obtenerMiembrosPanel(
+      parseInt(orgId),
+      req.user?.id || 0,
+    );
+  }
+
+  @Patch(':orgId/panel/miembros/:usuarioOrgId/rol')
+  @UseGuards(IsOwnerGuard)
+  async cambiarRolMiembroOwner(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Body() dto: CambiarRolOwnerDto,
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.cambiarRolMiembroOwner(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      dto,
+      req.user?.id || 0,
+    );
+  }
+
+  @Patch(':orgId/panel/miembros/:usuarioOrgId/suspender')
+  @UseGuards(IsOwnerGuard)
+  async suspenderMiembro(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.suspenderMiembro(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      req.user?.id || 0,
+    );
+  }
+
+  @Patch(':orgId/panel/miembros/:usuarioOrgId/activar')
+  @UseGuards(IsOwnerGuard)
+  async activarMiembro(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.activarMiembro(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      req.user?.id || 0,
+    );
+  }
+
+  @Delete(':orgId/panel/miembros/:usuarioOrgId')
+  @UseGuards(IsOwnerGuard)
+  async quitarMiembro(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.quitarMiembro(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      req.user?.id || 0,
+    );
+  }
+
+  @Get(':orgId/panel/recursos/:usuarioOrgId')
+  @UseGuards(IsOwnerGuard)
+  async obtenerRecursosAsignables(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.obtenerRecursosAsignables(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      req.user?.id || 0,
+    );
+  }
+
+  @Post(':orgId/panel/recursos/:usuarioOrgId/asignar')
+  @UseGuards(IsOwnerGuard)
+  async asignarRecurso(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Body() body: { recursoTipo: string; recursoId: number },
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.asignarRecurso(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      body.recursoTipo,
+      body.recursoId,
+      req.user?.id || 0,
+    );
+  }
+
+  @Post(':orgId/panel/recursos/:usuarioOrgId/retirar')
+  @UseGuards(IsOwnerGuard)
+  async retirarRecurso(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Body() body: { recursoTipo: string; recursoId: number },
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.retirarRecurso(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      body.recursoTipo,
+      body.recursoId,
+      req.user?.id || 0,
+    );
+  }
+
+  // ─── ASIGNACIONES ─────────────────────────────────────────────────────────
 
   @Post(':orgId/miembros/:usuarioOrgId/campos')
   async asignarCampo(
@@ -96,11 +282,5 @@ export class OrganizationsController {
       dto,
     );
     return { mensaje: 'Visibilidad actualizada' };
-  }
-
-  @Get('modulos/disponibles')
-  async obtenerModulosDisponibles() {
-     const modulos = await this.organizacionesService.obtenerModulosDisponibles();
-    return { modulos };
   }
 }

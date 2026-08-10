@@ -1,0 +1,31 @@
+.actividades-owner {
+  padding: 20px;
+}
+
+.actividades-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.actividades-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.actividades-loading,
+.actividades-error,
+.actividades-empty {
+  padding: 40px 20px;
+  text-align: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  color: #666;
+}
+
+.actividades-empty p {
+  margin: 0;
+  font-size: 16px;
+}

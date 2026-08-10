@@ -72,9 +72,17 @@ export default function PreciosPage() {
       // Re-fetch perfil para actualizar store con plan: 'FREE' fresco del backend
       if (token) {
         getProfile()
-          .then((freshUser) => setAuth(freshUser, token))
+          .then((freshUser) => setAuth({
+            id: freshUser.id,
+            email: freshUser.email,
+            nombre: freshUser.nombre,
+            apellido: freshUser.apellido,
+            rol: freshUser.rol || 'OPERADOR',
+            plan: (freshUser.plan || 'FREE') as 'FREE' | 'PRO',
+            rolGlobal: freshUser.rolGlobal,
+          }, token))
           .catch(() => {
-            if (usuario && token) setAuth({ ...usuario, plan: 'FREE' }, token);
+            if (usuario && token) setAuth(usuario, token);
           });
       }
       setShowCancel(false);

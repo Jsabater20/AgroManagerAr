@@ -33,7 +33,7 @@ export default function LoteDetailPage() {
     queryFn: () => siembrasApi.getAll(),
   });
 
-  const lote = campo?.lotes.find((l) => l.id === lId);
+  const lote = campo?.lotes?.find((l: any) => l.id === lId);
   const loteSiembras = (siembras ?? []).filter((s: any) => s.loteId === lId);
 
   const isLoading = lCampo || lSiembras;
@@ -130,8 +130,8 @@ export default function LoteDetailPage() {
 
 function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) {
   const st = ESTADO_SIEMBRA[siembra.estado];
-  const totalKg    = siembra.cosechas.reduce((a, c) => a + c.totalKg, 0);
-  const totalCostas = siembra.cosechas.length;
+  const totalKg    = siembra.cosechas?.reduce((a, c) => a + c.totalKg, 0) ?? 0;
+  const totalCostas = siembra.cosechas?.length ?? 0;
 
   // Construir timeline cronológico
   type TimelineItem = {
@@ -147,20 +147,20 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
     {
       date: siembra.fechaSiembra,
       type: 'siembra' as const,
-      label: `Siembra de ${siembra.tipoCultivo.nombre}`,
+      label: `Siembra de ${siembra.tipoCultivo?.nombre ?? 'cultivo'}`,
       sub: siembra.densidad ? `Densidad: ${siembra.densidad} kg/ha` : 'Sin densidad registrada',
       icon: Sprout,
       color: 'bg-green-100 text-green-700 border-green-200',
     },
-    ...siembra.aplicaciones.map((ap) => ({
+    ...(siembra.aplicaciones ?? []).map((ap) => ({
       date: ap.fecha,
       type: 'aplicacion' as const,
-      label: `${ap.insumo.nombre}`,
+      label: `${ap.insumo?.nombre ?? 'insumo'}`,
       sub: `${ap.cantidad} ${ap.unidad}${ap.observaciones ? ` · ${ap.observaciones}` : ''}`,
       icon: FlaskConical,
       color: 'bg-purple-100 text-purple-700 border-purple-200',
     })),
-    ...siembra.cosechas.map((co) => ({
+    ...(siembra.cosechas ?? []).map((co) => ({
       date: co.fechaCosecha,
       type: 'cosecha' as const,
       label: `Cosecha`,
@@ -179,7 +179,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
             <Sprout size={18} className="text-green-700" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{siembra.tipoCultivo.nombre}</h3>
+            <h3 className="font-semibold text-gray-900">{siembra.tipoCultivo?.nombre ?? 'Sin cultivo'}</h3>
             <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
               <Clock size={11} />
               Siembra: {fmtDate(siembra.fechaSiembra)}
@@ -200,11 +200,11 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
       {/* Resumen rápido */}
       <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
         <div className="px-6 py-3 text-center">
-          <p className="text-lg font-bold text-gray-900">{siembra.aplicaciones.length}</p>
+          <p className="text-lg font-bold text-gray-900">{siembra.aplicaciones?.length ?? 0}</p>
           <p className="text-xs text-gray-400">Aplicaciones</p>
         </div>
         <div className="px-6 py-3 text-center">
-          <p className="text-lg font-bold text-gray-900">{siembra.cosechas.length}</p>
+          <p className="text-lg font-bold text-gray-900">{siembra.cosechas?.length ?? 0}</p>
           <p className="text-xs text-gray-400">Cosechas</p>
         </div>
         <div className="px-6 py-3 text-center">

@@ -63,7 +63,7 @@ export function CampaniasContent() {
 
   const openAsignar = (campaniaId: number) => {
     const camp = campanias.find(c => c.id === campaniaId);
-    setSeleccionadas(camp?.siembras.map(s => s.id) ?? []);
+    setSeleccionadas(camp?.siembras?.map(s => s.id) ?? []);
     setAsignarModal(campaniaId);
   };
 
@@ -78,7 +78,7 @@ export function CampaniasContent() {
     setSeleccionadas(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
   const renderStats = (siembras: Siembra[]) => {
-    const totalKg   = siembras.flatMap(s => s.cosechas).reduce((a, c) => a + c.totalKg, 0);
+    const totalKg   = siembras.flatMap(s => s.cosechas ?? []).reduce((a, c) => a + c.totalKg, 0);
     const cosechas  = siembras.flatMap(s => s.cosechas).length;
     const enCurso   = siembras.filter(s => s.estado === 'EN_CURSO').length;
     return { totalKg, cosechas, enCurso, total: siembras.length };
@@ -107,7 +107,7 @@ export function CampaniasContent() {
       ) : (
         <div className="space-y-3">
           {campanias.map(camp => {
-            const stats = renderStats(camp.siembras);
+            const stats = renderStats(camp.siembras ?? []);
             const isOpen = expanded === camp.id;
             return (
               <div key={camp.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -152,7 +152,7 @@ export function CampaniasContent() {
                 </div>
 
                 {/* Siembras de la campaña */}
-                {isOpen && camp.siembras.length > 0 && (
+                {isOpen && (camp.siembras?.length ?? 0) > 0 && (
                   <div className="border-t border-gray-100">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50/60">
@@ -163,21 +163,21 @@ export function CampaniasContent() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {camp.siembras.map(s => {
-                          const totalKg   = s.cosechas.reduce((a, c) => a + c.totalKg, 0);
-                          const promKgHa  = s.cosechas.length
-                            ? Math.round(s.cosechas.reduce((a, c) => a + c.rendimientoKgHa, 0) / s.cosechas.length) : null;
+                        {camp.siembras?.map(s => {
+                          const totalKg   = s.cosechas?.reduce((a, c) => a + c.totalKg, 0) ?? 0;
+                          const promKgHa  = (s.cosechas?.length ?? 0) > 0
+                            ? Math.round((s.cosechas?.reduce((a, c) => a + c.rendimientoKgHa, 0) ?? 0) / (s.cosechas?.length ?? 1)) : null;
                           return (
                             <tr key={s.id} className="hover:bg-gray-50/50">
-                              <td className="px-5 py-3 font-medium text-gray-900">{s.tipoCultivo.nombre}</td>
-                              <td className="px-5 py-3 text-gray-500">{s.lote.campo.nombre} / {s.lote.nombre}</td>
+                              <td className="px-5 py-3 font-medium text-gray-900">{s.tipoCultivo?.nombre ?? '-'}</td>
+                              <td className="px-5 py-3 text-gray-500">{s.lote?.campo?.nombre ?? '-'} / {s.lote?.nombre ?? '-'}</td>
                               <td className="px-5 py-3 text-gray-500">{fmtDate(s.fechaSiembra)}</td>
                               <td className="px-5 py-3">
                                 <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLOR[s.estado]}`}>
                                   {ESTADO_LABEL[s.estado]}
                                 </span>
                               </td>
-                              <td className="px-5 py-3 text-center text-gray-500">{s.cosechas.length}</td>
+                              <td className="px-5 py-3 text-center text-gray-500">{s.cosechas?.length ?? 0}</td>
                               <td className="px-5 py-3 text-gray-600">{totalKg > 0 ? `${totalKg.toLocaleString('es-AR')} kg` : '-'}</td>
                               <td className="px-5 py-3 text-gray-600">{promKgHa ? `${promKgHa.toLocaleString('es-AR')} kg/ha` : '-'}</td>
                             </tr>
@@ -198,7 +198,7 @@ export function CampaniasContent() {
                     </table>
                   </div>
                 )}
-                {isOpen && camp.siembras.length === 0 && (
+                {isOpen && (camp.siembras?.length ?? 0) === 0 && (
                   <div className="border-t border-gray-100 px-5 py-6 text-center text-sm text-gray-400">
                     Esta campaña no tiene siembras asignadas todavía.
                     <button onClick={() => openAsignar(camp.id)} className="text-green-700 font-medium ml-1 hover:underline">Asignar ahora</button>
@@ -275,8 +275,8 @@ export function CampaniasContent() {
                         className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${checked ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                         {checked ? <CheckSquare size={16} className="text-green-600 shrink-0" /> : <Square size={16} className="text-gray-400 shrink-0" />}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{s.tipoCultivo.nombre}</p>
-                          <p className="text-xs text-gray-400">{s.lote.campo.nombre} / {s.lote.nombre} · {fmtDate(s.fechaSiembra)}</p>
+                          <p className="text-sm font-medium text-gray-900">{s.tipoCultivo?.nombre ?? '-'}</p>
+                          <p className="text-xs text-gray-400">{s.lote?.campo?.nombre ?? '-'} / {s.lote?.nombre ?? '-'} · {fmtDate(s.fechaSiembra)}</p>
                         </div>
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${ESTADO_COLOR[s.estado]}`}>
                           {ESTADO_LABEL[s.estado]}

@@ -96,14 +96,14 @@ export default function FinanzasPage() {
             <div className="bg-green-50 p-2.5 rounded-xl"><TrendingUp size={18} className="text-green-600" /></div>
             <p className="text-sm font-medium text-gray-600">Ingresos totales</p>
           </div>
-          <p className="text-2xl font-bold text-green-700">{AR$(resumen?.ingresos ?? 0)}</p>
+          <p className="text-2xl font-bold text-green-700">{AR$(resumen?.totalIngresos ?? 0)}</p>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-red-50 p-2.5 rounded-xl"><TrendingDown size={18} className="text-red-600" /></div>
             <p className="text-sm font-medium text-gray-600">Egresos totales</p>
           </div>
-          <p className="text-2xl font-bold text-red-600">{AR$(resumen?.egresos ?? 0)}</p>
+          <p className="text-2xl font-bold text-red-600">{AR$(resumen?.totalEgresos ?? 0)}</p>
         </div>
         <div className={`rounded-2xl p-5 border shadow-sm ${saldoPositivo ? 'bg-green-700 border-green-700' : 'bg-red-600 border-red-600'}`}>
           <div className="flex items-center gap-3 mb-3">
@@ -164,7 +164,7 @@ export default function FinanzasPage() {
                   </td>
                   <td className="px-5 py-3.5 font-medium text-gray-900">{m.concepto}</td>
                   <td className="px-5 py-3.5 text-gray-500">{CATEGORIA_LABEL[m.categoria]}</td>
-                  <td className="px-5 py-3.5 text-gray-400">{m.campo?.nombre ?? '-'}</td>
+                  <td className="px-5 py-3.5 text-gray-400">{m.campoId ? `Campo ${m.campoId}` : '-'}</td>
                   <td className={`px-5 py-3.5 font-bold text-base ${m.tipo === 'INGRESO' ? 'text-green-700' : 'text-red-600'}`}>
                     {m.tipo === 'INGRESO' ? '+' : '-'}{AR$(m.monto)}
                   </td>

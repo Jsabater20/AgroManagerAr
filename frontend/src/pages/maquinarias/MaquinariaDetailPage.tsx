@@ -453,7 +453,7 @@ export default function MaquinariaDetailPage() {
               </div>
               <div className="bg-gray-50 rounded-xl p-3 text-center">
                 <p className="text-xs text-gray-500">Campo asignado</p>
-                <p className="text-sm font-semibold text-gray-900 mt-1">{maq.campo?.nombre ?? '—'}</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{maq.campoId ? `Campo ${maq.campoId}` : '—'}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-3 text-center">
                 <p className="text-xs text-gray-500">Gastos registrados</p>
@@ -517,7 +517,7 @@ export default function MaquinariaDetailPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t === 'mantenimiento' ? `Mantenimientos (${maq.mantenimientos.length})` : `Gastos (${maq.gastos.length})`}
+            {t === 'mantenimiento' ? `Mantenimientos (${maq.mantenimientos?.length ?? 0})` : `Gastos (${maq.gastos?.length ?? 0})`}
           </button>
         ))}
       </div>
@@ -534,14 +534,14 @@ export default function MaquinariaDetailPage() {
             </button>
           </div>
 
-          {maq.mantenimientos.length === 0 ? (
+          {(maq.mantenimientos?.length ?? 0) === 0 ? (
             <div className="text-center py-10 text-gray-400">
               <Wrench className="w-10 h-10 mx-auto mb-2 opacity-40" />
               <p className="text-sm">Sin registros de mantenimiento</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {maq.mantenimientos.map((m) => (
+              {maq.mantenimientos?.map((m) => (
                 <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -593,7 +593,7 @@ export default function MaquinariaDetailPage() {
             </button>
           </div>
 
-          {maq.gastos.length === 0 ? (
+          {(maq.gastos?.length ?? 0) === 0 ? (
             <div className="text-center py-10 text-gray-400">
               <p className="text-sm">Sin gastos registrados</p>
             </div>
@@ -610,7 +610,7 @@ export default function MaquinariaDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {maq.gastos.map((g) => (
+                  {maq.gastos?.map((g) => (
                     <tr key={g.id} className="bg-white hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-700">{TIPO_GASTO_LABEL[g.tipo]}</td>
                       <td className="px-4 py-3 text-gray-600">{g.descripcion}</td>

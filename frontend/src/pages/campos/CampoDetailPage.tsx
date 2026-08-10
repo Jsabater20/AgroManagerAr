@@ -120,7 +120,7 @@ export default function CampoDetailPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <StatCard label="Hectáreas totales" value={`${campo.hectareas} ha`} />
-        <StatCard label="Lotes" value={String(campo.lotes.length)} />
+        <StatCard label="Lotes" value={String(campo.lotes?.length ?? 0)} />
         {campo.propietario && <StatCard label="Propietario" value={campo.propietario} />}
       </div>
 
@@ -140,14 +140,14 @@ export default function CampoDetailPage() {
           </button>
         </div>
 
-        {campo.lotes.length === 0 ? (
+        {campo.lotes && campo.lotes.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
             <Layers size={32} className="mx-auto mb-2 opacity-40" />
             <p className="text-sm">Este campo no tiene lotes todavía</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {campo.lotes.map((lote) => (
+            {campo.lotes?.map((lote: any) => (
               <Link
                 key={lote.id}
                 to={`/campos/${campo.id}/lotes/${lote.id}`}

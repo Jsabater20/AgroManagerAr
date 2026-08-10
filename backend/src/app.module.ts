@@ -26,6 +26,7 @@ import { AuditModule } from './audit/audit.module';
 import { MailerModule } from './mailer/mailer.module';
 import { AuditInterceptor } from './audit/interceptors/audit.interceptor';
 import { RecursosModule } from './recursos/recursos.module';
+import { ActividadesModule } from './actividades/actividades.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { RecursosModule } from './recursos/recursos.module';
     PermissionsModule,
     AuditModule,
     MailerModule,
+    ActividadesModule,
   ],
   controllers: [AppController],
   providers: [

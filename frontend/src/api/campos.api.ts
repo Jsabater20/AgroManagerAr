@@ -1,23 +1,50 @@
 import { api } from './client';
-import type { Campo, CreateCampoDto, CreateLoteDto } from './types';
+
+export interface CampoFilters {
+  usuarioOrganizacionId?: number | null;
+}
+
+const getAll = async (filters?: CampoFilters) => {
+  const params = new URLSearchParams();
+  
+  if (filters?.usuarioOrganizacionId) {
+    params.append('usuarioOrganizacionId', filters.usuarioOrganizacionId.toString());
+  }
+
+  const { data } = await api.get('/campos', { params });
+  return data;
+};
+
+const getOne = async (id: number) => {
+  const { data } = await api.get(`/campos/${id}`);
+  return data;
+};
+
+const create = async (payload: any) => {
+  const { data } = await api.post('/campos', payload);
+  return data;
+};
+
+const update = async (id: number, payload: any) => {
+  const { data } = await api.patch(`/campos/${id}`, payload);
+  return data;
+};
+
+const remove = async (id: number) => {
+  const { data } = await api.delete(`/campos/${id}`);
+  return data;
+};
+
+const addLote = async (campoId: number, payload: any) => {
+  const { data } = await api.post(`/campos/${campoId}/lotes`, payload);
+  return data;
+};
 
 export const camposApi = {
-  getAll: async () => {
-    const { data } = await api.get('/campos');
-    return data;
-  },
-  getOne: (id: number) =>
-    api.get<Campo>(`/campos/${id}`).then((r) => r.data),
-
-  create: (dto: CreateCampoDto) =>
-    api.post<Campo>('/campos', dto).then((r) => r.data),
-
-  update: (id: number, dto: Partial<CreateCampoDto>) =>
-    api.patch<Campo>(`/campos/${id}`, dto).then((r) => r.data),
-
-  remove: (id: number) =>
-    api.delete(`/campos/${id}`),
-
-  addLote: (campoId: number, dto: CreateLoteDto) =>
-    api.post(`/campos/${campoId}/lotes`, dto).then((r) => r.data),
+  getAll,
+  getOne,
+  create,
+  update,
+  remove,
+  addLote,
 };

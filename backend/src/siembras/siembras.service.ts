@@ -74,7 +74,7 @@ export class SiembrasService {
     )
       throw new ForbiddenException();
 
-    await this.planService.checkSiembrasLimit(usuarioId);
+    await this.planService.checkSiembrasLimit(organizacionId);
 
     return this.prisma.siembra.create({
       data: {

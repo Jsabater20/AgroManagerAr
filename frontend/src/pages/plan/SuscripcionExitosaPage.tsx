@@ -28,10 +28,18 @@ export default function SuscripcionExitosaPage() {
         // evitando race condition con el getProfile() inicial de App.tsx
         if (token) {
           getProfile()
-            .then((freshUser) => setAuth(freshUser, token))
+            .then((freshUser) => setAuth({
+              id: freshUser.id,
+              email: freshUser.email,
+              nombre: freshUser.nombre,
+              apellido: freshUser.apellido,
+              rol: freshUser.rol || 'OPERADOR',
+              plan: (freshUser.plan || 'FREE') as 'FREE' | 'PRO',
+              rolGlobal: freshUser.rolGlobal,
+            }, token))
             .catch(() => {
               // Fallback si el profile falla
-              if (usuario) setAuth({ ...usuario, plan: 'PRO' }, token);
+              if (usuario) setAuth(usuario, token);
             });
         }
       } else if (intentos < MAX_INTENTOS) {

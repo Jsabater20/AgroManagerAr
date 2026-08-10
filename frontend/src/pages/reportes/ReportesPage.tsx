@@ -147,15 +147,15 @@ function SiembrasReport({ siembras }: { siembras: Siembra[] }) {
 
   const handleExcel = () => {
     const rows = filtered.map(s => ({
-      'Campo': s.lote.campo.nombre,
-      'Lote': s.lote.nombre,
-      'Cultivo': s.tipoCultivo.nombre,
+      'Campo': s.lote?.campo?.nombre ?? '-',
+      'Lote': s.lote?.nombre ?? '-',
+      'Cultivo': s.tipoCultivo?.nombre ?? '-',
       'Fecha siembra': fmtDate(s.fechaSiembra),
       'Estado': ESTADO_SIEMBRA[s.estado],
-      'Cosechas': s.cosechas.length,
-      'Total kg': s.cosechas.reduce((a, c) => a + c.totalKg, 0),
-      'Rend. prom. kg/ha': s.cosechas.length
-        ? Math.round(s.cosechas.reduce((a, c) => a + c.rendimientoKgHa, 0) / s.cosechas.length)
+      'Cosechas': s.cosechas?.length ?? 0,
+      'Total kg': s.cosechas?.reduce((a, c) => a + c.totalKg, 0) ?? 0,
+      'Rend. prom. kg/ha': s.cosechas?.length ?? 0
+        ? Math.round((s.cosechas?.reduce((a, c) => a + c.rendimientoKgHa, 0) ?? 0) / (s.cosechas?.length ?? 1))
         : '',
       'Observaciones': s.observaciones ?? '',
     }));
@@ -165,15 +165,15 @@ function SiembrasReport({ siembras }: { siembras: Siembra[] }) {
   const handlePdf = () => {
     const cols = ['Campo', 'Lote', 'Cultivo', 'Fecha siembra', 'Estado', 'Cosechas', 'Total kg', 'kg/ha prom.'];
     const rows = filtered.map(s => [
-      s.lote.campo.nombre,
-      s.lote.nombre,
-      s.tipoCultivo.nombre,
+      s.lote?.campo?.nombre ?? '-',
+      s.lote?.nombre ?? '-',
+      s.tipoCultivo?.nombre ?? '-',
       fmtDate(s.fechaSiembra),
       ESTADO_SIEMBRA[s.estado],
-      s.cosechas.length,
-      s.cosechas.reduce((a, c) => a + c.totalKg, 0).toLocaleString('es-AR'),
-      s.cosechas.length
-        ? Math.round(s.cosechas.reduce((a, c) => a + c.rendimientoKgHa, 0) / s.cosechas.length).toLocaleString('es-AR')
+      s.cosechas?.length ?? 0,
+      (s.cosechas?.reduce((a, c) => a + c.totalKg, 0) ?? 0).toLocaleString('es-AR'),
+      s.cosechas?.length ?? 0
+        ? Math.round((s.cosechas?.reduce((a, c) => a + c.rendimientoKgHa, 0) ?? 0) / (s.cosechas?.length ?? 1)).toLocaleString('es-AR')
         : '-',
     ]);
     exportToPdf('Reporte de Siembras', cols, rows as never, 'reporte-siembras');
@@ -210,15 +210,15 @@ function SiembrasReport({ siembras }: { siembras: Siembra[] }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filtered.map(s => {
-                const totalKg = s.cosechas.reduce((a, c) => a + c.totalKg, 0);
-                const promKgHa = s.cosechas.length
-                  ? Math.round(s.cosechas.reduce((a, c) => a + c.rendimientoKgHa, 0) / s.cosechas.length)
+                const totalKg = s.cosechas?.reduce((a, c) => a + c.totalKg, 0) ?? 0;
+                const promKgHa = (s.cosechas?.length ?? 0) > 0
+                  ? Math.round((s.cosechas?.reduce((a, c) => a + c.rendimientoKgHa, 0) ?? 0) / (s.cosechas?.length ?? 1))
                   : null;
                 return (
                   <tr key={s.id} className="hover:bg-gray-50/50">
-                    <td className="py-3 pr-4 font-medium text-gray-900">{s.lote.campo.nombre}</td>
-                    <td className="py-3 pr-4 text-gray-600">{s.lote.nombre}</td>
-                    <td className="py-3 pr-4 text-gray-600">{s.tipoCultivo.nombre}</td>
+                    <td className="py-3 pr-4 font-medium text-gray-900">{s.lote?.campo?.nombre ?? '-'}</td>
+                    <td className="py-3 pr-4 text-gray-600">{s.lote?.nombre ?? '-'}</td>
+                    <td className="py-3 pr-4 text-gray-600">{s.tipoCultivo?.nombre ?? '-'}</td>
                     <td className="py-3 pr-4 text-gray-600">{fmtDate(s.fechaSiembra)}</td>
                     <td className="py-3 pr-4">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -226,7 +226,7 @@ function SiembrasReport({ siembras }: { siembras: Siembra[] }) {
                         s.estado === 'COSECHADA' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                       }`}>{ESTADO_SIEMBRA[s.estado]}</span>
                     </td>
-                    <td className="py-3 pr-4 text-gray-600 text-center">{s.cosechas.length}</td>
+                    <td className="py-3 pr-4 text-gray-600 text-center">{s.cosechas?.length ?? 0}</td>
                     <td className="py-3 pr-4 text-gray-600">{totalKg > 0 ? `${totalKg.toLocaleString('es-AR')} kg` : '-'}</td>
                     <td className="py-3 text-gray-600">{promKgHa ? `${promKgHa.toLocaleString('es-AR')} kg/ha` : '-'}</td>
                   </tr>
@@ -237,7 +237,7 @@ function SiembrasReport({ siembras }: { siembras: Siembra[] }) {
               <tr className="border-t border-gray-200">
                 <td colSpan={6} className="pt-3 text-xs font-semibold text-gray-500">TOTALES</td>
                 <td className="pt-3 text-sm font-bold text-gray-900">
-                  {filtered.reduce((a, s) => a + s.cosechas.reduce((b, c) => b + c.totalKg, 0), 0).toLocaleString('es-AR')} kg
+                  {filtered.reduce((a, s) => a + (s.cosechas?.reduce((b, c) => b + c.totalKg, 0) ?? 0), 0).toLocaleString('es-AR')} kg
                 </td>
                 <td />
               </tr>
@@ -364,8 +364,8 @@ function AnimalesReport({ animales }: { animales: Animal[] }) {
       'Categoría': a.categoria,
       'Peso (kg)': a.peso ?? '',
       'Fecha nacimiento': a.fechaNacimiento ? fmtDate(a.fechaNacimiento) : '',
-      'Preñeces totales': a.preneces.length,
-      'Preñeces en curso': a.preneces.filter(p => p.estado === 'EN_CURSO').length,
+      'Preñeces totales': a.preneces?.length ?? 0,
+      'Preñeces en curso': a.preneces?.filter(p => p.estado === 'EN_CURSO').length ?? 0,
       'Observaciones': a.observaciones ?? '',
     }));
     exportToExcel(rows, 'reporte-animales', 'Animales');
@@ -379,7 +379,7 @@ function AnimalesReport({ animales }: { animales: Animal[] }) {
       a.sexo === 'MACHO' ? 'Macho' : 'Hembra',
       a.categoria,
       a.peso ?? '-',
-      `${a.preneces.filter(p => p.estado === 'EN_CURSO').length}/${a.preneces.length}`,
+      `${a.preneces?.filter(p => p.estado === 'EN_CURSO').length ?? 0}/${a.preneces?.length ?? 0}`,
       a.fechaNacimiento ? fmtDate(a.fechaNacimiento) : '-',
     ]);
     exportToPdf('Reporte de Animales', cols, rows as never, 'reporte-animales');
@@ -432,7 +432,7 @@ function AnimalesReport({ animales }: { animales: Animal[] }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filtered.map(a => {
-                const prenezActiva = a.preneces.find(p => p.estado === 'EN_CURSO');
+                const prenezActiva = a.preneces?.find(p => p.estado === 'EN_CURSO');
                 return (
                   <tr key={a.id} className="hover:bg-gray-50/50">
                     <td className="py-3 pr-4 font-medium text-gray-900">{a.nombre}</td>
@@ -446,7 +446,7 @@ function AnimalesReport({ animales }: { animales: Animal[] }) {
                           En curso
                         </span>
                       ) : (
-                        <span className="text-gray-400 text-xs">{a.preneces.length} hist.</span>
+                        <span className="text-gray-400 text-xs">{a.preneces?.length ?? 0} hist.</span>
                       )}
                     </td>
                     <td className="py-3 text-gray-400 text-xs">
@@ -479,7 +479,6 @@ function TareasReport({ tareas }: { tareas: TareaRural[] }) {
       'Tipo': t.tipo,
       'Prioridad': PRIORIDAD[t.prioridad],
       'Estado': ESTADO_TAREA[t.estado],
-      'Campo': t.campo?.nombre ?? '',
       'Fecha programada': fmtDate(t.fechaProgramada),
       'Fecha completada': t.fechaCompletada ? fmtDate(t.fechaCompletada) : '',
       'Descripción': t.descripcion ?? '',
@@ -488,13 +487,12 @@ function TareasReport({ tareas }: { tareas: TareaRural[] }) {
   };
 
   const handlePdf = () => {
-    const cols = ['Título', 'Tipo', 'Prioridad', 'Estado', 'Campo', 'F. programada', 'F. completada'];
+    const cols = ['Título', 'Tipo', 'Prioridad', 'Estado', 'F. programada', 'F. completada'];
     const rows = filtered.map(t => [
       t.titulo,
       t.tipo,
       PRIORIDAD[t.prioridad],
       ESTADO_TAREA[t.estado],
-      t.campo?.nombre ?? '-',
       fmtDate(t.fechaProgramada),
       t.fechaCompletada ? fmtDate(t.fechaCompletada) : '-',
     ]);
@@ -537,7 +535,7 @@ function TareasReport({ tareas }: { tareas: TareaRural[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                {['Título', 'Tipo', 'Prioridad', 'Estado', 'Campo', 'F. programada', 'F. completada'].map(h => (
+                {['Título', 'Tipo', 'Prioridad', 'Estado', 'F. programada', 'F. completada'].map(h => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4">{h}</th>
                 ))}
               </tr>
@@ -557,7 +555,6 @@ function TareasReport({ tareas }: { tareas: TareaRural[] }) {
                       {ESTADO_TAREA[t.estado]}
                     </span>
                   </td>
-                  <td className="py-3 pr-4 text-gray-500">{t.campo?.nombre ?? '-'}</td>
                   <td className="py-3 pr-4 text-gray-500">{fmtDate(t.fechaProgramada)}</td>
                   <td className="py-3 text-gray-400">{t.fechaCompletada ? fmtDate(t.fechaCompletada) : '-'}</td>
                 </tr>

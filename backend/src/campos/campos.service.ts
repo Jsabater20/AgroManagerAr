@@ -67,7 +67,7 @@ export class CamposService {
   }
 
   async create(dto: CreateCampoDto, usuarioId: number, organizacionId: number) {
-    await this.planService.checkCamposLimit(usuarioId);
+    await this.planService.checkCamposLimit(organizacionId);
     return this.prisma.campo.create({
       data: { ...dto, usuarioId, organizacionId },
       include: { lotes: true, usuario: true },
@@ -137,8 +137,8 @@ export class CamposService {
     usuarioId: number,
     organizacionId: number,
   ) {
-    await this.findOne(campoId, usuarioId, organizacionId);
-    await this.planService.checkLotesLimit(campoId, usuarioId);
+    const campo = await this.findOne(campoId, usuarioId, organizacionId);
+    await this.planService.checkLotesLimit(organizacionId);
     return this.prisma.lote.create({
       data: { ...dto, campoId },
     });

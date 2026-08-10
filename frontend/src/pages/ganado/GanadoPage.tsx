@@ -65,7 +65,7 @@ const emptyAnimal: CreateAnimalDto = {
   peso: undefined, fechaNacimiento: undefined, observaciones: '',
 };
 
-const emptyPrenez: CreatePrenezDto = { fechaInicio: '', observaciones: '' };
+const emptyPrenez: CreatePrenezDto = { fechaInicio: '', fechaEstimadaParto: '', observaciones: '' };
 
 const emptyPeso: CreateRegistroPesoDto = { peso: 0, fecha: new Date().toISOString().split('T')[0], observaciones: '' };
 
@@ -188,7 +188,7 @@ export default function GanadoPage() {
       if (prenezTarget) {
         setPrenezTarget({
           ...prenezTarget,
-          preneces: prenezTarget.preneces.map((p) => p.id === prenezId ? { ...p, estado } : p),
+          preneces: prenezTarget.preneces?.map((p) => p.id === prenezId ? { ...p, estado } : p) ?? [],
         });
       }
       toast.success('Estado actualizado');
@@ -484,11 +484,11 @@ export default function GanadoPage() {
             {' · '}Gestación: <strong>{GESTATION_DAYS[prenezTarget.especie]} días</strong>
           </p>
 
-          {prenezTarget.preneces.length > 0 && (
+          {(prenezTarget?.preneces?.length ?? 0) > 0 && (
             <div className="mb-5">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Historial</h3>
               <div className="space-y-2">
-                {prenezTarget.preneces.map((p) => {
+                {prenezTarget?.preneces?.map((p) => {
                   const cfg  = PRENEZ_CONFIG[p.estado];
                   const Icon = cfg.Icon;
                   return (

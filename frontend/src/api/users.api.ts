@@ -1,3 +1,4 @@
+// frontend/src/api/users.api.ts (COMPLETO)
 import { api } from './client';
 
 export interface UserProfile {
@@ -5,9 +6,10 @@ export interface UserProfile {
   email: string;
   nombre: string;
   apellido: string;
-  rol: string;
-  plan: 'FREE' | 'PRO';
-  planExpira: string | null;
+  rol?: string;
+  rolGlobal?: string;
+  plan?: 'FREE' | 'PRO';
+  planExpira?: string | null;
   createdAt: string;
 }
 
@@ -25,19 +27,12 @@ export const changePassword = (
     .patch<{ ok: boolean }>('/users/profile/password', { passwordActual, passwordNueva })
     .then((r) => r.data);
 
-// Admin
 export const getAllUsers = (): Promise<UserProfile[]> =>
   api.get<UserProfile[]>('/users/admin/all').then((r) => r.data);
 
-export const updateUserPlan = (
-  id: number,
-  plan: 'FREE' | 'PRO',
-): Promise<UserProfile> =>
-  api.patch<UserProfile>(`/users/admin/${id}/plan`, { plan }).then((r) => r.data);
-
 export const updateUserRol = (
   id: number,
-  rol: 'ADMIN' | 'OPERADOR',
+  rol: 'SUPERADMIN' | 'USER',
 ): Promise<UserProfile> =>
   api.patch<UserProfile>(`/users/admin/${id}/rol`, { rol }).then((r) => r.data);
 
