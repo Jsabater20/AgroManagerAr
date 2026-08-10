@@ -18,7 +18,7 @@ const ESTADO_SIEMBRA: Record<string, { label: string; color: string }> = {
 };
 
 export default function LoteDetailPage() {
-  const { campoId, loteId } = useParams<{ campoId: string; loteId: string }>();
+  const { orgId, campoId, loteId } = useParams<{ orgId: string; campoId: string; loteId: string }>();
   const cId = Number(campoId);
   const lId = Number(loteId);
 
@@ -50,7 +50,7 @@ export default function LoteDetailPage() {
     return (
       <div className="text-center py-24 text-gray-500">
         Lote no encontrado.{' '}
-        <Link to="/campos" className="text-green-700 underline">
+        <Link to={`/org/${orgId}/campos`} className="text-green-700 underline">
           Volver a campos
         </Link>
       </div>
@@ -72,13 +72,13 @@ export default function LoteDetailPage() {
       {/* Breadcrumb */}
       <div className="mb-6 space-y-1">
         <div className="flex items-center gap-1.5 text-sm text-gray-400">
-          <Link to="/campos" className="hover:text-green-700 transition-colors">Campos</Link>
+          <Link to={`/org/${orgId}/campos`} className="hover:text-green-700 transition-colors">Campos</Link>
           <ChevronRight size={13} />
-          <Link to={`/campos/${cId}`} className="hover:text-green-700 transition-colors">{campo.nombre}</Link>
+          <Link to={`/org/${orgId}/campos/${cId}`} className="hover:text-green-700 transition-colors">{campo.nombre}</Link>
           <ChevronRight size={13} />
           <span className="text-gray-700 font-medium">{lote.nombre}</span>
         </div>
-        <Link to={`/campos/${cId}`} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700">
+        <Link to={`/org/${orgId}/campos/${cId}`} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700">
           <ArrowLeft size={14} /> Volver al campo
         </Link>
       </div>
@@ -90,7 +90,7 @@ export default function LoteDetailPage() {
           <p className="text-gray-500 text-sm mt-0.5">{campo.nombre} · {lote.hectareas} ha</p>
         </div>
         <Link
-          to="/siembras"
+          to={`/org/${orgId}/siembras`}
           className="flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
           <Sprout size={15} />

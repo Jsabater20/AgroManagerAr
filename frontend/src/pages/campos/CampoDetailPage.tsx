@@ -11,7 +11,7 @@ import type { CreateLoteDto, CreateCampoDto } from '../../api/types';
 const emptyLote: CreateLoteDto = { nombre: '', hectareas: 0 };
 
 export default function CampoDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { orgId, id } = useParams<{ orgId: string; id: string }>();
   const campoId = Number(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -73,7 +73,7 @@ export default function CampoDetailPage() {
     return (
       <div className="text-center py-24 text-gray-500">
         Campo no encontrado.{' '}
-        <Link to="/campos" className="text-green-700 underline">Volver</Link>
+        <Link to={`/org/${orgId}/campos`} className="text-green-700 underline">Volver</Link>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function CampoDetailPage() {
     <div>
       {/* Breadcrumb / header */}
       <div className="mb-8">
-        <Link to="/campos" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 mb-3 w-fit">
+        <Link to={`/org/${orgId}/campos`} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 mb-3 w-fit">
           <ArrowLeft size={15} />
           Campos
         </Link>
