@@ -1,25 +1,7 @@
 import { create } from 'zustand';
-import type { QueryClient } from '@tanstack/react-query';
+import { persist } from 'zustand/middleware';
 
-let queryClientRef: QueryClient | null = null;
-
-export const setQueryClientRef = (qc: QueryClient) => {
-  queryClientRef = qc;
-};
-
-interface Usuario {
-  id: number;
-  email: string;
-  nombre: string;
-  apellido: string;
-  rol: string;
-  plan: 'FREE' | 'PRO';
-  rolGlobal?: string;
-  usuarioOrganizacionId?: number;
-  organizaciones?: Organizacion[];
-}
-
-interface Organizacion {
+export interface Organizacion {
   id: number;
   nombre: string;
   email: string;
@@ -27,72 +9,69 @@ interface Organizacion {
   propietarioId: number;
 }
 
-interface AuthState {
-  usuario: Usuario | null;
-  token: string | null;
-  organizacionId: number | null;
-  organizaciones: Organizacion[];
-  isLoading: boolean;
-  setAuth: (usuario: Usuario, token: string, organizacionId?: number) => void;
-  setOrganizacionId: (id: number) => void;
-  setOrganizaciones: (orgs: Organizacion[]) => void;
-  setIsLoading: (v: boolean) => void;
-  logout: () => void;
-  isAuthenticated: () => boolean;
-  isPro: () => boolean;
+export interface Usuario {
+  id: number;
+  email: string;
+  nombre: string;
+  apellido: string;
+  rol: string;
+  rolGlobal?: string;
+  plan: 'FREE' | 'PRO';
+  planExpira?: string | null;
+  usuarioOrganizacionId?: number | null;
+  organizaciones?: Organizacion[];
 }
 
-const storedToken = localStorage.getItem('token');
-const storedOrgId = localStorage.getItem('organizacionId');
+interface AuthState {
+  token: string | null;
+  usuario: Usuario | null;
+  isLoading: boolean;
+  setAuth: (usuario: Usuario | null, token: string | null) => void;
+  logout: () => void;
+  setIsLoading: (v: boolean) => void;
+  isPro: () => boolean;
+  currentOrg: () => Organizacion | undefined;
+}
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  usuario: null,
-  token: storedToken || null,
-  organizacionId: storedOrgId ? parseInt(storedOrgId) : null,
-  organizaciones: [],
-  isLoading: true,
-
-  setAuth: (usuario, token, organizacionId) => {
-    const orgId = organizacionId || usuario.organizaciones?.[0]?.id || 1;
-    localStorage.setItem('token', token);
-    localStorage.setItem('organizacionId', String(orgId));
-    set({
-      usuario,
-      token,
-      organizacionId: orgId,
-      organizaciones: usuario.organizaciones || [],
-      isLoading: false,
-    });
-  },
-
-  setOrganizacionId: (id) => {
-    localStorage.setItem('organizacionId', String(id));
-    set({ organizacionId: id });
-  },
-
-  setOrganizaciones: (orgs) => {
-    set({ organizaciones: orgs });
-  },
-
-  setIsLoading: (v) => {
-    set({ isLoading: v });
-  },
-
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('organizacionId');
-    set({
-      usuario: null,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
       token: null,
-      organizacionId: null,
-      organizaciones: [],
-      isLoading: false,
-    });
-    if (queryClientRef) {
-      queryClientRef.clear();
-    }
-  },
+      usuario: null,
+      isLoading: true,
+      setAuth: (usuario, token) => set({ usuario, token }),
+      logout: () => set({ usuario: null, token: null, isLoading: false }),
+      setIsLoading: (v) => set({ isLoading: v }),
+      isPro: () => {
+        const { usuario } = get();
+        if (!usuario) return false;
 
-  isAuthenticated: () => !!get().token && !!get().usuario,
-  isPro: () => get().usuario?.plan === 'PRO',
-}));
+        const orgActual = usuario.organizaciones?.find(
+          (o) => o.id === Number(usuario.usuarioOrganizacionId),
+        );
+
+        if (orgActual) return orgActual.plan === 'PRO';
+
+        const orgPrimera = usuario.organizaciones?.[0];
+        if (orgPrimera) return orgPrimera.plan === 'PRO';
+
+        return usuario.plan === 'PRO';
+      },
+      currentOrg: () => {
+        const { usuario } = get();
+        if (!usuario) return undefined;
+
+        const orgActual = usuario.organizaciones?.find(
+          (o) => o.id === Number(usuario.usuarioOrganizacionId),
+        );
+        if (orgActual) return orgActual;
+
+        return usuario.organizaciones?.[0];
+      },
+    }),
+    {
+      name: 'agromanager-auth',
+      partialize: (state) => ({ token: state.token, usuario: state.usuario }),
+    },
+  ),
+);

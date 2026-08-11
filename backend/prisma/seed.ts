@@ -52,22 +52,21 @@ async function limpiarDemoData(demoId: number) {
 async function main() {
   console.log('🌱 Iniciando seed (seguro — no toca cuentas reales)...');
 
-  // ─── Tipos de cultivo (globales, solo crea si no existen) ───────────────
   const sojaExist    = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Soja' } });
   const maizExist    = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Maíz' } });
   const trigoExist   = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Trigo' } });
   const girasolExist = await prisma.tipoCultivo.findFirst({ where: { nombre: 'Girasol' } });
-  const soja    = sojaExist    ?? await prisma.tipoCultivo.create({ data: { nombre: 'Soja',    descripcion: 'Glycine max' } });
-  const maiz    = maizExist    ?? await prisma.tipoCultivo.create({ data: { nombre: 'Maíz',    descripcion: 'Zea mays' } });
-  const trigo   = trigoExist   ?? await prisma.tipoCultivo.create({ data: { nombre: 'Trigo',   descripcion: 'Triticum aestivum' } });
+  const soja    = sojaExist    ?? await prisma.tipoCultivo.create({ data: { nombre: 'Soja', descripcion: 'Glycine max' } });
+  const maiz    = maizExist    ?? await prisma.tipoCultivo.create({ data: { nombre: 'Maíz', descripcion: 'Zea mays' } });
+  const trigo   = trigoExist   ?? await prisma.tipoCultivo.create({ data: { nombre: 'Trigo', descripcion: 'Triticum aestivum' } });
   const girasol = girasolExist ?? await prisma.tipoCultivo.create({ data: { nombre: 'Girasol', descripcion: 'Helianthus annuus' } });
   console.log('🌿 Tipos de cultivo OK');
 
-  // ─── Insumos (globales, solo crea si no existen) ─────────────────────────
   async function getOrCreateInsumo(nombre: string, tipo: string, unidad: string, descripcion: string) {
     return (await prisma.insumo.findFirst({ where: { nombre } }))
       ?? prisma.insumo.create({ data: { nombre, tipo: tipo as any, unidad, descripcion } });
   }
+
   const [glifosato, urea, fda, semSoja, semMaiz, mancozeb, cipermetrina, nitrato] =
     await Promise.all([
       getOrCreateInsumo('Glifosato 48%',       'HERBICIDA',    'litros', 'Herbicida sistémico'),
@@ -81,11 +80,16 @@ async function main() {
     ]);
   console.log('🧴 Insumos OK');
 
-  // ─── Upsert usuario ADMIN ─────────────────────────────────────────────────
   const hashAdmin = await bcrypt.hash('Jsadmin1234', 10);
   const usuario = await prisma.usuario.upsert({
     where: { email: ADMIN_EMAIL },
-    update: { emailVerificado: true, rol: 'ADMIN', rolGlobal: 'SUPERADMIN', plan: 'PRO', planExpira: new Date('2099-12-31') },
+    update: {
+      emailVerificado: true,
+      rol: 'ADMIN',
+      rolGlobal: 'SUPERADMIN',
+      plan: 'PRO',
+      planExpira: new Date('2099-12-31'),
+    },
     create: {
       email: ADMIN_EMAIL,
       nombre: 'Joaquín Sabater',
@@ -99,11 +103,16 @@ async function main() {
   });
   console.log(`👤 Admin: ${usuario.email} (SUPERADMIN, PRO)`);
 
-  // ─── Upsert usuario DEMO ──────────────────────────────────────────────────
   const hashDemo = await bcrypt.hash('Demo1234', 10);
   const usuarioDemo = await prisma.usuario.upsert({
     where: { email: DEMO_EMAIL },
-    update: { plan: 'PRO', planExpira: new Date('2035-12-31'), emailVerificado: true, trialUsado: true },
+    update: {
+      plan: 'PRO',
+      planExpira: new Date('2035-12-31'),
+      emailVerificado: true,
+      trialUsado: true,
+      rol: 'OPERADOR',
+    },
     create: {
       email: DEMO_EMAIL,
       nombre: 'Usuario Demo',
@@ -118,11 +127,45 @@ async function main() {
   });
   console.log(`🎮 Demo: ${usuarioDemo.email} (PRO interactivo)`);
 
-  // ─── Limpiar datos anteriores del demo y recrear ──────────────────────────
+  let orgDemo = await prisma.organizacion.findFirst({
+    where: { propietarioId: usuarioDemo.id },
+  });
+
+  if (!orgDemo) {
+    orgDemo = await prisma.organizacion.create({
+      data: {
+        nombre: 'Usuario Demo',
+        email: DEMO_EMAIL,
+        plan: 'PRO',
+        propietarioId: usuarioDemo.id,
+      },
+    });
+  } else {
+    await prisma.organizacion.update({
+      where: { id: orgDemo.id },
+      data: { plan: 'PRO' },
+    });
+  }
+
+  const miembroDemo = await prisma.usuarioOrganizacion.findFirst({
+    where: { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id },
+  });
+
+  if (!miembroDemo) {
+    await prisma.usuarioOrganizacion.create({
+      data: {
+        usuarioId: usuarioDemo.id,
+        organizacionId: orgDemo.id,
+        roles: JSON.stringify(['OWNER']),
+        activo: true,
+        fechaInvitacion: new Date(),
+      },
+    });
+  }
+
   await limpiarDemoData(usuarioDemo.id);
   console.log('🗑️  Datos demo anteriores eliminados');
 
-  // ─── Campos y Lotes ────────────────────────────────────────────────────────
   const campoEsperanza = await prisma.campo.create({
     data: {
       nombre: 'La Esperanza',
@@ -130,6 +173,7 @@ async function main() {
       ubicacion: 'Pergamino, Buenos Aires',
       propietario: 'Juan Pérez',
       usuarioId: usuarioDemo.id,
+      organizacionId: orgDemo.id,
       lotes: {
         create: [
           { nombre: 'Lote Norte', hectareas: 120 },
@@ -148,6 +192,7 @@ async function main() {
       ubicacion: 'Marcos Juárez, Córdoba',
       propietario: 'Juan Pérez',
       usuarioId: usuarioDemo.id,
+      organizacionId: orgDemo.id,
       lotes: {
         create: [
           { nombre: 'Potrero 1', hectareas: 160 },
@@ -162,7 +207,6 @@ async function main() {
   const [p1, p2] = campoProgreso.lotes;
   console.log('🏡 Campos y lotes creados');
 
-  // ─── Campañas ─────────────────────────────────────────────────────────────
   const camp2425 = await prisma.campania.create({
     data: {
       nombre: 'Campaña 2024/2025',
@@ -170,21 +214,21 @@ async function main() {
       fechaFin: new Date('2025-06-30'),
       descripcion: 'Primera campaña completa en ambos campos',
       usuarioId: usuarioDemo.id,
+      organizacionId: orgDemo.id,
     },
   });
+
   const camp2526 = await prisma.campania.create({
     data: {
       nombre: 'Campaña 2025/2026',
       fechaInicio: new Date('2025-10-01'),
       descripcion: 'Campaña actual en curso',
       usuarioId: usuarioDemo.id,
+      organizacionId: orgDemo.id,
     },
   });
   console.log('📅 Campañas creadas');
 
-  // ─── Siembras ──────────────────────────────────────────────────────────────
-
-  // 1. Soja - Lote Norte (COSECHADA, campaña 24/25)
   const siem1 = await prisma.siembra.create({
     data: {
       loteId: lNorte.id,
@@ -215,7 +259,6 @@ async function main() {
     },
   });
 
-  // 2. Maíz - Lote Sur (COSECHADA, campaña 24/25)
   const siem2 = await prisma.siembra.create({
     data: {
       loteId: lSur.id,
@@ -246,7 +289,6 @@ async function main() {
     },
   });
 
-  // 3. Trigo - Potrero 1 (COSECHADA, campaña 24/25)
   const siem3 = await prisma.siembra.create({
     data: {
       loteId: p1.id,
@@ -274,7 +316,6 @@ async function main() {
     },
   });
 
-  // 4. Soja - Lote Este (EN_CURSO, campaña 25/26)
   const siem4 = await prisma.siembra.create({
     data: {
       loteId: lEste.id,
@@ -293,136 +334,31 @@ async function main() {
     ],
   });
 
-  // 5. Girasol - Potrero 2 (EN_CURSO, campaña 25/26)
   const siem5 = await prisma.siembra.create({
     data: {
       loteId: p2.id,
       tipoCultivoId: girasol.id,
       fechaSiembra: new Date('2025-10-25'),
-      densidad: 5.5,
+      densidad: 40,
       estado: 'EN_CURSO',
       campaniaId: camp2526.id,
     },
   });
   await prisma.aplicacionInsumo.createMany({
     data: [
-      { siembraId: siem5.id, insumoId: fda.id, fecha: new Date('2025-10-25'), cantidad: 90, unidad: 'kg' },
-      { siembraId: siem5.id, insumoId: cipermetrina.id, fecha: new Date('2025-12-20'), cantidad: 0.3, unidad: 'litros', observaciones: 'Barrenador del girasol' },
+      { siembraId: siem5.id, insumoId: semSoja.id, fecha: new Date('2025-10-25'), cantidad: 20, unidad: 'kg' },
     ],
   });
 
-  console.log('🌱 Siembras, aplicaciones y cosechas creadas');
-
-  // ─── Animales (bovinos) ────────────────────────────────────────────────────
-  const animalesData = [
-    { nombre: 'Pantanera 01', especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'VACA', peso: 480, fechaNacimiento: new Date('2019-08-15') },
-    { nombre: 'Pantanera 02', especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'VACA', peso: 510, fechaNacimiento: new Date('2018-05-22') },
-    { nombre: 'Pantanera 03', especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'VACA', peso: 465, fechaNacimiento: new Date('2020-03-10') },
-    { nombre: 'Pantanera 04', especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'VACA', peso: 495, fechaNacimiento: new Date('2019-11-30') },
-    { nombre: 'Pantanera 05', especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'VACA', peso: 520, fechaNacimiento: new Date('2017-07-18') },
-    { nombre: 'Vaquillona 01', especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'VAQUILLONA', peso: 340, fechaNacimiento: new Date('2022-10-05') },
-    { nombre: 'Patagón',     especie: 'BOVINO', sexo: 'MACHO',  categoria: 'TORO',  peso: 820, fechaNacimiento: new Date('2018-02-14') },
-    { nombre: 'Ternero 01',  especie: 'BOVINO', sexo: 'MACHO',  categoria: 'TERNERO', peso: 145, fechaNacimiento: new Date('2024-09-12') },
-    { nombre: 'Ternero 02',  especie: 'BOVINO', sexo: 'MACHO',  categoria: 'TERNERO', peso: 138, fechaNacimiento: new Date('2024-10-01') },
-    { nombre: 'Ternera 01',  especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'TERNERA', peso: 130, fechaNacimiento: new Date('2024-09-25') },
-    { nombre: 'Novillo 01',  especie: 'BOVINO', sexo: 'MACHO',  categoria: 'NOVILLO', peso: 390, fechaNacimiento: new Date('2022-08-20') },
-    { nombre: 'Novillo 02',  especie: 'BOVINO', sexo: 'MACHO',  categoria: 'NOVILLO', peso: 410, fechaNacimiento: new Date('2022-07-15') },
-  ] as const;
-
-  const animales = await Promise.all(
-    animalesData.map((a) =>
-      prisma.animal.create({ data: { ...a, usuarioId: usuarioDemo.id } }),
-    ),
-  );
-
-  // Historial de pesos (últimos 6 meses para las vacas)
-  for (const vaca of animales.slice(0, 5)) {
-    const base = vaca.peso ?? 480;
-    await prisma.registroPeso.createMany({
-      data: [
-        { animalId: vaca.id, peso: base - 40, fecha: new Date('2024-11-01') },
-        { animalId: vaca.id, peso: base - 20, fecha: new Date('2025-01-01') },
-        { animalId: vaca.id, peso: base,       fecha: new Date('2025-03-01') },
-        { animalId: vaca.id, peso: base + 10,  fecha: new Date('2025-05-01') },
-      ],
-    });
-  }
-
-  // Preñeces
-  const [p01, p02, p03] = animales; // 3 vacas preñadas
-  await prisma.prenez.createMany({
-    data: [
-      { animalId: p01.id, fechaInicio: new Date('2025-03-10'), fechaEstimadaParto: new Date('2025-12-15'), estado: 'EN_CURSO' },
-      { animalId: p02.id, fechaInicio: new Date('2025-04-05'), fechaEstimadaParto: new Date('2026-01-10'), estado: 'EN_CURSO' },
-      { animalId: p03.id, fechaInicio: new Date('2024-08-01'), fechaEstimadaParto: new Date('2025-05-08'), estado: 'COMPLETADA', observaciones: 'Parto sin complicaciones' },
-    ],
-  });
-  console.log('🐄 Animales, pesos y preñeces creados');
-
-  // ─── Tareas rurales ────────────────────────────────────────────────────────
-  await prisma.tareaRural.createMany({
-    data: [
-      { usuarioId: usuarioDemo.id, titulo: 'Aplicar herbicida Lote Este', descripcion: 'Glifosato para control de yuyo colorado', tipo: 'FUMIGACION',     estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-05-15'), campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Revisión sanitaria rodeo',    descripcion: 'Vacunación antiaftosa y brucelosis',     tipo: 'VETERINARIA',   estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-05-20') },
-      { usuarioId: usuarioDemo.id, titulo: 'Fertilizar Potrero 2',        descripcion: 'Urea 100kg/ha en cobertura',             tipo: 'FERTILIZACION', estado: 'EN_CURSO',   prioridad: 'MEDIA',  fechaProgramada: new Date('2026-05-08'), campoId: campoProgreso.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Mantenimiento aguada norte',  descripcion: 'Revisión bebederos y bomba',             tipo: 'MANTENIMIENTO', estado: 'PENDIENTE',  prioridad: 'BAJA',   fechaProgramada: new Date('2026-05-25'), campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Cosecha soja Lote Este',      descripcion: 'Coordinar cosechadora',                  tipo: 'COSECHA',       estado: 'PENDIENTE',  prioridad: 'URGENTE',fechaProgramada: new Date('2026-04-20'), campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Análisis de suelo Lote Norte',descripcion: 'Laboratorio Rizobacter',                 tipo: 'OTRO',          estado: 'COMPLETADA', prioridad: 'MEDIA',  fechaProgramada: new Date('2025-09-10'), fechaCompletada: new Date('2025-09-12'), campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Reparar alambrado sur',       descripcion: '200m de alambre de 5 hilos',             tipo: 'MANTENIMIENTO', estado: 'COMPLETADA', prioridad: 'MEDIA',  fechaProgramada: new Date('2025-10-05'), fechaCompletada: new Date('2025-10-07'), campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Siembra trigo invierno',      descripcion: 'Variedad Buck SY 200',                   tipo: 'SIEMBRA',       estado: 'PENDIENTE',  prioridad: 'ALTA',   fechaProgramada: new Date('2026-06-15'), campoId: campoProgreso.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Desmalezado caminos internos',descripcion: 'Rotativa en caminos del campo',          tipo: 'MANTENIMIENTO', estado: 'COMPLETADA', prioridad: 'BAJA',   fechaProgramada: new Date('2025-11-20'), fechaCompletada: new Date('2025-11-22'), campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, titulo: 'Control de plagas girasol',   descripcion: 'Monitoreo y eventual aplicación',        tipo: 'FUMIGACION',    estado: 'EN_CURSO',   prioridad: 'ALTA',   fechaProgramada: new Date('2026-01-10'), campoId: campoProgreso.id },
-    ],
-  });
-  console.log('📋 Tareas creadas');
-
-  // ─── Movimientos financieros ───────────────────────────────────────────────
-  await prisma.movimientoFinanciero.createMany({
-    data: [
-      // Ingresos campaña 24/25
-      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta soja Lote Norte 408t', monto: 408000 * 3400 / 1000 * 2.1, fecha: new Date('2025-04-20'), categoria: 'COSECHA', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta maíz Lote Sur 1584t',  monto: 1584 * 180 * 0.9,          fecha: new Date('2025-03-28'), categoria: 'COSECHA', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta trigo Potrero 1 496t', monto: 496 * 160 * 0.85,          fecha: new Date('2024-12-10'), categoria: 'COSECHA', campoId: campoProgreso.id },
-      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta novillo 01 y 02',      monto: 420000,                    fecha: new Date('2025-02-15'), categoria: 'VENTA_ANIMAL' },
-      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Arrendamiento parcela oeste', monto: 85000,                   fecha: new Date('2025-01-05'), categoria: 'OTRO', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'INGRESO', concepto: 'Venta terneros 3 cabezas',   monto: 180000,                   fecha: new Date('2025-05-02'), categoria: 'VENTA_ANIMAL' },
-
-      // Egresos campaña 24/25
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Semilla soja NK7059 — 60kg × 120ha', monto: 72000, fecha: new Date('2024-11-08'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Semilla maíz DK7210 — 22kg × 180ha', monto: 95000, fecha: new Date('2024-10-18'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Urea 250kg × 180ha',                  monto: 48000, fecha: new Date('2024-10-20'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'FDA 100kg × 160ha trigo',             monto: 22000, fecha: new Date('2024-06-14'), categoria: 'INSUMO', campoId: campoProgreso.id },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Servicio cosecha soja',                monto: 110000,fecha: new Date('2025-04-15'), categoria: 'SERVICIO', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Servicio cosecha maíz',                monto: 135000,fecha: new Date('2025-03-24'), categoria: 'SERVICIO', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Combustible — campaña completa',       monto: 62000, fecha: new Date('2025-01-15'), categoria: 'COMBUSTIBLE' },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Mano de obra — 3 peones mensual',      monto: 180000,fecha: new Date('2025-02-01'), categoria: 'MANO_DE_OBRA' },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Vacunación antiaftosa rodeo',          monto: 18500, fecha: new Date('2025-04-01'), categoria: 'VETERINARIA' },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Reparación tranquera y alambrado',     monto: 25000, fecha: new Date('2025-03-10'), categoria: 'MANTENIMIENTO', campoId: campoEsperanza.id },
-
-      // Campaña 25/26 (inicio)
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'Semilla soja Lote Este',   monto: 78000, fecha: new Date('2025-11-03'), categoria: 'INSUMO', campoId: campoEsperanza.id },
-      { usuarioId: usuarioDemo.id, tipo: 'EGRESO', concepto: 'FDA girasol Potrero 2',    monto: 19800, fecha: new Date('2025-10-23'), categoria: 'INSUMO', campoId: campoProgreso.id },
-    ],
-  });
-  console.log('💰 Movimientos financieros creados');
-
-  console.log('\n✅ Seed completado exitosamente!');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔐 ADMINISTRADOR (acceso total + panel admin)');
-  console.log(`   Email:    ${ADMIN_EMAIL}`);
-  console.log('   Password: Jsadmin1234');
-  console.log('');
-  console.log('🎮 DEMO (PRO interactivo — datos se reinician cada 24hs)');
-  console.log(`   Email:    ${DEMO_EMAIL}`);
-  console.log('   Password: Demo1234');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('✅ Seed demo finalizado con organización PRO');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error en seed:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
+  

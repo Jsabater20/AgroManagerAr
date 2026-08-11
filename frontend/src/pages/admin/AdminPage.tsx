@@ -1,5 +1,3 @@
-// src/pages/admin/AdminPage.tsx (CORREGIDO - ACTUALIZADO)
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,7 +10,6 @@ import { Navigate } from 'react-router-dom';
 import { Trash2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Emails protegidos que siempre deben ser PRO
 const PROTECTED_EMAILS = [
   'joaquinsabater@agromanagerar.com',
   'demo@agromanager.ar',
@@ -63,7 +60,8 @@ export default function AdminPage() {
   });
 
   const currentUser = users.find((u) => u.id === planModal);
-  const isEmailProtected = currentUser && PROTECTED_EMAILS.includes(currentUser.email.toLowerCase());
+  const isEmailProtected =
+    currentUser && PROTECTED_EMAILS.includes(currentUser.email.toLowerCase());
 
   const handlePlanChange = (plan: 'FREE' | 'PRO') => {
     if (isEmailProtected && plan === 'FREE') {
@@ -154,11 +152,13 @@ export default function AdminPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${
-                      u.rolGlobal === 'SUPERADMIN'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-md text-xs font-medium ${
+                        u.rolGlobal === 'SUPERADMIN'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
                       {u.rolGlobal || 'USER'}
                     </span>
                   </td>
@@ -184,7 +184,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Modal: Cambiar Plan */}
       {planModal && currentUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full mx-4">
@@ -196,7 +195,9 @@ export default function AdminPage() {
             {isEmailProtected && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex gap-2">
                 <AlertCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700">Este usuario siempre debe tener Plan PRO</p>
+                <p className="text-xs text-blue-700">
+                  Este usuario siempre debe tener Plan PRO
+                </p>
               </div>
             )}
 
@@ -219,6 +220,7 @@ export default function AdminPage() {
               >
                 ➖ Plan FREE
               </button>
+
               <button
                 onClick={() => handlePlanChange('PRO')}
                 disabled={mutPlan.isPending}
@@ -231,6 +233,7 @@ export default function AdminPage() {
                 ⭐ Plan PRO
               </button>
             </div>
+
             <button
               onClick={() => {
                 setPlanModal(null);
@@ -245,7 +248,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Modal: Confirmar eliminación */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full mx-4">

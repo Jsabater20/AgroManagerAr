@@ -1,4 +1,3 @@
-// src/plan/plan.service.ts (COMPLETO)
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { Resend } from 'resend';
@@ -20,14 +19,14 @@ const PRECIOS = {
     descuento: null,
   },
   anual: {
-    monto: 153890,
+    monto: 139900,
     frecuencia: 12,
     label: 'AgroManager AR Pro Anual',
     descuento: 'Ahorrá un 16% con el plan anual',
   },
 };
 
-const TRIAL_DIAS = 14;
+const TRIAL_DIAS = 30;
 
 @Injectable()
 export class PlanService {
@@ -68,28 +67,28 @@ export class PlanService {
     };
   }
 
-  // DEPRECATED: Mantener por compatibilidad temporal
   async getUsuarioPlan(usuarioId: number) {
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: { plan: true, planExpira: true, mpSuscripcionId: true, trialUsado: true },
+      select: {
+        plan: true,
+        planExpira: true,
+        mpSuscripcionId: true,
+        trialUsado: true,
+      },
     });
     return u;
   }
 
-  // NUEVO: Obtener plan por organización
   async getOrgPlan(organizacionId: number) {
     const org = await this.prisma.organizacion.findUnique({
       where: { id: organizacionId },
       select: { plan: true },
     });
     if (!org) return null;
-    return {
-      plan: org.plan,
-    };
+    return { plan: org.plan };
   }
 
-  // DEPRECATED: Mantener por compatibilidad temporal
   async isPro(usuarioId: number): Promise<boolean> {
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
@@ -108,7 +107,6 @@ export class PlanService {
     return true;
   }
 
-  // NUEVO: Verificar si organización tiene plan PRO
   async isOrgPro(organizacionId: number): Promise<boolean> {
     const org = await this.prisma.organizacion.findUnique({
       where: { id: organizacionId },
@@ -118,7 +116,6 @@ export class PlanService {
     return true;
   }
 
-  // REFACTORIZADO: Ahora recibe organizacionId
   async checkCamposLimit(organizacionId: number) {
     if (await this.isOrgPro(organizacionId)) return;
     const count = await this.prisma.campo.count({ where: { organizacionId } });
@@ -129,10 +126,8 @@ export class PlanService {
     }
   }
 
-  // REFACTORIZADO: Ahora recibe organizacionId (no campoId ni usuarioId)
   async checkLotesLimit(organizacionId: number) {
     if (await this.isOrgPro(organizacionId)) return;
-    // Contar lotes en campos que pertenecen a esta organización
     const count = await this.prisma.lote.count({
       where: { campo: { organizacionId } },
     });
@@ -143,7 +138,6 @@ export class PlanService {
     }
   }
 
-  // REFACTORIZADO: Ahora recibe organizacionId
   async checkAnimalesLimit(organizacionId: number) {
     if (await this.isOrgPro(organizacionId)) return;
     const count = await this.prisma.animal.count({ where: { organizacionId } });
@@ -154,7 +148,6 @@ export class PlanService {
     }
   }
 
-  // REFACTORIZADO: Ahora recibe organizacionId
   async checkSiembrasLimit(organizacionId: number) {
     if (await this.isOrgPro(organizacionId)) return;
     const count = await this.prisma.siembra.count({
@@ -167,7 +160,6 @@ export class PlanService {
     }
   }
 
-  // REFACTORIZADO: Ahora recibe organizacionId
   async checkMaquinariasLimit(organizacionId: number) {
     if (await this.isOrgPro(organizacionId)) return;
     const count = await this.prisma.maquinaria.count({ where: { organizacionId } });
@@ -178,7 +170,6 @@ export class PlanService {
     }
   }
 
-  // REFACTORIZADO: Ahora recibe organizacionId
   async checkProAccess(organizacionId: number, feature: string) {
     if (await this.isOrgPro(organizacionId)) return;
     throw new ForbiddenException(
@@ -250,6 +241,7 @@ export class PlanService {
     if (status === 'authorized') {
       const expira = new Date();
       expira.setDate(expira.getDate() + (tipo === 'anual' ? 400 : 45));
+
       const usuario = await this.prisma.usuario.update({
         where: { id: usuarioId },
         data: {
@@ -258,8 +250,20 @@ export class PlanService {
           mpSuscripcionId: suscripcionId,
           trialUsado: true,
         },
-        select: { email: true, nombre: true },
+        select: { email: true, nombre: true, plan: true, planExpira: true },
       });
+
+      const org = await this.prisma.organizacion.findFirst({
+        where: { propietarioId: usuarioId },
+      });
+
+      if (org) {
+        await this.prisma.organizacion.update({
+          where: { id: org.id },
+          data: { plan: 'PRO' },
+        });
+      }
+
       if (this.resend) {
         this.resend.emails
           .send({
@@ -280,6 +284,18 @@ export class PlanService {
         data: { plan: 'FREE', planExpira: null },
         select: { email: true, nombre: true },
       });
+
+      const org = await this.prisma.organizacion.findFirst({
+        where: { propietarioId: usuarioId },
+      });
+
+      if (org) {
+        await this.prisma.organizacion.update({
+          where: { id: org.id },
+          data: { plan: 'FREE' },
+        });
+      }
+
       if (this.resend) {
         this.resend.emails
           .send({
@@ -324,9 +340,25 @@ export class PlanService {
 
     const usuario = await this.prisma.usuario.update({
       where: { id: usuarioId },
-      data: { plan: 'PRO', planExpira: expira, mpSuscripcionId: preapprovalId, trialUsado: true },
+      data: {
+        plan: 'PRO',
+        planExpira: expira,
+        mpSuscripcionId: preapprovalId,
+        trialUsado: true,
+      },
       select: { email: true, nombre: true, plan: true, planExpira: true },
     });
+
+    const org = await this.prisma.organizacion.findFirst({
+      where: { propietarioId: usuarioId },
+    });
+
+    if (org) {
+      await this.prisma.organizacion.update({
+        where: { id: org.id },
+        data: { plan: 'PRO' },
+      });
+    }
 
     if (this.resend) {
       this.resend.emails
@@ -369,6 +401,18 @@ export class PlanService {
       data: { plan: 'FREE', planExpira: null, mpSuscripcionId: null },
       select: { email: true, nombre: true },
     });
+
+    const org = await this.prisma.organizacion.findFirst({
+      where: { propietarioId: usuarioId },
+    });
+
+    if (org) {
+      await this.prisma.organizacion.update({
+        where: { id: org.id },
+        data: { plan: 'FREE' },
+      });
+    }
+
     if (this.resend) {
       this.resend.emails
         .send({
@@ -388,7 +432,7 @@ export class PlanService {
     expira: Date,
   ): string {
     const precio =
-      tipo === 'anual' ? '$153.890 ARS / año' : '$13.990 ARS / mes';
+      tipo === 'anual' ? '$139.900 ARS / año' : '$13.990 ARS / mes';
     const renovacion = expira.toLocaleDateString('es-AR', {
       day: 'numeric',
       month: 'long',

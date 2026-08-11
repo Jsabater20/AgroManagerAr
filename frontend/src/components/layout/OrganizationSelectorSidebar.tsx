@@ -76,7 +76,7 @@ const RUTAS_MODULOS: Record<string, string> = {
 export default function OrganizationSelectorSidebar() {
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
-  const { usuario, organizaciones, logout } = useAuthStore();
+  const { usuario, logout } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [expandedCampo, setExpandedCampo] = useState<number | null>(null);
 
@@ -91,7 +91,7 @@ export default function OrganizationSelectorSidebar() {
     enabled: !!usuario?.id && !!orgId,
   });
 
-  const currentOrg = organizaciones?.find((o: Organizacion) => o.id === parseInt(orgId || '0'));
+  const currentOrg = usuario?.organizaciones?.find((o: Organizacion) => o.id === parseInt(orgId || '0'));
   const isOwner = currentOrg?.propietarioId === usuario?.id;
   const esOperario = miembroData?.roles?.includes('operario');
 
@@ -139,7 +139,7 @@ export default function OrganizationSelectorSidebar() {
 
         {isOpen && (
           <div className="mt-2 space-y-2 bg-emerald-50 p-2 rounded-lg">
-            {organizaciones?.map((org: Organizacion) => (
+            {usuario?.organizaciones?.map((org: Organizacion) => (
               <button
                 key={org.id}
                 onClick={() => {

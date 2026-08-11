@@ -1,55 +1,70 @@
 import { useAuthStore } from '../store/auth.store';
-import { useParams } from 'react-router-dom';
-import { useMemo } from 'react';
 
-export type UserRole = 'owner' | 'member' | 'superadmin';
+export const usePermissions = () => {
+  const usuario = useAuthStore((s) => s.usuario);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
-interface PermissionsContext {
-  isOwner: boolean;
-  isMember: boolean;
-  isSuperAdmin: boolean;
-  usuarioOrganizacionId: number | null;
-  role: UserRole;
-  organizacionId: number;
-  isLoading: boolean;
-}
-
-export const usePermissions = (): PermissionsContext => {
-  const { orgId } = useParams<{ orgId: string }>();
-  const { usuario, isLoading } = useAuthStore();
-
-  return useMemo(() => {
-    const organizacionId = parseInt(orgId || '0');
-    
-    if (isLoading || !usuario) {
-      return {
-        isOwner: false,
-        isMember: false,
-        isSuperAdmin: false,
-        usuarioOrganizacionId: null,
-        role: 'member',
-        organizacionId,
-        isLoading: true,
-      };
-    }
-
-    const isSuperAdmin = usuario.rolGlobal === 'SUPERADMIN';
-    const isOwner = usuario.organizaciones?.some((o: any) => o.id === organizacionId);
-    const usuarioOrganizacionId = usuario.usuarioOrganizacionId || null;
-    const isMember = !isOwner && !!usuarioOrganizacionId;
-
-    let role: UserRole = 'member';
-    if (isSuperAdmin) role = 'superadmin';
-    else if (isOwner) role = 'owner';
-
+  if (isLoading) {
     return {
-      isOwner: isOwner || false,
-      isMember,
-      isSuperAdmin,
-      usuarioOrganizacionId,
-      role,
-      organizacionId,
+      isOwner: false,
+      isMember: false,
+      isSuperAdmin: false,
+      usuarioOrganizacionId: null,
+      organizacionId: null,
+      role: 'loading',
+      isLoading: true,
+    };
+  }
+
+  if (!usuario) {
+    return {
+      isOwner: false,
+      isMember: false,
+      isSuperAdmin: false,
+      usuarioOrganizacionId: null,
+      organizacionId: null,
+      role: 'guest',
       isLoading: false,
     };
-  }, [orgId, usuario, isLoading]);
+  }
+
+  const currentOrg =
+    usuario.organizaciones?.find(
+      (org) => org.id === Number(usuario.usuarioOrganizacionId ?? 0),
+    ) ?? usuario.organizaciones?.[0];
+
+  const organizacionId = Number(currentOrg?.id ?? usuario.usuarioOrganizacionId ?? 0);
+
+  const isSuperAdmin = usuario.rolGlobal === 'SUPERADMIN';
+
+  const isOwner =
+    Boolean(currentOrg) &&
+    currentOrg!.propietarioId === usuario.id;
+
+  const hasMembershipInCurrentOrg =
+    Boolean(
+      usuario.organizaciones?.some(
+        (org) => org.id === organizacionId,
+      ),
+    );
+
+  const isMember =
+    !isOwner &&
+    hasMembershipInCurrentOrg;
+
+  return {
+    isOwner,
+    isMember,
+    isSuperAdmin,
+    usuarioOrganizacionId: usuario.usuarioOrganizacionId ?? null,
+    organizacionId,
+    role: isSuperAdmin
+      ? 'superadmin'
+      : isOwner
+        ? 'owner'
+        : isMember
+          ? 'member'
+          : 'guest',
+    isLoading: false,
+  };
 };

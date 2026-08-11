@@ -195,10 +195,10 @@ export class AuthService {
       usuario.rolGlobal,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, emailVerificado, ...usuarioSinPassword } = usuario;
     return { usuario: { ...usuarioSinPassword, organizaciones }, token };
   }
+
   async verifyEmail(token: string) {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const usuario = await this.prisma.usuario.findFirst({
@@ -258,12 +258,11 @@ export class AuthService {
         html: this.buildResetEmail(usuario.nombre, resetUrl),
       });
       if (result.error) {
-        console.error('[Resend] Error enviando email de reset:', result.error);
-      } else {
-        console.log(`[Auth] Email de reset enviado OK, id=${result.data?.id}`);
+        console.error(
+          '[Resend] Error enviando email de recuperación:',
+          result.error,
+        );
       }
-    } else {
-      console.warn('[Auth] Resend no inicializado — RESEND_API_KEY faltante');
     }
 
     return {
@@ -273,34 +272,31 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
+    const rawToken = dto.token;
     const tokenHash = crypto
       .createHash('sha256')
-      .update(dto.token)
+      .update(rawToken)
       .digest('hex');
 
     const usuario = await this.prisma.usuario.findFirst({
-      where: {
-        resetToken: tokenHash,
-        resetTokenExpiry: { gt: new Date() },
-      },
+      where: { resetToken: tokenHash },
     });
 
     if (!usuario) {
-      throw new BadRequestException(
-        'El enlace de recuperación es inválido o ya expiró.',
-      );
+      throw new BadRequestException('Token de recuperación inválido o expirado.');
+    }
+
+    if (usuario.resetTokenExpiry && new Date() > usuario.resetTokenExpiry) {
+      throw new BadRequestException('El token de recuperación ha expirado.');
     }
 
     const hash = await bcrypt.hash(dto.newPassword, 10);
-
     await this.prisma.usuario.update({
       where: { id: usuario.id },
       data: {
         password: hash,
         resetToken: null,
         resetTokenExpiry: null,
-        emailVerificado: true,
-        emailVerifToken: null,
       },
     });
 
@@ -310,90 +306,40 @@ export class AuthService {
   private generarToken(
     userId: number,
     email: string,
-    organizacionId?: number,
+    orgId?: number,
     rolGlobal?: string,
-  ): string {
+  ) {
     return this.jwtService.sign({
       sub: userId,
       email,
-      organizacionId: organizacionId || null,
-      rolGlobal: rolGlobal || 'USER',
+      orgId,
+      rolGlobal,
     });
   }
 
-  private buildResetEmail(nombre: string, resetUrl: string): string {
+  private buildVerifyEmail(nombre: string, verifyUrl: string) {
     return `
-      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#f9fafb;border-radius:12px;">
-        <div style="text-align:center;margin-bottom:24px;">
-          <span style="font-size:24px;font-weight:bold;color:#15803d;">AgroManager AR</span>
-        </div>
-        <h2 style="color:#111827;margin-bottom:8px;">Recuperá tu contraseña</h2>
-        <p style="color:#6b7280;line-height:1.6;">
-          Hola ${nombre}, recibimos una solicitud para restablecer la contraseña de tu cuenta.
-          Hacé clic en el botón de abajo. El enlace expira en <strong>1 hora</strong>.
-        </p>
-        <div style="text-align:center;margin:32px 0;">
-          <a href="${resetUrl}"
-             style="background:#15803d;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
-            Restablecer contraseña
-          </a>
-        </div>
-        <p style="color:#6b7280;font-size:13px;">
-          Si no solicitaste este cambio, ignorá este email. Tu contraseña no fue modificada.
-        </p>
-        <p style="color:#9ca3af;font-size:12px;text-align:center;">AgroManager AR — Gestión agrícola para Argentina</p>
-      </div>
+      <html>
+        <body>
+          <h1>Verificá tu cuenta</h1>
+          <p>Hola ${nombre},</p>
+          <p>Hace clic en el siguiente enlace para verificar tu cuenta:</p>
+          <a href="${verifyUrl}">Verificar cuenta</a>
+        </body>
+      </html>
     `;
   }
 
-  private buildVerifyEmail(nombre: string, verifyUrl: string): string {
+  private buildResetEmail(nombre: string, resetUrl: string) {
     return `
-<!DOCTYPE html>
-<html lang="es">
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-      <tr>
-        <td style="background:#15803d;padding:28px 32px;text-align:center;">
-          <span style="color:#ffffff;font-size:22px;font-weight:700;">🌱 AgroManager AR</span>
-          <p style="color:#bbf7d0;margin:6px 0 0;font-size:13px;">Gestión agrícola para Argentina</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:36px 32px;">
-          <h2 style="color:#111827;font-size:22px;margin:0 0 12px;">Hola, ${nombre} 👋</h2>
-          <p style="color:#4b5563;line-height:1.7;margin:0 0 8px;">
-            Gracias por registrarte en <strong>AgroManager AR</strong>.
-            Para activar tu cuenta y comenzar a usarla, confirmá tu email haciendo clic en el botón de abajo.
-          </p>
-          <p style="color:#9ca3af;font-size:13px;margin:0 0 28px;">El enlace expira en <strong>24 horas</strong>.</p>
-          <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-            <tr>
-              <td style="background:#15803d;border-radius:10px;">
-                <a href="${verifyUrl}"
-                   style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;">
-                  Verificar mi cuenta →
-                </a>
-              </td>
-            </tr>
-          </table>
-          <p style="color:#6b7280;font-size:13px;margin:0;">
-            Si no creaste esta cuenta, podés ignorar este email sin problema.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-          <p style="color:#9ca3af;font-size:12px;margin:0;">
-            AgroManager AR · <a href="${this.frontendUrl}" style="color:#9ca3af;">www.agromanagerar.com</a>
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>`;
+      <html>
+        <body>
+          <h1>Recuperá tu contraseña</h1>
+          <p>Hola ${nombre},</p>
+          <p>Hace clic en el siguiente enlace para recuperar tu contraseña:</p>
+          <a href="${resetUrl}">Recuperar contraseña</a>
+        </body>
+      </html>
+    `;
   }
 }
