@@ -1,10 +1,9 @@
-// src/pages/admin/AdminPage.tsx (COMPLETO CON FUNCIÓN DE PLAN)
+// src/pages/admin/AdminPage.tsx (COMPLETO - ACTUALIZADO)
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getAllUsers,
-  updateUserRol,
   updateUserPlan,
   deleteUser,
 } from '../../api/users.api';
@@ -13,11 +12,18 @@ import { Navigate } from 'react-router-dom';
 import { Trash2, AlertCircle, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// Emails protegidos que siempre deben ser PRO
+const PROTECTED_EMAILS = [
+  'joaquinsabater@agromanagerar.com',
+  'demo@agromanagerar.ar',
+];
+
 export default function AdminPage() {
   const usuario = useAuthStore((s) => s.usuario);
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [planModal, setPlanModal] = useState<number | null>(null);
+  const [planError, setPlanError] = useState('');
   const [msg, setMsg] = useState('');
 
   if (usuario?.rolGlobal !== 'SUPERADMIN') {
@@ -34,22 +40,13 @@ export default function AdminPage() {
     setTimeout(() => setMsg(''), 3000);
   };
 
-  const mutRol = useMutation({
-    mutationFn: ({ id, rol }: { id: number; rol: 'SUPERADMIN' | 'USER' }) =>
-      updateUserRol(id, rol),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      flash('Rol actualizado.');
-    },
-    onError: () => toast.error('Error al actualizar rol'),
-  });
-
   const mutPlan = useMutation({
     mutationFn: ({ id, plan }: { id: number; plan: 'FREE' | 'PRO' }) =>
       updateUserPlan(id, plan),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setPlanModal(null);
+      setPlanError('');
       flash('Plan actualizado.');
     },
     onError: () => toast.error('Error al actualizar plan'),
@@ -66,6 +63,16 @@ export default function AdminPage() {
   });
 
   const currentUser = users.find((u) => u.id === planModal);
+  const isEmailProtected = currentUser && PROTECTED_EMAILS.includes(currentUser.email.toLowerCase());
+
+  const handlePlanChange = (plan: 'FREE' | 'PRO') => {
+    if (isEmailProtected && plan === 'FREE') {
+      setPlanError('Este usuario siempre debe tener Plan PRO');
+      return;
+    }
+    setPlanError('');
+    mutPlan.mutate({ id: currentUser!.id, plan });
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -109,10 +116,10 @@ export default function AdminPage() {
                   Email
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700 text-xs uppercase tracking-wider">
-                  Rol
+                  Plan
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700 text-xs uppercase tracking-wider">
-                  Plan
+                  Rol
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700 text-xs uppercase tracking-wider">
                   Desde
@@ -131,22 +138,6 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{u.email}</td>
                   <td className="px-4 py-3">
-                    <select
-                      value={u.rolGlobal || 'USER'}
-                      onChange={(e) =>
-                        mutRol.mutate({
-                          id: u.id,
-                          rol: e.target.value as 'SUPERADMIN' | 'USER',
-                        })
-                      }
-                      disabled={mutRol.isPending}
-                      className="px-2 py-1 border border-gray-300 rounded-md text-xs font-medium bg-white hover:border-gray-400 disabled:opacity-50"
-                    >
-                      <option value="USER">USER</option>
-                      <option value="SUPERADMIN">SUPERADMIN</option>
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
                     <span
                       className={`px-2 py-1 rounded-md text-xs font-medium ${
                         u.plan === 'PRO'
@@ -157,6 +148,15 @@ export default function AdminPage() {
                       {u.plan || 'FREE'}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                      u.rolGlobal === 'SUPERADMIN'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {u.rolGlobal || 'USER'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">
                     {u.createdAt
                       ? new Date(u.createdAt).toLocaleDateString('es-AR')
@@ -164,7 +164,10 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-right space-x-2 flex justify-end">
                     <button
-                      onClick={() => setPlanModal(u.id)}
+                      onClick={() => {
+                        setPlanModal(u.id);
+                        setPlanError('');
+                      }}
                       disabled={mutPlan.isPending}
                       title="Cambiar plan"
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
@@ -191,27 +194,39 @@ export default function AdminPage() {
       {planModal && currentUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
               Cambiar plan de {currentUser.nombre} {currentUser.apellido}
             </h3>
+            <p className="text-sm text-gray-500 mb-4">{currentUser.email}</p>
+
+            {isEmailProtected && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex gap-2">
+                <AlertCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700">Este usuario siempre debe tener Plan PRO</p>
+              </div>
+            )}
+
+            {planError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex gap-2">
+                <AlertCircle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700">{planError}</p>
+              </div>
+            )}
+
             <div className="space-y-3 mb-6">
               <button
-                onClick={() =>
-                  mutPlan.mutate({ id: currentUser.id, plan: 'FREE' })
-                }
-                disabled={mutPlan.isPending}
+                onClick={() => handlePlanChange('FREE')}
+                disabled={mutPlan.isPending || isEmailProtected}
                 className={`w-full p-3 rounded-lg font-medium transition-colors ${
                   currentUser.plan === 'FREE'
                     ? 'bg-gray-100 text-gray-900 border-2 border-gray-300'
                     : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                }`}
+                } ${isEmailProtected ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 ➖ Plan FREE
               </button>
               <button
-                onClick={() =>
-                  mutPlan.mutate({ id: currentUser.id, plan: 'PRO' })
-                }
+                onClick={() => handlePlanChange('PRO')}
                 disabled={mutPlan.isPending}
                 className={`w-full p-3 rounded-lg font-medium transition-colors ${
                   currentUser.plan === 'PRO'
@@ -223,7 +238,10 @@ export default function AdminPage() {
               </button>
             </div>
             <button
-              onClick={() => setPlanModal(null)}
+              onClick={() => {
+                setPlanModal(null);
+                setPlanError('');
+              }}
               disabled={mutPlan.isPending}
               className="w-full px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
             >
