@@ -1,4 +1,4 @@
-// src/pages/admin/AdminPage.tsx (COMPLETO - ACTUALIZADO)
+// src/pages/admin/AdminPage.tsx (CORREGIDO - ACTUALIZADO)
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import {
 } from '../../api/users.api';
 import { useAuthStore } from '../../store/auth.store';
 import { Navigate } from 'react-router-dom';
-import { Trash2, AlertCircle, CreditCard } from 'lucide-react';
+import { Trash2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Emails protegidos que siempre deben ser PRO
@@ -138,15 +138,20 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{u.email}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-1 rounded-md text-xs font-medium ${
+                    <button
+                      onClick={() => {
+                        setPlanModal(u.id);
+                        setPlanError('');
+                      }}
+                      disabled={mutPlan.isPending}
+                      className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
                         u.plan === 'PRO'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
                       {u.plan || 'FREE'}
-                    </span>
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-md text-xs font-medium ${
@@ -163,17 +168,6 @@ export default function AdminPage() {
                       : 'N/A'}
                   </td>
                   <td className="px-4 py-3 text-right space-x-2 flex justify-end">
-                    <button
-                      onClick={() => {
-                        setPlanModal(u.id);
-                        setPlanError('');
-                      }}
-                      disabled={mutPlan.isPending}
-                      title="Cambiar plan"
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      <CreditCard size={16} />
-                    </button>
                     <button
                       onClick={() => setConfirmDelete(u.id)}
                       disabled={mutDelete.isPending}
