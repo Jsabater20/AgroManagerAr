@@ -1,3 +1,5 @@
+// src/api/users.api.ts (AGREGAR FUNCIÓN PARA ACTUALIZAR PLAN)
+
 import { api } from './client';
 
 export interface UserProfile {
@@ -42,6 +44,12 @@ export const updateUserRol = (
   rol: 'SUPERADMIN' | 'USER',
 ): Promise<UserProfile> =>
   api.patch<UserProfile>(`/users/admin/${id}/rol`, { rol }).then((r) => r.data);
+
+export const updateUserPlan = (
+  id: number,
+  plan: 'FREE' | 'PRO',
+): Promise<UserProfile> =>
+  api.patch<UserProfile>(`/users/admin/${id}/plan`, { plan }).then((r) => r.data);
 
 export const deleteUser = (id: number): Promise<{ ok: boolean }> =>
   api.delete<{ ok: boolean }>(`/users/admin/${id}`).then((r) => r.data);

@@ -1,4 +1,4 @@
-// src/pages/miembros/MiembrosPage.tsx (CORREGIDO)
+// src/pages/miembros/MiembrosPage.tsx (ACTUALIZADO - VALIDAR OWNER + PRO)
 
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -15,11 +15,16 @@ export default function MiembrosPage() {
   
   const orgIdNum = orgId ? parseInt(orgId) : 0;
 
+  // Obtener plan de la organización
+  const currentOrg = usuario?.organizaciones?.find((o: any) => o.id === orgIdNum);
+  const orgPlan = currentOrg?.plan || 'FREE';
+  const isOrgPro = orgPlan === 'PRO';
+
   // Datos de miembros (para ambos roles)
   const { data: miembros, isLoading: miembrosLoading } = useQuery({
     queryKey: ['miembros-panel', orgIdNum],
     queryFn: () => ownerAdminApi.obtenerMiembrosPanel(orgIdNum),
-    enabled: orgIdNum > 0 && !authLoading && !permissionsLoading,
+    enabled: orgIdNum > 0 && !authLoading && !permissionsLoading && isOwner && isOrgPro,
   });
 
   const isLoading = authLoading || permissionsLoading || miembrosLoading;
@@ -32,9 +37,30 @@ export default function MiembrosPage() {
     );
   }
 
-  // OWNER o SUPERADMIN+OWNER: mostrar panel completo de administración
-  if (isOwner) {
+  // OWNER CON PLAN PRO: mostrar panel completo de administración
+  if (isOwner && isOrgPro) {
     return <OwnerPanelPage />;
+  }
+
+  // OWNER SIN PLAN PRO: mostrar mensaje de upgrade
+  if (isOwner && !isOrgPro) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 max-w-md text-center">
+          <AlertCircle size={48} className="text-yellow-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Plan PRO requerido</h2>
+          <p className="text-gray-600 mb-6">
+            La administración de miembros está disponible solo con plan PRO. Actualiza tu plan para acceder a esta funcionalidad.
+          </p>
+          <a
+            href="/precios"
+            className="inline-block px-6 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+          >
+            Ver planes
+          </a>
+        </div>
+      </div>
+    );
   }
 
   // MIEMBRO: mostrar solo su información
