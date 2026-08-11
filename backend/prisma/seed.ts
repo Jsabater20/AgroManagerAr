@@ -85,18 +85,19 @@ async function main() {
   const hashAdmin = await bcrypt.hash('Jsadmin1234', 10);
   const usuario = await prisma.usuario.upsert({
     where: { email: ADMIN_EMAIL },
-    update: { emailVerificado: true, rol: 'ADMIN', plan: 'PRO', planExpira: new Date('2099-12-31') },
+    update: { emailVerificado: true, rol: 'ADMIN', rolGlobal: 'SUPERADMIN', plan: 'PRO', planExpira: new Date('2099-12-31') },
     create: {
       email: ADMIN_EMAIL,
       nombre: 'Joaquín Sabater',
       password: hashAdmin,
       rol: 'ADMIN',
+      rolGlobal: 'SUPERADMIN',
       plan: 'PRO',
       planExpira: new Date('2099-12-31'),
       emailVerificado: true,
     },
   });
-  console.log(`👤 Admin: ${usuario.email}`);
+  console.log(`👤 Admin: ${usuario.email} (SUPERADMIN, PRO)`);
 
   // ─── Upsert usuario DEMO ──────────────────────────────────────────────────
   const hashDemo = await bcrypt.hash('Demo1234', 10);

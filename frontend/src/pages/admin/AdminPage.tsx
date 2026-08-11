@@ -15,7 +15,7 @@ import toast from 'react-hot-toast';
 // Emails protegidos que siempre deben ser PRO
 const PROTECTED_EMAILS = [
   'joaquinsabater@agromanagerar.com',
-  'demo@agromanagerar.ar',
+  'demo@agromanager.ar',
 ];
 
 export default function AdminPage() {

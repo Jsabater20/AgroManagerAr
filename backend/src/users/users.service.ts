@@ -81,6 +81,7 @@ export class UsersService {
         nombre: true,
         apellido: true,
         rolGlobal: true,
+        plan: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
