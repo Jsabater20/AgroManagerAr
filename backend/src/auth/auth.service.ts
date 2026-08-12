@@ -172,13 +172,13 @@ export class AuthService {
 
     const orgsDelUsuario = await this.prisma.organizacion.findMany({
       where: { propietarioId: usuario.id },
-      select: { id: true, nombre: true },
+      select: { id: true, nombre: true, plan: true },
     });
 
     const orgsComoMiembro = await this.prisma.usuarioOrganizacion.findMany({
       where: { usuarioId: usuario.id, activo: true },
       select: {
-        organizacion: { select: { id: true, nombre: true } },
+        organizacion: { select: { id: true, nombre: true, plan: true } },
       },
     });
 
