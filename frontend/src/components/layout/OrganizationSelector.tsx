@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { ChevronDown, Building2, Check } from 'lucide-react';
-import { useAuthStore } from '../../store/auth.store';
-import type { Organizacion } from '../../api/types';
+import { useAuthStore, type Organizacion } from '../../store/auth.store';
 
 export default function OrganizationSelector() {
   const [open, setOpen] = useState(false);
-  const { usuario } = useAuthStore();
+  const usuario = useAuthStore((s) => s.usuario);
+  const currentOrg = useAuthStore((s) => s.currentOrg());
 
-  const currentOrgId = usuario?.usuarioOrganizacionId || usuario?.organizaciones?.[0]?.id;
-  const currentOrg = (usuario?.organizaciones || []).find((o: Organizacion) => o.id === currentOrgId);
-  const organizations = usuario?.organizaciones || [];
+  const organizations = usuario?.organizaciones ?? [];
+  const currentOrgId =
+    currentOrg?.id ??
+    (organizations.length === 1 ? organizations[0]?.id : null);
 
-  if (!currentOrg) {
+  if (!currentOrg || !currentOrgId) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
         <Building2 size={16} />
@@ -54,7 +55,9 @@ export default function OrganizationSelector() {
                     <span className="font-medium text-gray-900 dark:text-white truncate">
                       {org.nombre}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{org.email}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {org.email ?? 'Sin email'}
+                    </span>
                   </div>
                   {org.id === currentOrgId && (
                     <Check size={16} className="text-green-600 dark:text-green-400 flex-shrink-0 ml-2" />

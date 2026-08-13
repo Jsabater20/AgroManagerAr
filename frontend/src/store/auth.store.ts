@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { queryClient } from '../lib/queryClient';
 
 export interface Organizacion {
   id: number;
   nombre: string;
-  email: string;
-  plan: 'FREE' | 'PRO';
+  email?: string;
+  plan?: 'FREE' | 'PRO';
   propietarioId: number;
 }
 
@@ -14,13 +15,29 @@ export interface Usuario {
   email: string;
   nombre: string;
   apellido: string;
-  rol: string;
+  rol?: string;
   rolGlobal?: string;
-  plan: 'FREE' | 'PRO';
+  plan?: 'FREE' | 'PRO';
   planExpira?: string | null;
   usuarioOrganizacionId?: number | null;
   organizaciones?: Organizacion[];
 }
+
+const normalizeUsuario = (usuario: Usuario | null): Usuario | null => {
+  if (!usuario) return null;
+
+  const organizaciones = (usuario.organizaciones ?? []).filter(Boolean);
+
+  const resolvedOrgId =
+    usuario.usuarioOrganizacionId ??
+    (organizaciones.length === 1 ? organizaciones[0].id : null);
+
+  return {
+    ...usuario,
+    usuarioOrganizacionId: resolvedOrgId,
+    organizaciones,
+  };
+};
 
 interface AuthState {
   token: string | null;
@@ -31,6 +48,7 @@ interface AuthState {
   setIsLoading: (v: boolean) => void;
   isPro: () => boolean;
   currentOrg: () => Organizacion | undefined;
+  activeOrgId: () => number | null;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -39,39 +57,69 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       usuario: null,
       isLoading: true,
-      setAuth: (usuario, token) => set({ usuario, token }),
-      logout: () => set({ usuario: null, token: null, isLoading: false }),
-      setIsLoading: (v) => set({ isLoading: v }),
-      isPro: () => {
-        const { usuario } = get();
-        if (!usuario) return false;
 
-        const orgActual = usuario.organizaciones?.find(
-          (o) => o.id === Number(usuario.usuarioOrganizacionId),
-        );
-
-        if (orgActual) return orgActual.plan === 'PRO';
-
-        const orgPrimera = usuario.organizaciones?.[0];
-        if (orgPrimera) return orgPrimera.plan === 'PRO';
-
-        return usuario.plan === 'PRO';
+      setAuth: (usuario, token) => {
+        set({
+          usuario: normalizeUsuario(usuario),
+          token,
+          isLoading: false,
+        });
       },
+
+      logout: () => {
+        queryClient.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('organizacionId');
+
+        set({
+          usuario: null,
+          token: null,
+          isLoading: false,
+        });
+      },
+
+      setIsLoading: (v) => set({ isLoading: v }),
+
+      isPro: () => {
+        const currentOrg = get().currentOrg();
+
+        if (currentOrg) {
+          return currentOrg.plan === 'PRO';
+        }
+
+        return get().usuario?.plan === 'PRO';
+      },
+
       currentOrg: () => {
-        const { usuario } = get();
+        const usuario = get().usuario;
+
         if (!usuario) return undefined;
 
-        const orgActual = usuario.organizaciones?.find(
-          (o) => o.id === Number(usuario.usuarioOrganizacionId),
-        );
-        if (orgActual) return orgActual;
+        const organizaciones = usuario.organizaciones ?? [];
+        const activeId = usuario.usuarioOrganizacionId;
 
-        return usuario.organizaciones?.[0];
+        if (activeId) {
+          return organizaciones.find((org) => org.id === Number(activeId));
+        }
+
+        if (organizaciones.length === 1) {
+          return organizaciones[0];
+        }
+
+        return undefined;
+      },
+
+      activeOrgId: () => {
+        const org = get().currentOrg();
+        return org ? org.id : null;
       },
     }),
     {
       name: 'agromanager-auth',
-      partialize: (state) => ({ token: state.token, usuario: state.usuario }),
+      partialize: (state) => ({
+        token: state.token,
+        usuario: state.usuario,
+      }),
     },
   ),
 );

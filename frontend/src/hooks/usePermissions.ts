@@ -28,13 +28,14 @@ export const usePermissions = () => {
     };
   }
 
+  const organizaciones = usuario.organizaciones ?? [];
   const currentOrg =
-    usuario.organizaciones?.find(
+    organizaciones.find(
       (org) => org.id === Number(usuario.usuarioOrganizacionId ?? 0),
-    ) ?? usuario.organizaciones?.[0];
+    ) ??
+    (organizaciones.length === 1 ? organizaciones[0] : undefined);
 
-  const organizacionId = Number(currentOrg?.id ?? usuario.usuarioOrganizacionId ?? 0);
-
+  const organizacionId = currentOrg ? Number(currentOrg.id) : null;
   const isSuperAdmin = usuario.rolGlobal === 'SUPERADMIN';
 
   const isOwner =
@@ -42,14 +43,13 @@ export const usePermissions = () => {
     currentOrg!.propietarioId === usuario.id;
 
   const hasMembershipInCurrentOrg =
-    Boolean(
-      usuario.organizaciones?.some(
-        (org) => org.id === organizacionId,
-      ),
-    );
+    Boolean(currentOrg) &&
+    organizaciones.some((org) => org.id === organizacionId);
 
   const isMember =
+    !isSuperAdmin &&
     !isOwner &&
+    Boolean(currentOrg) &&
     hasMembershipInCurrentOrg;
 
   return {

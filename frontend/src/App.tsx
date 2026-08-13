@@ -1,11 +1,10 @@
-// src/App.tsx (RESTAURAR RUTAS COMPLETAS)
-
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/auth.store';
 import { getProfile } from './api/users.api';
+import { queryClient } from './lib/queryClient';
 
 import PrivateRoute from './components/layout/PrivateRoute';
 import Layout from './components/layout/Layout';
@@ -46,8 +45,6 @@ import RolesPage from './pages/organizaciones/RolesPage';
 import { OwnerPanelPage } from './pages/organizaciones/OwnerPanelPage';
 import MiembrosPage from './pages/miembros/MiembrosPage';
 
-const queryClient = new QueryClient();
-
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
 
@@ -56,28 +53,48 @@ export default function App() {
       setIsLoading(false);
       return;
     }
-    
+
+    let mounted = true;
+
+    setIsLoading(true);
+
     getProfile()
       .then((profile) => {
-        setAuth({
-          id: profile.id,
-          email: profile.email,
-          nombre: profile.nombre,
-          apellido: profile.apellido,
-          rol: profile.rol || 'OPERADOR',
-          plan: (profile.plan || 'FREE') as 'FREE' | 'PRO',
-          rolGlobal: profile.rolGlobal,
-          usuarioOrganizacionId: profile.usuarioOrganizacionId,
-          organizaciones: profile.organizaciones || [],
-        }, token);
+        if (!mounted) return;
+
+        const organizaciones = profile.organizaciones ?? [];
+
+        const activeOrgId =
+          profile.usuarioOrganizacionId ??
+          (organizaciones.length === 1 ? organizaciones[0]?.id : null);
+
+        setAuth(
+          {
+            id: profile.id,
+            email: profile.email,
+            nombre: profile.nombre,
+            apellido: profile.apellido,
+            rol: profile.rol || 'OPERADOR',
+            plan: (profile.plan || 'FREE') as 'FREE' | 'PRO',
+            rolGlobal: profile.rolGlobal,
+            usuarioOrganizacionId: activeOrgId ?? null,
+            organizaciones,
+          },
+          token,
+        );
+
         setIsLoading(false);
       })
       .catch(() => {
+        if (!mounted) return;
         logout();
         setIsLoading(false);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [token, setAuth, setIsLoading, logout]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -97,6 +114,7 @@ export default function App() {
           <Route path="/suscripcion-exitosa" element={<SuscripcionExitosaPage />} />
           <Route path="/terminos" element={<TermsPage />} />
           <Route path="/privacidad" element={<PrivacyPage />} />
+
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
               <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
@@ -122,8 +140,10 @@ export default function App() {
               <Route path="/org/:orgId/admin" element={<OwnerPanelPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
             </Route>
+
             <Route path="/admin" element={<AdminPage />} />
           </Route>
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -18,7 +18,6 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async getProfile(usuarioId: number) {
-    // Obtener usuario con organizaciones
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: {
@@ -35,7 +34,6 @@ export class UsersService {
     });
     if (!u) throw new NotFoundException('Usuario no encontrado');
 
-    // Obtener organizaciones del usuario
     const orgsDelUsuario = await this.prisma.organizacion.findMany({
       where: { propietarioId: usuarioId },
       select: { id: true, nombre: true, email: true, plan: true, propietarioId: true },
@@ -54,7 +52,6 @@ export class UsersService {
       ...orgsComoMiembro.map((m) => m.organizacion),
     ];
 
-    // Detectar org principal (propietario primero, luego primer miembro)
     const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
     const usuarioOrganizacionId = orgPrincipal?.id;
 
@@ -92,8 +89,6 @@ export class UsersService {
     return { ok: true };
   }
 
-  // ─── ADMIN ────────────────────────────────────────────────────────────────
-
   async getAllUsers(adminId: number) {
     const admin = await this.prisma.usuario.findUnique({
       where: { id: adminId },
@@ -130,7 +125,7 @@ export class UsersService {
 
     const expira =
       dto.plan === 'PRO'
-        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 año manual
+        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
         : null;
 
     return this.prisma.usuario.update({
@@ -197,7 +192,6 @@ export class UsersService {
     });
   }
 
-  // ─── SEED DEMO ────────────────────────────────────────────────────────────
   async seedDemoData(adminId: number) {
     const admin = await this.prisma.usuario.findUnique({
       where: { id: adminId },
@@ -205,7 +199,6 @@ export class UsersService {
     });
     if (admin?.rol !== 'ADMIN') throw new ForbiddenException('Solo admins');
 
-    // Find or create demo user
     let demo = await this.prisma.usuario.findUnique({
       where: { email: 'demo@agromanager.ar' },
     });
@@ -222,7 +215,6 @@ export class UsersService {
     }
     const uid = demo.id;
 
-    // Wipe existing demo data in dependency order
     await this.prisma.registroPeso.deleteMany({
       where: { animal: { usuarioId: uid } },
     });
