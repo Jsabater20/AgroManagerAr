@@ -188,15 +188,23 @@ export class AuthService {
     ];
 
     const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
+    const usuarioOrganizacionId = orgPrincipal?.id ?? null;
     const token = this.generarToken(
       usuario.id,
       usuario.email,
-      orgPrincipal?.id,
+      usuarioOrganizacionId,
       usuario.rolGlobal,
     );
 
     const { password, emailVerificado, ...usuarioSinPassword } = usuario;
-    return { usuario: { ...usuarioSinPassword, organizaciones }, token };
+    return {
+      usuario: {
+        ...usuarioSinPassword,
+        organizaciones,
+        usuarioOrganizacionId,
+      },
+      token,
+    };
   }
 
   async verifyEmail(token: string) {

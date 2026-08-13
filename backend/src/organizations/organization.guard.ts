@@ -13,13 +13,14 @@ export class OrganizationGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const user = request.user as { id: number; organizacionId?: number };
-    const orgIdParam = (request.params.organizacionId || request.body?.organizacionId) as
-      | string
-      | undefined;
-    const organizacionId = orgIdParam ? parseInt(orgIdParam, 10) : undefined;
+    const rawOrgId =
+      request.params?.organizacionId ??
+      request.query?.organizacionId ??
+      request.body?.organizacionId;
+    const orgIdParam = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
+    const organizacionId = orgIdParam ? parseInt(String(orgIdParam), 10) : undefined;
 
     if (!organizacionId || isNaN(organizacionId)) {
-      // Si no hay organizacionId en la ruta, usar la del JWT
       if (user.organizacionId) {
         request.organizacionId = user.organizacionId;
         return true;
