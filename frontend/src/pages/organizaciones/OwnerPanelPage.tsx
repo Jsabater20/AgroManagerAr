@@ -1,317 +1,344 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { ownerAdminApi } from '../../api/owner-admin.api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  CheckCircle2,
+  Loader2,
+  ShieldCheck,
+  UserCog,
+  Users,
+  XCircle,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
-import './OwnerPanel.css';
 
-const ROLES = ['OWNER', 'ADMINISTRADOR', 'OPERARIO', 'CONTADOR', 'MECANICO', 'MIEMBRO'];
+import { ownerAdminApi } from '../../api/owner-admin.api';
+
+const ROLES = [
+  'OPERARIO',
+  'MECANICO',
+  'ADMINISTRADOR',
+  'CONTADOR',
+  'VETERINARIO',
+] as const;
+
+type MiembroPanel = {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  rol: string;
+  activo: boolean;
+  fechaIncorporacion: string;
+  actividades: {
+    pendientes: number;
+    enProgreso: number;
+    completadas: number;
+  };
+  recursosCampos: string[];
+};
 
 export function OwnerPanelPage() {
   const { orgId } = useParams<{ orgId: string }>();
-  const orgIdNum = orgId ? parseInt(orgId) : 0;
+  const orgIdNum = Number(orgId || 0);
+  const queryClient = useQueryClient();
 
-  const [expandedMemberId, setExpandedMemberId] = useState<number | null>(null);
-  const [showResourcePanel, setShowResourcePanel] = useState<number | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
-  // Queries
   const miembrosQuery = useQuery({
-    queryKey: ['miembros-panel', orgIdNum],
+    queryKey: ['owner-panel-miembros', orgIdNum],
     queryFn: () => ownerAdminApi.obtenerMiembrosPanel(orgIdNum),
     enabled: orgIdNum > 0,
   });
 
+  const miembros = (miembrosQuery.data ?? []) as MiembroPanel[];
+
+  const selectedMember = useMemo(
+    () => miembros.find((m) => m.id === selectedMemberId) ?? miembros[0] ?? null,
+    [miembros, selectedMemberId],
+  );
+
   const recursosQuery = useQuery({
-    queryKey: ['recursos-panel', orgIdNum, showResourcePanel],
-    queryFn: () =>
-      showResourcePanel
-        ? ownerAdminApi.obtenerRecursosAsignables(orgIdNum, showResourcePanel)
-        : Promise.resolve([]),
-    enabled: orgIdNum > 0 && showResourcePanel !== null,
+    queryKey: ['owner-panel-recursos', orgIdNum, selectedMember?.id ?? null],
+    queryFn: async () => {
+      if (!selectedMember) return [];
+      return ownerAdminApi.obtenerRecursosAsignables(orgIdNum, selectedMember.id);
+    },
+    enabled: orgIdNum > 0 && !!selectedMember,
   });
 
-  // Mutations
   const cambiarRolMutation = useMutation({
-    mutationFn: (params: {
+    mutationFn: ({
+      usuarioOrgId,
+      nuevoRol,
+    }: {
       usuarioOrgId: number;
       nuevoRol: string;
-    }) =>
-      ownerAdminApi.cambiarRolMiembro(orgIdNum, params.usuarioOrgId, params.nuevoRol),
+    }) => ownerAdminApi.cambiarRolMiembro(orgIdNum, usuarioOrgId, nuevoRol),
     onSuccess: () => {
-      miembrosQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['owner-panel-miembros', orgIdNum] });
       toast.success('Rol actualizado');
     },
-    onError: () => toast.error('Error al cambiar rol'),
-  });
-
-  const suspenderMutation = useMutation({
-    mutationFn: (usuarioOrgId: number) =>
-      ownerAdminApi.suspenderMiembro(orgIdNum, usuarioOrgId),
-    onSuccess: () => {
-      miembrosQuery.refetch();
-      toast.success('Miembro suspendido');
+    onError: () => {
+      toast.error('No se pudo actualizar el rol');
     },
-    onError: () => toast.error('Error al suspender'),
   });
 
-  const activarMutation = useMutation({
-    mutationFn: (usuarioOrgId: number) =>
-      ownerAdminApi.activarMiembro(orgIdNum, usuarioOrgId),
-    onSuccess: () => {
-      miembrosQuery.refetch();
-      toast.success('Miembro activado');
+  const toggleActivoMutation = useMutation({
+    mutationFn: ({ usuarioOrgId, activo }: { usuarioOrgId: number; activo: boolean }) => {
+      if (activo) return ownerAdminApi.activarMiembro(orgIdNum, usuarioOrgId);
+      return ownerAdminApi.suspenderMiembro(orgIdNum, usuarioOrgId);
     },
-    onError: () => toast.error('Error al activar'),
-  });
-
-  const quitarMutation = useMutation({
-    mutationFn: (usuarioOrgId: number) =>
-      ownerAdminApi.quitarMiembro(orgIdNum, usuarioOrgId),
     onSuccess: () => {
-      miembrosQuery.refetch();
-      toast.success('Miembro removido');
+      queryClient.invalidateQueries({ queryKey: ['owner-panel-miembros', orgIdNum] });
+      toast.success('Estado actualizado');
     },
-    onError: () => toast.error('Error al remover miembro'),
+    onError: () => {
+      toast.error('No se pudo actualizar el estado');
+    },
   });
 
-  const asignarRecursoMutation = useMutation({
-    mutationFn: (params: {
+  const toggleRecursoMutation = useMutation({
+    mutationFn: ({
+      usuarioOrgId,
+      recursoId,
+      asignado,
+    }: {
       usuarioOrgId: number;
       recursoId: number;
-    }) =>
-      ownerAdminApi.asignarRecurso(
-        orgIdNum,
-        params.usuarioOrgId,
-        'CAMPO',
-        params.recursoId,
-      ),
-    onSuccess: () => {
-      recursosQuery.refetch();
-      toast.success('Recurso asignado');
+      asignado: boolean;
+    }) => {
+      if (asignado) {
+        return ownerAdminApi.retirarRecurso(orgIdNum, usuarioOrgId, 'CAMPO', recursoId);
+      }
+      return ownerAdminApi.asignarRecurso(orgIdNum, usuarioOrgId, 'CAMPO', recursoId);
     },
-    onError: () => toast.error('Error al asignar recurso'),
-  });
-
-  const retirarRecursoMutation = useMutation({
-    mutationFn: (params: {
-      usuarioOrgId: number;
-      recursoId: number;
-    }) =>
-      ownerAdminApi.retirarRecurso(
-        orgIdNum,
-        params.usuarioOrgId,
-        'CAMPO',
-        params.recursoId,
-      ),
     onSuccess: () => {
-      recursosQuery.refetch();
-      toast.success('Recurso retirado');
+      queryClient.invalidateQueries({
+        queryKey: ['owner-panel-recursos', orgIdNum, selectedMember?.id ?? null],
+      });
+      toast.success('Recurso actualizado');
     },
-    onError: () => toast.error('Error al retirar recurso'),
+    onError: () => {
+      toast.error('No se pudo actualizar el recurso');
+    },
   });
 
   if (miembrosQuery.isLoading) {
-    return <div className="owner-panel">Cargando...</div>;
+    return (
+      <div className="flex min-h-[220px] items-center justify-center gap-2 text-sm text-gray-500">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Cargando personal...
+      </div>
+    );
   }
 
-  const miembros = miembrosQuery.data || [];
+  if (!miembros.length) {
+    return (
+      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+        No hay miembros en esta organización.
+      </div>
+    );
+  }
 
   return (
-    <div className="owner-panel">
-      <h1>Panel de Administración</h1>
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <UserCog className="h-4 w-4 text-emerald-600" />
+          <h2 className="text-base font-semibold text-gray-900">
+            Administración del personal
+          </h2>
+        </div>
 
-      {/* ÁREA A - MIEMBROS */}
-      <section className="panel-section">
-        <h2>Gestión de Miembros</h2>
-        <div className="members-grid">
-          {miembros.map((miembro) => (
-            <div key={miembro.id} className="member-card">
-              {/* Encabezado del miembro */}
-              <div className="member-header">
-                <div className="member-info">
-                  <h3>
-                    {miembro.nombre} {miembro.apellido}
-                  </h3>
-                  <p className="email">{miembro.email}</p>
-                  <div className="badges">
-                    <span className={`badge role ${miembro.rol.toLowerCase()}`}>
-                      {miembro.rol}
-                    </span>
-                    <span className={`badge status ${miembro.activo ? 'active' : 'inactive'}`}>
-                      {miembro.activo ? 'Activo' : 'Suspendido'}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  className="expand-btn"
-                  onClick={() =>
-                    setExpandedMemberId(
-                      expandedMemberId === miembro.id ? null : miembro.id,
-                    )
-                  }
-                >
-                  {expandedMemberId === miembro.id ? '−' : '+'}
-                </button>
+        <label className="block text-sm">
+          <span className="mb-1.5 block text-gray-700">Miembro</span>
+          <select
+            value={selectedMember?.id ?? miembros[0].id}
+            onChange={(e) => setSelectedMemberId(Number(e.target.value))}
+            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {miembros.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.nombre} {member.apellido}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {selectedMember && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {selectedMember.nombre} {selectedMember.apellido}
+                </p>
+                <p className="text-sm text-gray-500">{selectedMember.email}</p>
               </div>
 
-              {/* Detalles del miembro */}
-              {expandedMemberId === miembro.id && (
-                <div className="member-details">
-                  {/* Información de incorporación y actividades */}
-                  <div className="info-row">
-                    <span>Incorporado:</span>
-                    <span>
-                      {new Date(miembro.fechaIncorporacion).toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  <div className="activities-summary">
-                    <div className="activity-badge">
-                      <span className="count">{miembro.actividades.pendientes}</span>
-                      <span className="label">Pendientes</span>
-                    </div>
-                    <div className="activity-badge">
-                      <span className="count">{miembro.actividades.enProgreso}</span>
-                      <span className="label">En Progreso</span>
-                    </div>
-                    <div className="activity-badge">
-                      <span className="count">{miembro.actividades.completadas}</span>
-                      <span className="label">Completadas</span>
-                    </div>
-                  </div>
-
-                  {/* Campos asignados */}
-                  {miembro.recursosCampos.length > 0 && (
-                    <div className="info-row">
-                      <span>Campos:</span>
-                      <div className="tags">
-                        {miembro.recursosCampos.map((campo) => (
-                          <span key={campo} className="tag">
-                            {campo}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Selector de rol */}
-                  <div className="action-row">
-                    <label>Cambiar rol:</label>
-                    <select
-                      value={miembro.rol}
-                      onChange={(e) =>
-                        cambiarRolMutation.mutate({
-                          usuarioOrgId: miembro.id,
-                          nuevoRol: e.target.value,
-                        })
-                      }
-                      disabled={cambiarRolMutation.isPending}
-                    >
-                      {ROLES.map((rol) => (
-                        <option key={rol} value={rol}>
-                          {rol}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Botones de acciones */}
-                  <div className="actions">
-                    {miembro.activo ? (
-                      <button
-                        className="btn btn-danger"
-                        onClick={() => suspenderMutation.mutate(miembro.id)}
-                        disabled={suspenderMutation.isPending}
-                      >
-                        Suspender
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-success"
-                        onClick={() => activarMutation.mutate(miembro.id)}
-                        disabled={activarMutation.isPending}
-                      >
-                        Activar
-                      </button>
-                    )}
-
-                    <button
-                      className="btn btn-info"
-                      onClick={() => setShowResourcePanel(miembro.id)}
-                    >
-                      Asignar Recursos
-                    </button>
-
-                    <button
-                      className="btn btn-danger"
-                      onClick={() => quitarMutation.mutate(miembro.id)}
-                      disabled={quitarMutation.isPending}
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                </div>
-              )}
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                  selectedMember.activo
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                {selectedMember.activo ? 'ACTIVO' : 'INACTIVO'}
+              </span>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ÁREA B - ASIGNACIONES DE RECURSOS */}
-      {showResourcePanel !== null && (
-        <section className="panel-section resources-section">
-          <div className="section-header">
-            <h2>Asignación de Recursos</h2>
-            <button
-              className="btn btn-close"
-              onClick={() => setShowResourcePanel(null)}
-            >
-              ✕
-            </button>
-          </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm text-gray-700">Rol</label>
+                <select
+                  value={selectedMember.rol}
+                  onChange={(e) =>
+                    cambiarRolMutation.mutate({
+                      usuarioOrgId: selectedMember.id,
+                      nuevoRol: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {ROLES.map((rol) => (
+                    <option key={rol} value={rol}>
+                      {rol}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {recursosQuery.isLoading ? (
-            <p>Cargando recursos...</p>
-          ) : (
-            <div className="resources-grid">
-              {recursosQuery.data?.map((recurso) => (
-                <div key={`${recurso.tipo}-${recurso.id}`} className="resource-item">
-                  <div className="resource-name">{recurso.nombre}</div>
-                  <div className="resource-type">{recurso.tipo}</div>
-
-                  {recurso.asignado ? (
+              <div>
+                <label className="mb-1.5 block text-sm text-gray-700">Estado</label>
+                <div className="flex gap-2">
+                  {selectedMember.activo ? (
                     <button
-                      className="toggle-btn active"
+                      type="button"
                       onClick={() =>
-                        retirarRecursoMutation.mutate({
-                          usuarioOrgId: showResourcePanel,
-                          recursoId: recurso.id,
+                        toggleActivoMutation.mutate({
+                          usuarioOrgId: selectedMember.id,
+                          activo: false,
                         })
                       }
-                      disabled={retirarRecursoMutation.isPending}
+                      className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700"
                     >
-                      ✓ Asignado
+                      <XCircle className="h-4 w-4" />
+                      Dar de baja
                     </button>
                   ) : (
                     <button
-                      className="toggle-btn"
+                      type="button"
                       onClick={() =>
-                        asignarRecursoMutation.mutate({
-                          usuarioOrgId: showResourcePanel,
-                          recursoId: recurso.id,
+                        toggleActivoMutation.mutate({
+                          usuarioOrgId: selectedMember.id,
+                          activo: true,
                         })
                       }
-                      disabled={asignarRecursoMutation.isPending}
+                      className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700"
                     >
-                      + Asignar
+                      <CheckCircle2 className="h-4 w-4" />
+                      Dar de alta
                     </button>
                   )}
                 </div>
-              ))}
+              </div>
             </div>
-          )}
-        </section>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <h3 className="font-semibold text-gray-900">Permisos y recursos</h3>
+            </div>
+
+            <div className="mb-3 mt-1 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              Se mantienen los permisos y asignaciones reales del backend.
+            </div>
+
+            {recursosQuery.isLoading ? (
+              <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cargando recursos...
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recursosQuery.data?.map((recurso) => (
+                  <div
+                    key={`${recurso.tipo}-${recurso.id}`}
+                    className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{recurso.nombre}</p>
+                      <p className="text-xs text-gray-500">{recurso.tipo}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleRecursoMutation.mutate({
+                          usuarioOrgId: selectedMember.id,
+                          recursoId: recurso.id,
+                          asignado: recurso.asignado,
+                        })
+                      }
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        recurso.asignado
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {recurso.asignado ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+          <Users className="h-4 w-4 text-emerald-600" />
+          Miembros activos
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {miembros.map((member) => (
+            <div
+              key={member.id}
+              className={`rounded-xl border px-3 py-2 text-sm ${
+                selectedMember?.id === member.id
+                  ? 'border-emerald-200 bg-emerald-50'
+                  : 'border-gray-200 bg-gray-50'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedMemberId(member.id)}
+                className="w-full text-left"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-gray-800">
+                    {member.nombre} {member.apellido}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      member.activo
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {member.activo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-gray-500">{member.rol}</div>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

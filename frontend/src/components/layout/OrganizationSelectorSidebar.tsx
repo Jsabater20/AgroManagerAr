@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
   LogOut,
-  Users,
   Lock,
   Clock,
   LayoutDashboard,
@@ -264,13 +263,6 @@ export default function OrganizationSelectorSidebar() {
             <div className="px-4 text-xs font-semibold text-emerald-300 uppercase">
               Administración
             </div>
-            <button
-              onClick={() => handleNavigate(`/org/${orgId}/miembros-admin`)}
-              className="w-full flex items-center gap-3 px-4 py-2 text-emerald-100 hover:bg-emerald-700 rounded-lg transition-colors"
-            >
-              <Users size={18} />
-              <span className="text-sm">Admin de Miembros</span>
-            </button>
             <button
               onClick={() => handleNavigate(`/org/${orgId}/roles-y-permisos`)}
               className="w-full flex items-center gap-3 px-4 py-2 text-emerald-100 hover:bg-emerald-700 rounded-lg transition-colors"

@@ -42,7 +42,6 @@ import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 import RolesPage from './pages/organizaciones/RolesPage';
-import { OwnerPanelPage } from './pages/organizaciones/OwnerPanelPage';
 import MiembrosPage from './pages/miembros/MiembrosPage';
 
 export default function App() {
@@ -137,7 +136,6 @@ export default function App() {
               <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
               <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
               <Route path="/org/:orgId/roles" element={<RolesPage />} />
-              <Route path="/org/:orgId/admin" element={<OwnerPanelPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
             </Route>
 
