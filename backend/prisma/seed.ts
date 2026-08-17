@@ -47,6 +47,7 @@ async function limpiarDemoData(demoId: number) {
   }
   await prisma.tareaRural.deleteMany({ where: { usuarioId: demoId } });
   await prisma.movimientoFinanciero.deleteMany({ where: { usuarioId: demoId } });
+  await prisma.maquinaria.deleteMany({ where: { usuarioId: demoId } });
 }
 
 async function main() {
@@ -130,7 +131,6 @@ async function main() {
   let orgDemo = await prisma.organizacion.findFirst({
     where: { propietarioId: usuarioDemo.id },
   });
-
   if (!orgDemo) {
     orgDemo = await prisma.organizacion.create({
       data: {
@@ -350,6 +350,59 @@ async function main() {
     ],
   });
 
+  const vacaDemo = await prisma.animal.create({
+    data: {
+      usuarioId: usuarioDemo.id,
+      organizacionId: orgDemo.id,
+      nombre: 'Pantanera 01',
+      especie: 'BOVINO',
+      sexo: 'HEMBRA',
+      categoria: 'VACA',
+      peso: 480,
+      fechaNacimiento: new Date('2019-08-15'),
+    },
+  });
+  await prisma.animal.createMany({
+    data: [
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, nombre: 'Pantanera 02', especie: 'BOVINO', sexo: 'HEMBRA', categoria: 'VACA', peso: 510 },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, nombre: 'Patagón', especie: 'BOVINO', sexo: 'MACHO', categoria: 'TORO', peso: 820 },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, nombre: 'Novillo 01', especie: 'BOVINO', sexo: 'MACHO', categoria: 'NOVILLO', peso: 390 },
+    ],
+  });
+  await prisma.prenez.create({
+    data: {
+      animalId: vacaDemo.id,
+      fechaInicio: new Date('2026-02-15'),
+      fechaEstimadaParto: new Date('2026-11-25'),
+      estado: 'EN_CURSO',
+    },
+  });
+
+  await prisma.tareaRural.createMany({
+    data: [
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoEsperanza.id, titulo: 'Revisar pulverizadora', tipo: 'MANTENIMIENTO', estado: 'PENDIENTE', prioridad: 'ALTA', fechaProgramada: new Date('2026-08-20') },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoProgreso.id, titulo: 'Control sanitario del rodeo', tipo: 'VETERINARIA', estado: 'EN_CURSO', prioridad: 'MEDIA', fechaProgramada: new Date('2026-08-17') },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoEsperanza.id, titulo: 'Analizar suelo Lote Norte', tipo: 'OTRO', estado: 'COMPLETADA', prioridad: 'BAJA', fechaProgramada: new Date('2026-08-05'), fechaCompletada: new Date('2026-08-07') },
+    ],
+  });
+
+  await prisma.maquinaria.createMany({
+    data: [
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoEsperanza.id, nombre: 'Tractor John Deere 5075E', tipo: 'TRACTOR', estado: 'OPERATIVA', marca: 'John Deere', modelo: '5075E', anio: 2021, horasUso: 1500 },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoEsperanza.id, nombre: 'Pulverizadora Jacto Condor 3000', tipo: 'PULVERIZADORA', estado: 'OPERATIVA', marca: 'Jacto', modelo: 'Condor 3000', anio: 2020, horasUso: 650 },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, nombre: 'Cosechadora Claas Lexion 650', tipo: 'COSECHADORA', estado: 'OPERATIVA', marca: 'Claas', modelo: 'Lexion 650', anio: 2018, horasUso: 1200 },
+    ],
+  });
+
+  await prisma.movimientoFinanciero.createMany({
+    data: [
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoEsperanza.id, tipo: 'INGRESO', concepto: 'Venta de soja Lote Norte', monto: 856800, fecha: new Date('2026-07-28'), categoria: 'COSECHA' },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoProgreso.id, tipo: 'INGRESO', concepto: 'Venta de novillos', monto: 420000, fecha: new Date('2026-08-02'), categoria: 'VENTA_ANIMAL' },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, campoId: campoEsperanza.id, tipo: 'EGRESO', concepto: 'Fertilizante y semilla', monto: 165000, fecha: new Date('2026-08-04'), categoria: 'INSUMO' },
+      { usuarioId: usuarioDemo.id, organizacionId: orgDemo.id, tipo: 'EGRESO', concepto: 'Combustible maquinaria', monto: 78000, fecha: new Date('2026-08-10'), categoria: 'COMBUSTIBLE' },
+    ],
+  });
+
   console.log('✅ Seed demo finalizado con organización PRO');
 }
 
@@ -361,4 +414,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-  

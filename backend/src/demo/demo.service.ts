@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 
@@ -20,11 +21,27 @@ export class DemoService implements OnModuleInit {
       });
       if (!demo) return;
 
-      const maqCount = await this.prisma.maquinaria.count({ where: { usuarioId: demo.id } });
+      const [campoCount, siembraCount, animalCount, tareaCount, maquinariaCount, finanzaCount] =
+        await Promise.all([
+          this.prisma.campo.count({ where: { usuarioId: demo.id } }),
+          this.prisma.siembra.count({ where: { lote: { campo: { usuarioId: demo.id } } } }),
+          this.prisma.animal.count({ where: { usuarioId: demo.id } }),
+          this.prisma.tareaRural.count({ where: { usuarioId: demo.id } }),
+          this.prisma.maquinaria.count({ where: { usuarioId: demo.id } }),
+          this.prisma.movimientoFinanciero.count({ where: { usuarioId: demo.id } }),
+        ]);
       const campoSinGps = await this.prisma.campo.findFirst({
         where: { usuarioId: demo.id, latitud: null },
       });
-      if (maqCount === 0 || campoSinGps) {
+      if (
+        campoCount === 0 ||
+        siembraCount === 0 ||
+        animalCount === 0 ||
+        tareaCount === 0 ||
+        maquinariaCount === 0 ||
+        finanzaCount === 0 ||
+        campoSinGps
+      ) {
         this.logger.log('Demo incompleta — ejecutando reset...');
         await this.resetDemoData();
         this.logger.log('Reset inicial demo completado.');
@@ -231,6 +248,7 @@ export class DemoService implements OnModuleInit {
         fechaFin: new Date('2025-06-30'),
         descripcion: 'Primera campaña completa en ambos campos',
         usuarioId: uid,
+        organizacionId,
       },
     });
 
@@ -240,6 +258,7 @@ export class DemoService implements OnModuleInit {
         fechaInicio: new Date('2025-10-01'),
         descripcion: 'Campaña actual en curso',
         usuarioId: uid,
+        organizacionId,
       },
     });
 
@@ -567,7 +586,9 @@ export class DemoService implements OnModuleInit {
     ] as const;
 
     const animales = await Promise.all(
-      animalesData.map((a) => this.prisma.animal.create({ data: { ...a, usuarioId: uid } })),
+      animalesData.map((a) =>
+        this.prisma.animal.create({ data: { ...a, usuarioId: uid, organizacionId } }),
+      ),
     );
 
     for (const vaca of animales.slice(0, 5)) {
@@ -609,7 +630,7 @@ export class DemoService implements OnModuleInit {
 
     // ─── Tareas ───────────────────────────────────────────────────────────────
     await this.prisma.tareaRural.createMany({
-      data: [
+      data: ([
         {
           usuarioId: uid,
           titulo: 'Aplicar herbicida Lote Este',
@@ -712,12 +733,14 @@ export class DemoService implements OnModuleInit {
           fechaProgramada: new Date('2026-01-10'),
           campoId: campoProgreso.id,
         },
-      ],
+      ] as const).map(
+        (tarea): Prisma.TareaRuralCreateManyInput => ({ ...tarea, organizacionId }),
+      ),
     });
 
     // ─── Maquinarias ─────────────────────────────────────────────────────────
     await this.prisma.maquinaria.createMany({
-      data: [
+      data: ([
         {
           usuarioId: uid,
           nombre: 'Tractor John Deere 5075E',
@@ -782,12 +805,14 @@ export class DemoService implements OnModuleInit {
           anio: 2022,
           observaciones: '32 discos hidráulica independiente.',
         },
-      ],
+      ] as const).map(
+        (maquinaria): Prisma.MaquinariaCreateManyInput => ({ ...maquinaria, organizacionId }),
+      ),
     });
 
     // Finanzas (ingresos y egresos)
     await this.prisma.movimientoFinanciero.createMany({
-      data: [
+      data: ([
         {
           usuarioId: uid,
           tipo: 'INGRESO',
@@ -945,7 +970,9 @@ export class DemoService implements OnModuleInit {
           categoria: 'INSUMO',
           campoId: campoProgreso.id,
         },
-      ],
+      ] as const).map(
+        (movimiento): Prisma.MovimientoFinancieroCreateManyInput => ({ ...movimiento, organizacionId }),
+      ),
     });
   }
 }
