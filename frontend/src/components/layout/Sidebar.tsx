@@ -18,9 +18,11 @@ import {
   Settings,
   Users,
   Shield,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import type { ElementType } from 'react';
+import { useState } from 'react';
 
 interface NavItem {
   to: (orgId: string) => string;
@@ -36,7 +38,6 @@ const navItems: NavItem[] = [
   { to: (id) => `/org/${id}/insumos`, label: 'Insumos', icon: FlaskConical },
   { to: (id) => `/org/${id}/ganado`, label: 'Ganadería', icon: PawPrint },
   { to: (id) => `/org/${id}/tareas`, label: 'Tareas', icon: ClipboardList },
-  { to: (id) => `/org/${id}/miembros`, label: 'Miembros', icon: Users },
   { to: (id) => `/org/${id}/maquinarias`, label: 'Maquinarias', icon: Wrench },
   { to: (id) => `/org/${id}/finanzas`, label: 'Finanzas', icon: DollarSign },
   { to: (id) => `/org/${id}/campanias`, label: 'Campañas', icon: CalendarRange },
@@ -54,6 +55,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const { orgId } = useParams<{ orgId: string }>();
   const { usuario, logout, isPro, isLoading } = useAuthStore();
   const navigate = useNavigate();
+  const [isMembersOpen, setIsMembersOpen] = useState(true);
 
   const handleLogout = () => {
     logout();
@@ -66,6 +68,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   const currentOrgId = orgId || '1';
   const isSuperAdmin = !isLoading && usuario?.rolGlobal === 'SUPERADMIN';
+
+  const memberSubitems = [
+    { label: 'Invitar miembros', to: `/org/${currentOrgId}/miembros/invitar` },
+    { label: 'Administración de personal', to: `/org/${currentOrgId}/miembros/administracion` },
+    { label: 'Asignar trabajo', to: `/org/${currentOrgId}/miembros/asignar-trabajo` },
+    { label: 'Miembros y trabajos', to: `/org/${currentOrgId}/miembros/trabajos` },
+  ];
 
   return (
     <aside
@@ -92,7 +101,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">
+      <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={label}
@@ -111,6 +120,45 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <span>{label}</span>
           </NavLink>
         ))}
+
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setIsMembersOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white hover:bg-white/10"
+          >
+            <span className="flex items-center gap-3">
+              <Users size={18} className="text-green-200" />
+              <span>Miembros</span>
+            </span>
+
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${isMembersOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {isMembersOpen && (
+            <div className="ml-6 mt-1 space-y-1 border-l border-white/10 pl-2">
+              {memberSubitems.map((item) => (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `block rounded-lg px-3 py-2 text-sm transition-colors ${
+                      isActive
+                        ? 'bg-white/15 text-white'
+                        : 'text-green-200 hover:bg-white/10 hover:text-white'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
+        </div>
       </nav>
 
       <div className="border-t border-white/10 p-3 space-y-2">

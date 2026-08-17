@@ -42,7 +42,7 @@ function FeatureCell({ value }: { value: boolean | string }) {
 
 const PRECIOS = {
   mensual: { monto: 13990, label: 'mes', descuento: null },
-  anual:   { monto: 153890, label: 'año', descuento: 'Ahorrá un 16% con el plan anual' },
+  anual:   { monto: 139900, label: 'año', descuento: 'Ahorrá un 16% con el plan anual' },
 };
 
 export default function PreciosPage() {
