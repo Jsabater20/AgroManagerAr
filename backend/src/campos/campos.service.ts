@@ -19,10 +19,14 @@ export class CamposService {
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { propietarioId: true },
+    });
     let whereClause: any = { organizacionId };
 
-    // Si viene usuarioOrganizacionId, filtrar por campos asignados a ese usuario
-    if (usuarioOrganizacionId) {
+    // Los miembros sólo ven campos asignados; el propietario ve todos los de su organización.
+    if (usuarioOrganizacionId && organizacion?.propietarioId !== usuarioId) {
       whereClause = {
         organizacionId,
         AsignacionCampo: {
@@ -32,9 +36,6 @@ export class CamposService {
           },
         },
       };
-    } else {
-      // Si no viene filtro, mostrar todos los campos de la org (para owners/admins)
-      whereClause = { organizacionId };
     }
 
     return this.prisma.campo.findMany({
