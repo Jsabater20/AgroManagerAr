@@ -170,7 +170,7 @@ export default function MiembrosPage() {
   const createActividadMutation = useMutation({
     mutationFn: async () => {
       const payload = {
-        miembroId: Number(activityForm.miembroId),
+        usuarioOrganizacionId: Number(activityForm.miembroId),
         titulo: activityForm.titulo,
         descripcion: activityForm.descripcion || undefined,
         recursoTipo:
@@ -178,7 +178,7 @@ export default function MiembrosPage() {
         recursoId:
           activityForm.recursoTipo === 'GENERAL' ? null : Number(activityForm.recursoId),
         fechaInicio: activityForm.fechaInicio || undefined,
-        fechaFin: activityForm.fechaFin || undefined,
+        fechaEstimadaFin: activityForm.fechaFin || undefined,
         horarioInicio: activityForm.horarioInicio || undefined,
         horarioFin: activityForm.horarioFin || undefined,
         prioridad: activityForm.prioridad,
@@ -205,8 +205,9 @@ export default function MiembrosPage() {
       });
       queryClient.invalidateQueries({ queryKey: ['miembros-panel', orgIdNum] });
     },
-    onError: () => {
-      toast.error('No se pudo asignar el trabajo.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.message;
+      toast.error(Array.isArray(message) ? message[0] : message || 'No se pudo asignar el trabajo.');
     },
   });
 
@@ -234,8 +235,9 @@ export default function MiembrosPage() {
     onSuccess: () => {
       toast.success('Acceso otorgado y trabajo asignado.');
     },
-    onError: () => {
-      toast.error('No se pudo otorgar acceso ni asignar el trabajo.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.message;
+      toast.error(Array.isArray(message) ? message[0] : message || 'No se pudo otorgar acceso ni asignar el trabajo.');
     },
   });
 
