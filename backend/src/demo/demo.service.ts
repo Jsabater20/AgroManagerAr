@@ -21,6 +21,39 @@ export class DemoService implements OnModuleInit {
       });
       if (!demo) return;
 
+      const demoOrg = await this.prisma.organizacion.findFirst({
+        where: { propietarioId: demo.id },
+        select: { id: true },
+      });
+      if (!demoOrg) return;
+
+      await Promise.all([
+        this.prisma.campo.updateMany({
+          where: { usuarioId: demo.id, organizacionId: { not: demoOrg.id } },
+          data: { organizacionId: demoOrg.id },
+        }),
+        this.prisma.campania.updateMany({
+          where: { usuarioId: demo.id, organizacionId: { not: demoOrg.id } },
+          data: { organizacionId: demoOrg.id },
+        }),
+        this.prisma.animal.updateMany({
+          where: { usuarioId: demo.id, organizacionId: { not: demoOrg.id } },
+          data: { organizacionId: demoOrg.id },
+        }),
+        this.prisma.tareaRural.updateMany({
+          where: { usuarioId: demo.id, organizacionId: { not: demoOrg.id } },
+          data: { organizacionId: demoOrg.id },
+        }),
+        this.prisma.maquinaria.updateMany({
+          where: { usuarioId: demo.id, organizacionId: { not: demoOrg.id } },
+          data: { organizacionId: demoOrg.id },
+        }),
+        this.prisma.movimientoFinanciero.updateMany({
+          where: { usuarioId: demo.id, organizacionId: { not: demoOrg.id } },
+          data: { organizacionId: demoOrg.id },
+        }),
+      ]);
+
       const [campoCount, siembraCount, animalCount, tareaCount, maquinariaCount, finanzaCount] =
         await Promise.all([
           this.prisma.campo.count({ where: { usuarioId: demo.id } }),
