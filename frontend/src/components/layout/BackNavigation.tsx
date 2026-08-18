@@ -22,15 +22,17 @@ export default function BackNavigation() {
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleBack}
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-      aria-label="Volver a la sección anterior"
-      title="Volver"
-    >
-      <ArrowLeft size={18} />
-      <span className="hidden md:inline">Volver</span>
-    </button>
+    <div className="mb-4 ml-6">
+      <button
+        type="button"
+        onClick={handleBack}
+        className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+        aria-label="Volver a la sección anterior"
+        title="Volver"
+      >
+        <ArrowLeft size={18} />
+        <span className="hidden md:inline">Volver</span>
+      </button>
+    </div>
   );
 }

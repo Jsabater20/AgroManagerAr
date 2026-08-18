@@ -47,8 +47,6 @@ export default function Layout() {
             <Menu size={20} />
           </button>
 
-          <BackNavigation />
-
           {/* Organization Selector */}
           <OrganizationSelector />
 
@@ -81,6 +79,7 @@ export default function Layout() {
 
       {/* Contenido centrado */}
       <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '2rem 24px' }}>
+        <BackNavigation />
         <Outlet />
       </main>
 
