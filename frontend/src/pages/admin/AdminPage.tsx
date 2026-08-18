@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { Navigate } from 'react-router-dom';
 import { Trash2, AlertCircle, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import BackNavigation from '../../components/layout/BackNavigation';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────
 const DEMO_EMAIL = 'demo@agromanager.ar';
@@ -87,6 +88,7 @@ export default function AdminPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <BackNavigation />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Panel de administración</h1>

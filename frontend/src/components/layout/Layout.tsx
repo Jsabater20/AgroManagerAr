@@ -9,6 +9,7 @@ import OnboardingWizard, { useOnboarding } from './OnboardingWizard';
 import { useThemeStore } from '../../store/theme.store';
 import AiChat from '../ui/AiChat';
 import DemoBanner from '../ui/DemoBanner';
+import BackNavigation from './BackNavigation';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,6 +46,8 @@ export default function Layout() {
           >
             <Menu size={20} />
           </button>
+
+          <BackNavigation />
 
           {/* Organization Selector */}
           <OrganizationSelector />
