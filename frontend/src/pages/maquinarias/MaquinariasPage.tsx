@@ -203,7 +203,7 @@ export default function MaquinariasPage() {
               <div
                 key={m.id}
                 className="bg-white rounded-xl border border-gray-200 hover:border-green-300 hover:shadow-md transition-all cursor-pointer group"
-                onClick={() => navigate(`/maquinarias/${m.id}`)}
+                onClick={() => navigate(`/org/${orgId}/maquinarias/${m.id}`)}
               >
                 <div className="p-4">
                   {/* Title row */}

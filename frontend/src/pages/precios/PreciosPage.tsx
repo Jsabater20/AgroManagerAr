@@ -47,6 +47,7 @@ const PRECIOS = {
 
 export default function PreciosPage() {
   const { usuario, setAuth, token } = useAuthStore();
+  const activeOrgId = useAuthStore((state) => state.activeOrgId());
   const navigate = useNavigate();
   const [showCancel, setShowCancel] = useState(false);
   const [tipo, setTipo] = useState<'mensual' | 'anual'>('mensual');
@@ -244,7 +245,7 @@ export default function PreciosPage() {
 
       {/* Back button */}
       <div className="mt-8 text-center">
-        <button onClick={() => navigate('/dashboard')} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => navigate(activeOrgId ? `/org/${activeOrgId}/dashboard` : '/')} className="text-sm text-gray-500 hover:text-gray-700">
           ← Volver al dashboard
         </button>
       </div>

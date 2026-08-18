@@ -81,7 +81,7 @@ export default function GlobalSearch({ open, onClose }: Props) {
         label: t.titulo,
         sublabel: t.tipo,
         icon: <ClipboardList size={15} className="text-green-500" />,
-        href: `/tareas`,
+        href: `/org/${orgId}/tareas`,
       })),
   ];
 

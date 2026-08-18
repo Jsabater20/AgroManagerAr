@@ -14,6 +14,7 @@ export default function SuscripcionExitosaPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { usuario, token, setAuth } = useAuthStore();
+  const activeOrgId = useAuthStore((state) => state.activeOrgId());
   const [estado, setEstado] = useState<Estado>(() =>
     searchParams.get('preapproval_id') ? 'verificando' : 'error',
   );
@@ -115,7 +116,7 @@ export default function SuscripcionExitosaPage() {
               </ul>
             </div>
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(activeOrgId ? `/org/${activeOrgId}/dashboard` : '/')}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               Ir a mi dashboard →

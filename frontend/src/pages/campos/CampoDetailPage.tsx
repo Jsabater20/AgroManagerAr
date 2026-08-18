@@ -56,7 +56,7 @@ export default function CampoDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campos'] });
       toast.success('Campo eliminado');
-      navigate('/campos');
+      navigate(`/org/${orgId}/campos`);
     },
     onError: () => toast.error('No se pudo eliminar el campo'),
   });
@@ -150,7 +150,7 @@ export default function CampoDetailPage() {
             {campo.lotes?.map((lote: any) => (
               <Link
                 key={lote.id}
-                to={`/campos/${campo.id}/lotes/${lote.id}`}
+                to={`/org/${orgId}/campos/${campo.id}/lotes/${lote.id}`}
                 className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-1 px-1 rounded-lg transition-colors group"
               >
                 <div>

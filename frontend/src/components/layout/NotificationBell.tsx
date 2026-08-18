@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell, AlertTriangle, Clock, PawPrint, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 
@@ -16,6 +16,7 @@ interface Alerta {
 }
 
 export default function NotificationBell() {
+  const { orgId } = useParams<{ orgId: string }>();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -45,7 +46,7 @@ export default function NotificationBell() {
       tipo: 'vencida',
       titulo: `${vencidas.length} tarea${vencidas.length > 1 ? 's' : ''} vencida${vencidas.length > 1 ? 's' : ''}`,
       sub: vencidas.slice(0, 2).map((t: any) => t.titulo).join(', ') + (vencidas.length > 2 ? '...' : ''),
-      link: '/tareas',
+      link: orgId ? `/org/${orgId}/tareas` : '/',
       icon: AlertTriangle,
       color: 'text-red-600 bg-red-50',
     });
@@ -63,7 +64,7 @@ export default function NotificationBell() {
       tipo: 'tarea_hoy',
       titulo: `${paraHoy.length} tarea${paraHoy.length > 1 ? 's' : ''} para hoy`,
       sub: paraHoy.slice(0, 2).map((t: any) => t.titulo).join(', ') + (paraHoy.length > 2 ? '...' : ''),
-      link: '/tareas',
+      link: orgId ? `/org/${orgId}/tareas` : '/',
       icon: Clock,
       color: 'text-orange-600 bg-orange-50',
     });
@@ -87,7 +88,7 @@ export default function NotificationBell() {
       tipo: 'prenez',
       titulo: `${closest.length} preñez${closest.length > 1 ? 'ces' : ''} próxima${closest.length > 1 ? 's' : ''} a parir`,
       sub: closest.slice(0, 2).map((p: any) => `${p.animal} (${p.diff === 0 ? 'hoy' : `en ${p.diff}d`})`).join(', '),
-      link: '/ganado',
+      link: orgId ? `/org/${orgId}/ganado` : '/',
       icon: PawPrint,
       color: 'text-pink-600 bg-pink-50',
     });

@@ -131,7 +131,7 @@ export default function MaquinariaDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['maquinarias'] });
       toast.success('Maquinaria eliminada');
-      navigate('/maquinarias');
+      navigate(`/org/${orgId}/maquinarias`);
     },
     onError: () => toast.error('Error al eliminar'),
   });
@@ -244,7 +244,7 @@ export default function MaquinariaDetailPage() {
     return (
       <div className="p-6 text-center text-gray-400">
         <p>Maquinaria no encontrada.</p>
-        <button onClick={() => navigate('/maquinarias')} className="mt-4 text-green-600 underline text-sm">
+        <button onClick={() => navigate(`/org/${orgId}/maquinarias`)} className="mt-4 text-green-600 underline text-sm">
           Volver a Maquinarias
         </button>
       </div>
@@ -262,7 +262,7 @@ export default function MaquinariaDetailPage() {
     <div className="p-6 max-w-5xl mx-auto">
       {/* Back */}
       <button
-        onClick={() => navigate('/maquinarias')}
+        onClick={() => navigate(`/org/${orgId}/maquinarias`)}
         className="flex items-center gap-1 text-sm text-gray-500 hover:text-green-600 mb-4 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Volver a Maquinarias

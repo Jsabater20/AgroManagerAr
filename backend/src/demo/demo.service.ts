@@ -67,7 +67,7 @@ export class DemoService implements OnModuleInit {
         where: { usuarioId: demo.id, latitud: null },
       });
       if (
-        campoCount === 0 ||
+        campoCount < 2 ||
         siembraCount === 0 ||
         animalCount === 0 ||
         tareaCount === 0 ||
