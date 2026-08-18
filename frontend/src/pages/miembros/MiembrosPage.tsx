@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   BriefcaseBusiness,
   CheckCircle2,
   Loader2,
@@ -273,10 +272,6 @@ export default function MiembrosPage() {
     <div className="p-4 md:p-6 space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Miembros
-          </div>
           <h1 className="text-2xl font-bold text-gray-900">Asignar trabajo</h1>
           <p className="text-sm text-gray-500">
             Organización: {currentOrg?.nombre ?? 'Sin organización'}
