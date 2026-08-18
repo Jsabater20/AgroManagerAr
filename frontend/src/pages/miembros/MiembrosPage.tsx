@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 
 import { api } from '../../api/client';
 import { ownerAdminApi } from '../../api/owner-admin.api';
+import { recursosApi } from '../../api/recursos.api';
 import { useAuthStore } from '../../store/auth.store';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -116,23 +117,10 @@ export default function MiembrosPage() {
         return [] as RecursoItem[];
       }
 
-      const endpointMap: Record<string, string> = {
-        CAMPO: '/campos',
-        LOTE: '/lotes',
-        SIEMBRA: '/siembras',
-        ANIMAL: '/ganado',
-        TAREA: '/tareas',
-        MAQUINARIA: '/maquinarias',
-        CAMPANIA: '/campanias',
-      };
-
-      const endpoint = endpointMap[activityForm.recursoTipo];
-      if (!endpoint) return [] as RecursoItem[];
-
-      const res = await api.get(`/organizaciones/${orgIdNum}${endpoint}`);
-      return (res.data ?? []).map((item: any) => ({
+      const recursos = await recursosApi.obtenerPorTipo(activityForm.recursoTipo);
+      return recursos.map((item: any) => ({
         id: item.id,
-        nombre: item.nombre ?? item.titulo ?? item.descripcion ?? 'Sin nombre',
+        nombre: item.nombre ?? 'Sin nombre',
         tipo: activityForm.recursoTipo,
       }));
     },

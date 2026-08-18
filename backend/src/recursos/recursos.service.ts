@@ -29,6 +29,42 @@ export class RecursosService {
         }));
       }
 
+      case 'LOTE': {
+        const lotes = await this.prisma.lote.findMany({
+          where: { campo: { organizacionId } },
+          select: {
+            id: true,
+            nombre: true,
+            hectareas: true,
+            campo: { select: { nombre: true } },
+          },
+          orderBy: { nombre: 'asc' },
+        });
+        return lotes.map((l) => ({
+          id: l.id,
+          nombre: l.nombre,
+          descripcion: `${l.hectareas} hectáreas - ${l.campo.nombre}`,
+        }));
+      }
+
+      case 'SIEMBRA': {
+        const siembras = await this.prisma.siembra.findMany({
+          where: { lote: { campo: { organizacionId } } },
+          select: {
+            id: true,
+            estado: true,
+            tipoCultivo: { select: { nombre: true } },
+            lote: { select: { nombre: true, campo: { select: { nombre: true } } } },
+          },
+          orderBy: { fechaSiembra: 'desc' },
+        });
+        return siembras.map((s) => ({
+          id: s.id,
+          nombre: `${s.tipoCultivo.nombre} - ${s.lote.nombre}`,
+          descripcion: `${s.lote.campo.nombre} - ${s.estado}`,
+        }));
+      }
+
       case 'TAREA': {
         const tareas = await this.prisma.tareaRural.findMany({
           where: { organizacionId },
@@ -80,6 +116,7 @@ export class RecursosService {
         }));
       }
 
+      case 'ANIMAL':
       case 'GANADO': {
         const animales = await this.prisma.animal.findMany({
           where: { organizacionId },
@@ -95,6 +132,19 @@ export class RecursosService {
           id: a.id,
           nombre: a.nombre,
           descripcion: `${a.especie} - ${a.categoria}`,
+        }));
+      }
+
+      case 'CAMPANIA': {
+        const campanias = await this.prisma.campania.findMany({
+          where: { organizacionId },
+          select: { id: true, nombre: true, descripcion: true },
+          orderBy: { nombre: 'asc' },
+        });
+        return campanias.map((c) => ({
+          id: c.id,
+          nombre: c.nombre,
+          descripcion: c.descripcion ?? undefined,
         }));
       }
 
