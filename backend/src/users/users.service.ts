@@ -128,17 +128,25 @@ export class UsersService {
         ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
         : null;
 
-    return this.prisma.usuario.update({
-      where: { id: targetId },
-      data: { plan: dto.plan, planExpira: expira },
-      select: {
-        id: true,
-        email: true,
-        nombre: true,
-        plan: true,
-        planExpira: true,
-      },
-    });
+    const [usuario] = await this.prisma.$transaction([
+      this.prisma.usuario.update({
+        where: { id: targetId },
+        data: { plan: dto.plan, planExpira: expira },
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          plan: true,
+          planExpira: true,
+        },
+      }),
+      this.prisma.organizacion.updateMany({
+        where: { propietarioId: targetId },
+        data: { plan: dto.plan },
+      }),
+    ]);
+
+    return usuario;
   }
 
   async updateUserRol(

@@ -54,7 +54,7 @@ export class MaquinariasController {
   @Post()
   @Auditar('crear_maquinaria', 'Maquinaria')
   async create(@Request() req: AuthRequest, @Body() dto: CreateMaquinariaDto) {
-    await this.planService.checkMaquinariasLimit(req.user.id);
+    await this.planService.checkMaquinariasLimit(req.organizacionId);
     return this.maquinariasService.create(
       req.user.id,
       req.organizacionId,

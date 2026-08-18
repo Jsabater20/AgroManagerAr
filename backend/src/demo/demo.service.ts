@@ -23,9 +23,16 @@ export class DemoService implements OnModuleInit {
 
       const demoOrg = await this.prisma.organizacion.findFirst({
         where: { propietarioId: demo.id },
-        select: { id: true },
+        select: { id: true, plan: true },
       });
       if (!demoOrg) return;
+
+      if (demoOrg.plan !== 'PRO') {
+        await this.prisma.organizacion.update({
+          where: { id: demoOrg.id },
+          data: { plan: 'PRO' },
+        });
+      }
 
       await Promise.all([
         this.prisma.campo.updateMany({
