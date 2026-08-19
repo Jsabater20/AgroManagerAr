@@ -16,6 +16,7 @@ import { AsignarCampoDto } from './dto/asignar-campo.dto';
 import { ActualizarVisibilidadModuloDto } from './dto/actualizar-visibilidad-modulo.dto';
 import { InvitarMiembroDto } from './dto/invitar-miembro.dto';
 import { IsOwnerGuard } from './guards/is-owner.guard';
+import { OrganizationGuard } from './organization.guard';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
 
 interface AuthRequest extends Request {
@@ -36,12 +37,26 @@ export class OrganizationsController {
 
   // ─── MIEMBROS ─────────────────────────────────────────────────────────────
 
+  @Get(':orgId/miembros/actual')
+  @UseGuards(OrganizationGuard)
+  async obtenerMiembroActual(
+    @Param('orgId') orgId: string,
+    @Request() req: AuthRequest,
+  ) {
+    return await this.organizacionesService.obtenerMiembroActual(
+      parseInt(orgId),
+      req.user?.id || 0,
+    );
+  }
+
   @Get(':orgId/miembros')
+  @UseGuards(IsOwnerGuard)
   async obtenerMiembros(@Param('orgId') orgId: string) {
     return await this.organizacionesService.obtenerMiembros(parseInt(orgId));
   }
 
   @Post(':orgId/miembros/invitar')
+  @UseGuards(IsOwnerGuard)
   async invitarMiembro(
     @Param('orgId') orgId: string,
     @Body() dto: InvitarMiembroDto,
@@ -53,6 +68,7 @@ export class OrganizationsController {
   }
 
   @Patch(':orgId/miembros/:usuarioOrgId')
+  @UseGuards(IsOwnerGuard)
   async actualizarMiembro(
     @Param('orgId') orgId: string,
     @Param('usuarioOrgId') usuarioOrgId: string,
@@ -66,6 +82,7 @@ export class OrganizationsController {
   }
 
   @Delete(':orgId/miembros/:usuarioOrgId')
+  @UseGuards(IsOwnerGuard)
   async eliminarMiembro(
     @Param('orgId') orgId: string,
     @Param('usuarioOrgId') usuarioOrgId: string,
@@ -246,6 +263,7 @@ export class OrganizationsController {
   // ─── ASIGNACIONES ─────────────────────────────────────────────────────────
 
   @Post(':orgId/miembros/:usuarioOrgId/campos')
+  @UseGuards(IsOwnerGuard)
   async asignarCampo(
     @Param('orgId') orgId: string,
     @Param('usuarioOrgId') usuarioOrgId: string,
@@ -260,6 +278,7 @@ export class OrganizationsController {
   }
 
   @Delete(':orgId/miembros/:usuarioOrgId/campos/:campoId')
+  @UseGuards(IsOwnerGuard)
   async desasignarCampo(
     @Param('orgId') orgId: string,
     @Param('usuarioOrgId') usuarioOrgId: string,
@@ -274,6 +293,7 @@ export class OrganizationsController {
   }
 
   @Patch(':orgId/miembros/:usuarioOrgId/modulos')
+  @UseGuards(IsOwnerGuard)
   async actualizarVisibilidadModulo(
     @Param('orgId') orgId: string,
     @Param('usuarioOrgId') usuarioOrgId: string,

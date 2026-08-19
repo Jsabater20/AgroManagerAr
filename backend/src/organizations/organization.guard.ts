@@ -12,9 +12,14 @@ export class OrganizationGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const user = request.user as { id: number; organizacionId?: number };
+    const user = request.user as {
+      id: number;
+      organizacionId?: number;
+      usuarioOrganizacionId?: number;
+    };
     const rawOrgId =
       request.params?.organizacionId ??
+      request.params?.orgId ??
       request.query?.organizacionId ??
       request.body?.organizacionId;
     const orgIdParam = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
@@ -42,6 +47,14 @@ export class OrganizationGuard implements CanActivate {
 
     if (!esMiembro && esOwner?.propietarioId !== user.id) {
       throw new ForbiddenException('No tenés acceso a esta organización');
+    }
+
+    if (esMiembro && esOwner?.propietarioId !== user.id) {
+      if (!esMiembro.activo) {
+        throw new ForbiddenException('Tu membresia esta inactiva');
+      }
+
+      user.usuarioOrganizacionId = esMiembro.id;
     }
 
     request.organizacionId = organizacionId;

@@ -21,6 +21,20 @@ const ROLES = [
   'VETERINARIO',
 ] as const;
 
+const MODULOS_DISPONIBLES = [
+  'Dashboard',
+  'Campos',
+  'Cultivos',
+  'Siembras',
+  'Insumos',
+  'Ganadería',
+  'Tareas',
+  'Maquinarias',
+  'Finanzas',
+  'Reportes',
+  'Clima',
+];
+
 type MiembroPanel = {
   id: number;
   nombre: string;
@@ -35,6 +49,7 @@ type MiembroPanel = {
     completadas: number;
   };
   recursosCampos: string[];
+  modulos: Array<{ moduloNombre: string; activo: boolean }>;
 };
 
 export function OwnerPanelPage() {
@@ -94,6 +109,25 @@ export function OwnerPanelPage() {
     },
     onError: () => {
       toast.error('No se pudo actualizar el estado');
+    },
+  });
+
+  const toggleModuloMutation = useMutation({
+    mutationFn: ({
+      usuarioOrgId,
+      moduloNombre,
+      activo,
+    }: {
+      usuarioOrgId: number;
+      moduloNombre: string;
+      activo: boolean;
+    }) => ownerAdminApi.actualizarModulo(orgIdNum, usuarioOrgId, moduloNombre, activo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner-panel-miembros', orgIdNum] });
+      toast.success('Permiso actualizado');
+    },
+    onError: () => {
+      toast.error('No se pudo actualizar el permiso');
     },
   });
 
@@ -254,6 +288,41 @@ export function OwnerPanelPage() {
 
             <div className="mb-3 mt-1 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
               Se mantienen los permisos y asignaciones reales del backend.
+            </div>
+
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Módulos habilitados
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {MODULOS_DISPONIBLES.map((moduloNombre) => {
+                  const activo = selectedMember.modulos.some(
+                    (modulo) => modulo.moduloNombre === moduloNombre && modulo.activo,
+                  );
+
+                  return (
+                    <button
+                      key={moduloNombre}
+                      type="button"
+                      disabled={toggleModuloMutation.isPending}
+                      onClick={() =>
+                        toggleModuloMutation.mutate({
+                          usuarioOrgId: selectedMember.id,
+                          moduloNombre,
+                          activo: !activo,
+                        })
+                      }
+                      className={`rounded-lg border px-2.5 py-2 text-left text-xs font-medium transition-colors ${
+                        activo
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
+                    >
+                      {moduloNombre}: {activo ? 'ON' : 'OFF'}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {recursosQuery.isLoading ? (

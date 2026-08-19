@@ -10,6 +10,9 @@ export const organizacionesApi = {
   obtenerMiembros: (orgId: number) =>
     api.get<MiembroOrganizacion[]>(`/organizaciones/${orgId}/miembros`).then((r) => r.data),
 
+  obtenerMiembroActual: (orgId: number) =>
+    api.get<MiembroOrganizacion>(`/organizaciones/${orgId}/miembros/actual`).then((r) => r.data),
+
   // Obtener invitaciones pendientes de una organización
   obtenerInvitaciones: (orgId: number) =>
     api.get<InvitacionOrganizacion[]>(`/organizaciones/${orgId}/invitaciones`).then((r) => r.data),

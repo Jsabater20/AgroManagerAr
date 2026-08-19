@@ -16,6 +16,7 @@ import { insumosApi } from '../../api/insumos.api';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 import { finanzasApi } from '../../api/finanzas.api';
+import { organizacionesApi } from '../../api/organizaciones.api';
 import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import AiInsights from '../../components/ui/AiInsights';
 
@@ -31,13 +32,42 @@ const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'O
 export default function DashboardPage() {
   const usuario = useAuthStore((s) => s.usuario);
   const { orgId } = useParams<{ orgId: string }>();
+  const orgIdNum = Number(orgId || 0);
+  const isOwner = usuario?.organizaciones?.some(
+    (organizacion) => organizacion.id === orgIdNum && organizacion.propietarioId === usuario.id,
+  ) ?? false;
+  const isSuperAdmin = usuario?.rolGlobal === 'SUPERADMIN';
+  const miembroActualQuery = useQuery({
+    queryKey: ['miembro-actual', orgIdNum],
+    queryFn: () => organizacionesApi.obtenerMiembroActual(orgIdNum),
+    enabled: orgIdNum > 0 && !isOwner && !isSuperAdmin,
+    retry: false,
+  });
+  const puedeVerDashboard =
+    isOwner ||
+    isSuperAdmin ||
+    miembroActualQuery.data?.modulos.some(
+      (modulo) => modulo.moduloNombre === 'Dashboard' && modulo.activo,
+    ) === true;
 
-  const { data: campos = [] as any[],   isLoading: lCampos }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll() });
-  const { data: siembras = [] as any[], isLoading: lSiembras } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll() });
-  const { data: insumos = [] as any[]                        } = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll() });
-  const { data: animales = [] as any[], isLoading: lAnimales } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll() });
-  const { data: tareas = [] as any[],   isLoading: lTareas   } = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll() });
-  const { data: finanzas = [] as any[], isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll() });
+  const { data: campos = [] as any[],   isLoading: lCampos }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll(), enabled: puedeVerDashboard });
+  const { data: siembras = [] as any[], isLoading: lSiembras } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll(), enabled: puedeVerDashboard });
+  const { data: insumos = [] as any[]                        } = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll(), enabled: puedeVerDashboard });
+  const { data: animales = [] as any[], isLoading: lAnimales } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll(), enabled: puedeVerDashboard });
+  const { data: tareas = [] as any[],   isLoading: lTareas   } = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll(), enabled: puedeVerDashboard });
+  const { data: finanzas = [] as any[], isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll(), enabled: puedeVerDashboard });
+
+  if (!isOwner && !isSuperAdmin && miembroActualQuery.isLoading) {
+    return <div className="py-12 text-center text-sm text-gray-500">Verificando permisos...</div>;
+  }
+
+  if (!puedeVerDashboard) {
+    return (
+      <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-600">
+        El propietario todavía no te habilitó el acceso al dashboard.
+      </div>
+    );
+  }
 
   const isLoading = lCampos || lSiembras || lAnimales;
 
@@ -470,4 +500,3 @@ function WeatherStrip({ orgId }: { orgId?: string }) {
     </Link>
   );
 }
-

@@ -126,6 +126,9 @@ export class OrganizationsService {
           where: { activo: true },
           include: { Campo: { select: { id: true, nombre: true } } },
         },
+        VisibilidadModulo: {
+          select: { moduloNombre: true, activo: true },
+        },
       },
     });
 
@@ -144,11 +147,56 @@ export class OrganizationsService {
         id: ac.Campo.id,
         nombre: ac.Campo.nombre,
       })),
-      modulos: [],
+      modulos: m.VisibilidadModulo,
     }));
   }
 
   // ─── PANEL DEL OWNER ───────────────────────────────────────────────────────
+
+  async obtenerMiembroActual(
+    organizacionId: number,
+    usuarioId: number,
+  ): Promise<MiembroResponseDto> {
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: {
+        usuarioId_organizacionId: { usuarioId, organizacionId },
+      },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            email: true,
+            nombre: true,
+            apellido: true,
+          },
+        },
+        AsignacionCampo: {
+          where: { activo: true },
+          include: { Campo: { select: { id: true, nombre: true } } },
+        },
+        VisibilidadModulo: {
+          select: { moduloNombre: true, activo: true },
+        },
+      },
+    });
+
+    if (!miembro || !miembro.activo) {
+      throw new NotFoundException('Membresia activa no encontrada');
+    }
+
+    return {
+      id: miembro.id,
+      usuarioId: miembro.usuarioId,
+      usuario: miembro.usuario,
+      roles: miembro.roles ? [miembro.roles] : [],
+      activo: miembro.activo,
+      campos: miembro.AsignacionCampo.map((asignacion) => ({
+        id: asignacion.Campo.id,
+        nombre: asignacion.Campo.nombre,
+      })),
+      modulos: miembro.VisibilidadModulo,
+    };
+  }
 
   async obtenerMiembrosPanel(
     orgId: number,
@@ -171,6 +219,9 @@ export class OrganizationsService {
         AsignacionCampo: {
           where: { activo: true },
           include: { Campo: { select: { nombre: true } } },
+        },
+        VisibilidadModulo: {
+          select: { moduloNombre: true, activo: true },
         },
       },
     });
@@ -208,6 +259,7 @@ export class OrganizationsService {
         fechaIncorporacion: m.fechaInvitacion?.toISOString() || '',
         actividades: activityCount,
         recursosCampos: m.AsignacionCampo.map((ac) => ac.Campo.nombre),
+        modulos: m.VisibilidadModulo,
       };
     });
 
@@ -566,7 +618,7 @@ export class OrganizationsService {
         },
       });
 
-      await tx.usuarioOrganizacion.create({
+      const miembro = await tx.usuarioOrganizacion.create({
         data: {
           usuarioId: userId,
           organizacionId: invitacion.organizacionId,
@@ -577,17 +629,13 @@ export class OrganizationsService {
       });
 
       // Habilitar módulos por defecto
-      for (const modulo of MODULOS_DISPONIBLES) {
-        await tx.visibilidadModulo
-          .create({
-            data: {
-              usuarioOrganizacionId: 0,
-              moduloNombre: modulo,
-              activo: true,
-            },
-          })
-          .catch(() => {});
-      }
+      await tx.visibilidadModulo.createMany({
+        data: MODULOS_DISPONIBLES.map((moduloNombre) => ({
+          usuarioOrganizacionId: miembro.id,
+          moduloNombre,
+          activo: false,
+        })),
+      });
     });
 
     return {

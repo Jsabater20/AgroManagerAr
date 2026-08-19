@@ -14,4 +14,5 @@ export class MiembroPanelDto {
   fechaIncorporacion: string;
   actividades: ActivityCountDto;
   recursosCampos: string[];
+  modulos: Array<{ moduloNombre: string; activo: boolean }>;
 }

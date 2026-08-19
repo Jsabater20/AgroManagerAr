@@ -50,6 +50,7 @@ export interface MiembroPanelDto {
   fechaIncorporacion: string;
   actividades: ActivityCountDto;
   recursosCampos: string[];
+  modulos: Array<{ moduloNombre: string; activo: boolean }>;
 }
 
 export interface RecursoAsignableDto {

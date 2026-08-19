@@ -26,6 +26,19 @@ export const ownerAdminApi = {
       .patch(`/organizaciones/${orgId}/panel/miembros/${usuarioOrgId}/activar`, {})
       .then((r) => r.data),
 
+  actualizarModulo: (
+    orgId: number,
+    usuarioOrgId: number,
+    moduloNombre: string,
+    activo: boolean,
+  ) =>
+    api
+      .patch(`/organizaciones/${orgId}/miembros/${usuarioOrgId}/modulos`, {
+        moduloNombre,
+        activo,
+      })
+      .then((r) => r.data),
+
   // Quitar miembro
   quitarMiembro: (orgId: number, usuarioOrgId: number) =>
     api
