@@ -16,6 +16,7 @@ import { InvitacionResponseDto } from './dto/invitacion-response.dto';
 import { MiembroPanelDto, ActivityCountDto } from './dto/miembro-panel.dto';
 import { RecursoAsignableDto } from './dto/recurso-asignable.dto';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
+import { MailerService } from '../mailer/mailer.service';
 
 const MODULOS_DISPONIBLES = [
   'Dashboard',
@@ -35,7 +36,15 @@ const DURACION_INVITACION_DIAS = 7;
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailerService: MailerService,
+  ) {}
+
+  private invitationUrl(token: string): string {
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
+    return `${frontendUrl}/aceptar-invitacion?token=${token}`;
+  }
 
   // ─── VALIDACIÓN ───────────────────────────────────────────────────────────
 
@@ -486,6 +495,23 @@ export class OrganizationsService {
       },
     });
 
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: {
+        nombre: true,
+        propietario: { select: { nombre: true } },
+      },
+    });
+
+    if (organizacion) {
+      await this.mailerService.enviarInvitacion(
+        invitacion.email,
+        organizacion.nombre,
+        organizacion.propietario.nombre,
+        this.invitationUrl(invitacion.token),
+      );
+    }
+
     return {
       id: invitacion.id,
       email: invitacion.email,
@@ -574,7 +600,7 @@ export class OrganizationsService {
     organizacionId: number,
   ): Promise<InvitacionResponseDto[]> {
     const invitaciones = await this.prisma.invitacionOrganizacion.findMany({
-      where: { organizacionId },
+      where: { organizacionId, estado: 'PENDIENTE' },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -612,10 +638,27 @@ export class OrganizationsService {
     const newExpiresAt = new Date();
     newExpiresAt.setDate(newExpiresAt.getDate() + DURACION_INVITACION_DIAS);
 
-    await this.prisma.invitacionOrganizacion.update({
+    const invitacionActualizada = await this.prisma.invitacionOrganizacion.update({
       where: { id: invitacionId },
       data: { expiresAt: newExpiresAt },
     });
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: {
+        nombre: true,
+        propietario: { select: { nombre: true } },
+      },
+    });
+
+    if (organizacion) {
+      await this.mailerService.enviarInvitacion(
+        invitacionActualizada.email,
+        organizacion.nombre,
+        organizacion.propietario.nombre,
+        this.invitationUrl(invitacionActualizada.token),
+      );
+    }
 
     return { success: true, message: 'Invitación reenviada' };
   }

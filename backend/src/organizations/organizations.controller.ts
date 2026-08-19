@@ -80,11 +80,13 @@ export class OrganizationsController {
   // ─── INVITACIONES ─────────────────────────────────────────────────────────
 
   @Get(':orgId/invitaciones')
+  @UseGuards(IsOwnerGuard)
   async obtenerInvitaciones(@Param('orgId') orgId: string) {
     return await this.organizacionesService.obtenerInvitaciones(parseInt(orgId));
   }
 
   @Post(':orgId/invitaciones/:invitacionId/reenviar')
+  @UseGuards(IsOwnerGuard)
   async reenviarInvitacion(
     @Param('orgId') orgId: string,
     @Param('invitacionId') invitacionId: string,
@@ -97,6 +99,7 @@ export class OrganizationsController {
   }
 
   @Delete(':orgId/invitaciones/:invitacionId')
+  @UseGuards(IsOwnerGuard)
   async cancelarInvitacion(
     @Param('orgId') orgId: string,
     @Param('invitacionId') invitacionId: string,

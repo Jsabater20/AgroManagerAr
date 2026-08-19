@@ -115,9 +115,11 @@ export default function OrganizationMembersPage() {
       organizacionesApi.reenviarInvitacion(orgIdNum, invitacionId),
     onSuccess: () => {
       toast.success('Invitación reenviada');
+      queryClient.invalidateQueries({ queryKey: ['invitaciones', orgIdNum] });
     },
-    onError: () => {
-      toast.error('Error al reenviar invitación');
+    onError: (error: any) => {
+      const message = error?.response?.data?.message;
+      toast.error(Array.isArray(message) ? message[0] : message || 'Error al reenviar invitación');
     },
   });
 
@@ -129,8 +131,9 @@ export default function OrganizationMembersPage() {
       toast.success('Invitación cancelada');
       queryClient.invalidateQueries({ queryKey: ['invitaciones', orgIdNum] });
     },
-    onError: () => {
-      toast.error('Error al cancelar invitación');
+    onError: (error: any) => {
+      const message = error?.response?.data?.message;
+      toast.error(Array.isArray(message) ? message[0] : message || 'Error al cancelar invitación');
     },
   });
 
