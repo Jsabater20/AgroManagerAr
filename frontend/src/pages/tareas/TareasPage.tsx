@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 import { tareasApi } from '../../api/tareas.api';
 import { camposApi } from '../../api/campos.api';
 import { ActividadesOwner } from './components/ActividadesOwner/ActividadesOwner';
+import { ActividadesAsignadas } from './components/ActividadesAsignadas';
+import { useAuthStore } from '../../store/auth.store';
 import type {
   TareaRural, CreateTareaDto,
   TipoTarea, EstadoTarea, Prioridad, RepetirTarea,
@@ -91,8 +93,13 @@ function today() { return new Date().toISOString().split('T')[0]; }
 
 export default function TareasPage() {
   const { orgId } = useParams<{ orgId: string }>();
+  const usuario = useAuthStore((state) => state.usuario);
+  const orgIdNum = Number(orgId || 0);
+  const esOwner = usuario?.organizaciones?.some(
+    (organizacion) => organizacion.id === orgIdNum && organizacion.propietarioId === usuario.id,
+  ) || usuario?.rolGlobal === 'SUPERADMIN';
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab]         = useState<'rurales' | 'actividades'>('rurales');
+  const [activeTab, setActiveTab]         = useState<'rurales' | 'actividades'>(esOwner ? 'rurales' : 'actividades');
   const [showModal, setShowModal]         = useState(false);
   const [editTarget, setEditTarget]       = useState<TareaRural | null>(null);
   const [form, setForm]                   = useState<CreateTareaDto>(emptyForm);
@@ -187,16 +194,18 @@ export default function TareasPage() {
     <div>
       {/* Tabs */}
       <div className="flex gap-0 border-b border-gray-200 mb-6">
-        <button
-          onClick={() => setActiveTab('rurales')}
-          className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-            activeTab === 'rurales'
-              ? 'border-green-700 text-green-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Tareas Rurales
-        </button>
+        {esOwner && (
+          <button
+            onClick={() => setActiveTab('rurales')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'rurales'
+                ? 'border-green-700 text-green-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Tareas Rurales
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('actividades')}
           className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
@@ -209,7 +218,7 @@ export default function TareasPage() {
         </button>
       </div>
 
-      {activeTab === 'rurales' && (
+      {activeTab === 'rurales' && esOwner && (
         <>
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -366,7 +375,9 @@ export default function TareasPage() {
       )}
 
       {activeTab === 'actividades' && (
-        <ActividadesOwner organizacionId={parseInt(orgId || '0')} />
+        esOwner
+          ? <ActividadesOwner organizacionId={orgIdNum} />
+          : <ActividadesAsignadas organizacionId={orgIdNum} />
       )}
 
       {/* Modal: Crear / Editar tarea */}
