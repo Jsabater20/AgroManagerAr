@@ -49,6 +49,18 @@ export class OrganizationsController {
     );
   }
 
+  @Get(':orgId/miembros/uso')
+  @UseGuards(IsOwnerGuard)
+  async obtenerUsoMiembros(
+    @Param('orgId') orgId: string,
+    @Request() req: AuthRequest,
+  ) {
+    return this.organizacionesService.obtenerUsoMiembros(
+      parseInt(orgId),
+      req.user?.id || 0,
+    );
+  }
+
   @Get(':orgId/miembros')
   @UseGuards(IsOwnerGuard)
   async obtenerMiembros(@Param('orgId') orgId: string) {

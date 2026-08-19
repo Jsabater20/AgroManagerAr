@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlanService } from '../plan/plan.service';
 import {
   ActividadMiembro,
   EstadoActividad,
@@ -20,7 +21,10 @@ import { AgregarObservacionDto } from './dto/agregar-observacion.dto';
 
 @Injectable()
 export class ActividadesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private planService: PlanService,
+  ) {}
 
   // ─── VALIDACIONES ─────────────────────────────────────────────────────
 
@@ -248,6 +252,7 @@ export class ActividadesService {
     userId: number,
   ): Promise<ActividadMiembro> {
     await this.validarOwner(orgId, userId);
+    await this.planService.checkActividadesActivasLimit(orgId);
     await this.validarMiembroOrganizacion(orgId, dto.usuarioOrganizacionId);
     await this.validarRecursoDeOrganizacion(
       orgId,

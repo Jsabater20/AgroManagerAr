@@ -17,6 +17,7 @@ import { MiembroPanelDto, ActivityCountDto } from './dto/miembro-panel.dto';
 import { RecursoAsignableDto } from './dto/recurso-asignable.dto';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
 import { MailerService } from '../mailer/mailer.service';
+import { PlanService } from '../plan/plan.service';
 
 const MODULOS_DISPONIBLES = [
   'Dashboard',
@@ -39,6 +40,7 @@ export class OrganizationsService {
   constructor(
     private prisma: PrismaService,
     private mailerService: MailerService,
+    private planService: PlanService,
   ) {}
 
   private invitationUrl(token: string): string {
@@ -539,10 +541,20 @@ export class OrganizationsService {
 
   // ─── INVITACIONES ─────────────────────────────────────────────────────────
 
+  async obtenerUsoMiembros(
+    organizacionId: number,
+    userId: number,
+  ) {
+    await this.validarOwner(organizacionId, userId);
+    return this.planService.getMiembrosUso(organizacionId);
+  }
+
   async invitarMiembro(
     organizacionId: number,
     dto: InvitarMiembroDto,
   ): Promise<InvitacionResponseDto> {
+    await this.planService.checkMiembrosLimit(organizacionId);
+
     // Verificar que el email no está ya en la organización
     const usuarioExistente = await this.prisma.usuario.findUnique({
       where: { email: dto.email },
@@ -632,6 +644,11 @@ export class OrganizationsService {
     if (new Date() > invitacion.expiresAt) {
       throw new BadRequestException('La invitación ha expirado');
     }
+
+    await this.planService.checkMiembrosLimit(
+      invitacion.organizacionId,
+      invitacion.id,
+    );
 
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: userId },

@@ -9,6 +9,8 @@ const LIMITES_FREE = {
   animales: 20,
   siembras: 10,
   maquinarias: 5,
+  miembrosAdicionales: 1,
+  actividadesActivas: 3,
 };
 
 const PRECIOS = {
@@ -166,6 +168,107 @@ export class PlanService {
     if (count >= LIMITES_FREE.maquinarias) {
       throw new ForbiddenException(
         `Plan Free: máximo ${LIMITES_FREE.maquinarias} maquinarias. Actualizá a Pro para agregar más.`,
+      );
+    }
+  }
+
+  async getMiembrosUso(organizacionId: number) {
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { plan: true, propietarioId: true },
+    });
+
+    if (!organizacion) {
+      throw new ForbiddenException('Organizacion no encontrada');
+    }
+
+    const [miembrosAdicionales, invitacionesPendientes, actividadesActivas] =
+      await Promise.all([
+        this.prisma.usuarioOrganizacion.count({
+          where: {
+            organizacionId,
+            usuarioId: { not: organizacion.propietarioId },
+          },
+        }),
+        this.prisma.invitacionOrganizacion.count({
+          where: {
+            organizacionId,
+            estado: 'PENDIENTE',
+            expiresAt: { gte: new Date() },
+          },
+        }),
+        this.prisma.actividadMiembro.count({
+          where: {
+            organizacionId,
+            activo: true,
+            estado: { in: ['PENDIENTE', 'EN_PROGRESO', 'PAUSADA'] },
+          },
+        }),
+      ]);
+
+    return {
+      plan: organizacion.plan,
+      miembros: {
+        usados: miembrosAdicionales + invitacionesPendientes,
+        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.miembrosAdicionales : null,
+      },
+      actividades: {
+        usadas: actividadesActivas,
+        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.actividadesActivas : null,
+      },
+    };
+  }
+
+  async checkMiembrosLimit(
+    organizacionId: number,
+    invitacionExcluidaId?: number,
+  ) {
+    if (await this.isOrgPro(organizacionId)) return;
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { propietarioId: true },
+    });
+    if (!organizacion) throw new ForbiddenException('Organizacion no encontrada');
+
+    const [miembrosAdicionales, invitacionesPendientes] = await Promise.all([
+      this.prisma.usuarioOrganizacion.count({
+        where: {
+          organizacionId,
+          usuarioId: { not: organizacion.propietarioId },
+        },
+      }),
+      this.prisma.invitacionOrganizacion.count({
+        where: {
+          organizacionId,
+          estado: 'PENDIENTE',
+          expiresAt: { gte: new Date() },
+          ...(invitacionExcluidaId ? { id: { not: invitacionExcluidaId } } : {}),
+        },
+      }),
+    ]);
+
+    if (miembrosAdicionales + invitacionesPendientes >= LIMITES_FREE.miembrosAdicionales) {
+      throw new ForbiddenException(
+        'Alcanzaste el limite del plan Free. Pasate a Pro para agregar mas miembros y trabajos.',
+      );
+    }
+  }
+
+  async checkActividadesActivasLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+
+    const actividadesActivas = await this.prisma.actividadMiembro.count({
+      where: {
+        organizacionId,
+        activo: true,
+        estado: { in: ['PENDIENTE', 'EN_PROGRESO', 'PAUSADA'] },
+      },
+    });
+
+    if (actividadesActivas >= LIMITES_FREE.actividadesActivas) {
+      throw new ForbiddenException(
+        'Alcanzaste el limite del plan Free. Pasate a Pro para agregar mas miembros y trabajos.',
       );
     }
   }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -30,6 +30,7 @@ type RolOrganizacion =
 
 export default function OrganizationMembersPage() {
   const { orgId } = useParams<{ orgId: string }>();
+  const navigate = useNavigate();
   const [emailInput, setEmailInput] = useState('');
   const [roleInput, setRoleInput] = useState<RolOrganizacion>('OPERARIO');
   const [mensajeInput, setMensajeInput] = useState('');
@@ -60,6 +61,23 @@ export default function OrganizationMembersPage() {
       enabled: !!orgIdNum,
     });
 
+  const usoMiembrosQuery = useQuery({
+    queryKey: ['miembros-uso', orgIdNum],
+    queryFn: () => organizacionesApi.obtenerUsoMiembros(orgIdNum),
+    enabled: !!orgIdNum,
+  });
+  const usoMiembros = usoMiembrosQuery.data as
+    | {
+        plan: 'FREE' | 'PRO';
+        miembros: { usados: number; limite: number | null };
+        actividades: { usadas: number; limite: number | null };
+      }
+    | undefined;
+  const miembrosAlLimite =
+    usoMiembros?.plan === 'FREE' &&
+    usoMiembros.miembros.limite !== null &&
+    usoMiembros.miembros.usados >= usoMiembros.miembros.limite;
+
   // Mutation: Invitar miembro
   const inviteMutation = useMutation({
     mutationFn: (dto: { email: string; rol: string; mensaje?: string }) =>
@@ -70,6 +88,7 @@ export default function OrganizationMembersPage() {
       setRoleInput('OPERARIO');
       setMensajeInput('');
       queryClient.invalidateQueries({ queryKey: ['invitaciones', orgIdNum] });
+      queryClient.invalidateQueries({ queryKey: ['miembros-uso', orgIdNum] });
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { message?: string } } } | null;
@@ -130,6 +149,7 @@ export default function OrganizationMembersPage() {
     onSuccess: () => {
       toast.success('Invitación cancelada');
       queryClient.invalidateQueries({ queryKey: ['invitaciones', orgIdNum] });
+      queryClient.invalidateQueries({ queryKey: ['miembros-uso', orgIdNum] });
     },
     onError: (error: any) => {
       const message = error?.response?.data?.message;
@@ -160,7 +180,31 @@ export default function OrganizationMembersPage() {
         <p className="text-gray-600 dark:text-gray-400 text-lg">
           Invita nuevos usuarios y gestiona los roles dentro de tu organización
         </p>
+        {usoMiembros?.plan === 'FREE' && (
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">Plan Free</span>
+            <span className="rounded-full border border-slate-200 px-2.5 py-1 text-slate-600">
+              Miembros: {usoMiembros.miembros.usados} / {usoMiembros.miembros.limite}
+            </span>
+            <span className="rounded-full border border-slate-200 px-2.5 py-1 text-slate-600">
+              Trabajos activos: {usoMiembros.actividades.usadas} / {usoMiembros.actividades.limite}
+            </span>
+          </div>
+        )}
       </div>
+
+      {miembrosAlLimite && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span>Alcanzaste el límite del plan Free. Pasate a Pro para agregar más miembros y trabajos.</span>
+          <button
+            type="button"
+            onClick={() => navigate('/precios')}
+            className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+          >
+            Ver Pro
+          </button>
+        </div>
+      )}
 
       {/* SECCIÓN: Agregar nuevo miembro */}
       <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg shadow-md">
@@ -224,7 +268,7 @@ export default function OrganizationMembersPage() {
           <div className="flex gap-3 justify-end">
             <button
               type="submit"
-              disabled={inviteMutation.isPending}
+              disabled={inviteMutation.isPending || miembrosAlLimite}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-md"
             >
               {inviteMutation.isPending ? (

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   BriefcaseBusiness,
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { api } from '../../api/client';
 import { ownerAdminApi } from '../../api/owner-admin.api';
 import { recursosApi } from '../../api/recursos.api';
+import { organizacionesApi } from '../../api/organizaciones.api';
 import { useAuthStore } from '../../store/auth.store';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -62,6 +63,7 @@ type ActivityForm = {
 
 export default function MiembrosPage() {
   const { orgId } = useParams<{ orgId: string }>();
+  const navigate = useNavigate();
   const orgIdNum = Number(orgId || 0);
   const queryClient = useQueryClient();
 
@@ -92,6 +94,23 @@ export default function MiembrosPage() {
   });
 
   const miembros = (miembrosQuery.data ?? []) as MiembroPanel[];
+
+  const usoMiembrosQuery = useQuery({
+    queryKey: ['miembros-uso', orgIdNum],
+    queryFn: () => organizacionesApi.obtenerUsoMiembros(orgIdNum),
+    enabled: orgIdNum > 0 && canManageMembers,
+  });
+  const usoMiembros = usoMiembrosQuery.data as
+    | {
+        plan: 'FREE' | 'PRO';
+        miembros: { usados: number; limite: number | null };
+        actividades: { usadas: number; limite: number | null };
+      }
+    | undefined;
+  const actividadesAlLimite =
+    usoMiembros?.plan === 'FREE' &&
+    usoMiembros.actividades.limite !== null &&
+    usoMiembros.actividades.usadas >= usoMiembros.actividades.limite;
 
   const activeMembers = useMemo(
     () => miembros.filter((m) => m.activo),
@@ -203,6 +222,7 @@ export default function MiembrosPage() {
         observacionInicial: '',
       });
       queryClient.invalidateQueries({ queryKey: ['miembros-panel', orgIdNum] });
+      queryClient.invalidateQueries({ queryKey: ['miembros-uso', orgIdNum] });
     },
     onError: (error: any) => {
       const message = error?.response?.data?.message;
@@ -277,7 +297,31 @@ export default function MiembrosPage() {
             Organización: {currentOrg?.nombre ?? 'Sin organización'}
           </p>
         </div>
+        {usoMiembros?.plan === 'FREE' && (
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">Plan Free</span>
+            <span className="rounded-full border border-slate-200 px-2.5 py-1 text-slate-600">
+              Miembros: {usoMiembros.miembros.usados} / {usoMiembros.miembros.limite}
+            </span>
+            <span className="rounded-full border border-slate-200 px-2.5 py-1 text-slate-600">
+              Trabajos activos: {usoMiembros.actividades.usadas} / {usoMiembros.actividades.limite}
+            </span>
+          </div>
+        )}
       </header>
+
+      {actividadesAlLimite && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span>Alcanzaste el límite del plan Free. Pasate a Pro para agregar más miembros y trabajos.</span>
+          <button
+            type="button"
+            onClick={() => navigate('/precios')}
+            className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+          >
+            Ver Pro
+          </button>
+        </div>
+      )}
 
       <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-4">
@@ -495,6 +539,7 @@ export default function MiembrosPage() {
               disabled={
                 createActividadMutation.isPending ||
                 grantAccessAndCreateMutation.isPending ||
+                actividadesAlLimite ||
                 !canSubmit ||
                 (activityForm.recursoTipo !== 'GENERAL' && !hasRecursoList)
               }
