@@ -1,9 +1,4 @@
 import { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { useParams } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Plus, Trash2, Mail, Loader } from 'lucide-react';
-=======
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -16,7 +11,6 @@ import {
   Check,
   Clock,
 } from 'lucide-react';
->>>>>>> develop
 import toast from 'react-hot-toast';
 import { organizacionesApi } from '../../api/organizaciones.api';
 import { ROLES_DISPONIBLES } from '../../constants/roles';
@@ -44,11 +38,7 @@ export default function OrganizationMembersPage() {
 
   const orgIdNum = orgId ? parseInt(orgId) : 0;
 
-<<<<<<< HEAD
-  // Cerrar sidebar automáticamente al entrar a esta página
-=======
   // Cerrar sidebar al entrar a esta página
->>>>>>> develop
   useEffect(() => {
     const backdrop = document.querySelector('[class*="fixed inset-0 bg-black"]');
     if (backdrop instanceof HTMLElement) {
@@ -56,10 +46,7 @@ export default function OrganizationMembersPage() {
     }
   }, []);
 
-<<<<<<< HEAD
-=======
   // Query: Miembros agregados
->>>>>>> develop
   const { data: miembros = [], isLoading: miembrosLoading } = useQuery({
     queryKey: ['miembros', orgIdNum],
     queryFn: () => organizacionesApi.obtenerMiembros(orgIdNum),
@@ -188,11 +175,7 @@ export default function OrganizationMembersPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
           <Mail className="text-green-600" size={32} />
-<<<<<<< HEAD
-          Administración de personal del campo
-=======
           Administración de personal
->>>>>>> develop
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
           Invita colaboradores y gestiona los roles dentro de tu organización
