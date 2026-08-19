@@ -119,9 +119,11 @@ export class UsersService {
   ) {
     const admin = await this.prisma.usuario.findUnique({
       where: { id: adminId },
-      select: { rol: true },
+      select: { rolGlobal: true },
     });
-    if (admin?.rol !== 'ADMIN') throw new ForbiddenException('Solo admins');
+    if (admin?.rolGlobal !== 'SUPERADMIN') {
+      throw new ForbiddenException('Solo SUPERADMIN');
+    }
 
     const expira =
       dto.plan === 'PRO'

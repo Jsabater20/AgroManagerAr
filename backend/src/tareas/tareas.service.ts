@@ -1,31 +1,37 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import { CreateTareaDto, UpdateTareaDto, UpdateTareaEstadoDto } from './dto/tareas.dto';
 
 @Injectable()
 export class TareasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private memberAccessService: MemberAccessService,
+  ) {}
 
-  findAll(usuarioId: number, organizacionId: number) {
+  async findAll(usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Tareas');
     return this.prisma.tareaRural.findMany({
-      where: { usuarioId, organizacionId },
+      where: { organizacionId },
       include: { campo: { select: { id: true, nombre: true } } },
       orderBy: [{ fechaProgramada: 'asc' }, { createdAt: 'desc' }],
     });
   }
 
   async findOne(id: number, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Tareas');
     const tarea = await this.prisma.tareaRural.findUnique({
       where: { id },
       include: { campo: { select: { id: true, nombre: true } } },
     });
     if (!tarea) throw new NotFoundException('Tarea no encontrada');
-    if (tarea.usuarioId !== usuarioId || tarea.organizacionId !== organizacionId)
-      throw new ForbiddenException();
+    if (tarea.organizacionId !== organizacionId) throw new ForbiddenException();
     return tarea;
   }
 
-  create(dto: CreateTareaDto, usuarioId: number, organizacionId: number) {
+  async create(dto: CreateTareaDto, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Tareas');
     return this.prisma.tareaRural.create({
       data: {
         titulo: dto.titulo,

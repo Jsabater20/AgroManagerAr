@@ -1,14 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import { CreateMovimientoDto, UpdateMovimientoDto } from './dto/finanzas.dto';
 
 @Injectable()
 export class FinanzasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private memberAccessService: MemberAccessService,
+  ) {}
 
-  findAll(usuarioId: number, organizacionId: number) {
+  async findAll(usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Finanzas');
     return this.prisma.movimientoFinanciero.findMany({
-      where: { usuarioId, organizacionId },
+      where: { organizacionId },
       include: {
         campo: { select: { id: true, nombre: true } },
         siembra: {
@@ -20,14 +25,16 @@ export class FinanzasService {
   }
 
   async findOne(id: number, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Finanzas');
     const m = await this.prisma.movimientoFinanciero.findFirst({
-      where: { id, usuarioId, organizacionId },
+      where: { id, organizacionId },
     });
     if (!m) throw new NotFoundException('Movimiento no encontrado');
     return m;
   }
 
-  create(usuarioId: number, organizacionId: number, dto: CreateMovimientoDto) {
+  async create(usuarioId: number, organizacionId: number, dto: CreateMovimientoDto) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Finanzas');
     return this.prisma.movimientoFinanciero.create({
       data: {
         ...dto,
@@ -57,8 +64,9 @@ export class FinanzasService {
   }
 
   async resumen(usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Finanzas');
     const movimientos = await this.prisma.movimientoFinanciero.findMany({
-      where: { usuarioId, organizacionId },
+      where: { organizacionId },
     });
     const ingresos = movimientos
       .filter((m) => m.tipo === 'INGRESO')

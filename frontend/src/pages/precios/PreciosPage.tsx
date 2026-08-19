@@ -53,6 +53,7 @@ const PRECIOS = {
 export default function PreciosPage() {
   const { usuario, setAuth, token } = useAuthStore();
   const activeOrgId = useAuthStore((state) => state.activeOrgId());
+  const currentOrg = useAuthStore((state) => state.currentOrg());
   const navigate = useNavigate();
   const [showCancel, setShowCancel] = useState(false);
   const [tipo, setTipo] = useState<'mensual' | 'anual'>('mensual');
@@ -86,6 +87,8 @@ export default function PreciosPage() {
             rol: freshUser.rol || 'OPERADOR',
             plan: (freshUser.plan || 'FREE') as 'FREE' | 'PRO',
             rolGlobal: freshUser.rolGlobal,
+            usuarioOrganizacionId: freshUser.usuarioOrganizacionId,
+            organizaciones: freshUser.organizaciones,
           }, token))
           .catch(() => {
             if (usuario && token) setAuth(usuario, token);
@@ -98,6 +101,7 @@ export default function PreciosPage() {
   });
 
   const isPro = planInfo?.plan === 'PRO';
+  const canManageSubscription = currentOrg?.propietarioId === usuario?.id;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -192,7 +196,7 @@ export default function PreciosPage() {
             <p className="text-xs text-green-700 font-medium mb-5">✓ 14 días gratis — sin cargo hasta que termine la prueba</p>
           )}
 
-          {!isPro ? (
+          {!isPro && canManageSubscription ? (
             <button
               onClick={() => {
                 if (!token) { navigate('/login'); return; }
@@ -204,7 +208,7 @@ export default function PreciosPage() {
               <Zap size={18} />
               {checkoutMutation.isPending ? 'Redirigiendo...' : 'Suscribirse con MercadoPago'}
             </button>
-          ) : (
+          ) : isPro && canManageSubscription ? (
             <div className="mb-5 space-y-2">
               <div className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl text-center">
                 ✓ Suscripción activa
@@ -215,6 +219,12 @@ export default function PreciosPage() {
               >
                 Cancelar suscripción
               </button>
+            </div>
+          ) : (
+            <div className="mb-5 rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              {isPro
+                ? 'Esta organización ya tiene el plan Pro activo.'
+                : 'Solo el propietario de la organización puede administrar el plan.'}
             </div>
           )}
 

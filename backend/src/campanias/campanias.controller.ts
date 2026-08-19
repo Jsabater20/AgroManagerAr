@@ -15,6 +15,7 @@ import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
 import { CampaniasService } from './campanias.service';
 import { CreateCampaniaDto, UpdateCampaniaDto } from './dto/campanias.dto';
+import { PlanService } from '../plan/plan.service';
 
 interface AuthRequest {
   user: { id: number };
@@ -24,20 +25,30 @@ interface AuthRequest {
 @UseGuards(JwtAuthGuard, DemoGuard, OrganizationGuard)
 @Controller('campanias')
 export class CampaniasController {
-  constructor(private campaniasService: CampaniasService) {}
+  constructor(
+    private campaniasService: CampaniasService,
+    private planService: PlanService,
+  ) {}
+
+  private validarPlanPro(organizacionId: number) {
+    return this.planService.checkProAccess(organizacionId, 'Campañas agrícolas');
+  }
 
   @Get()
-  findAll(@Request() req: AuthRequest) {
+  async findAll(@Request() req: AuthRequest) {
+    await this.validarPlanPro(req.organizacionId);
     return this.campaniasService.findAll(req.user.id, req.organizacionId);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
+  async findOne(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
+    await this.validarPlanPro(req.organizacionId);
     return this.campaniasService.findOne(id, req.user.id, req.organizacionId);
   }
 
   @Post()
-  create(@Body() dto: CreateCampaniaDto, @Request() req: AuthRequest) {
+  async create(@Body() dto: CreateCampaniaDto, @Request() req: AuthRequest) {
+    await this.validarPlanPro(req.organizacionId);
     return this.campaniasService.create(
       req.user.id,
       req.organizacionId,
@@ -46,11 +57,12 @@ export class CampaniasController {
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCampaniaDto,
     @Request() req: AuthRequest,
   ) {
+    await this.validarPlanPro(req.organizacionId);
     return this.campaniasService.update(
       id,
       req.user.id,
@@ -60,7 +72,8 @@ export class CampaniasController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
+    await this.validarPlanPro(req.organizacionId);
     return this.campaniasService.remove(
       id,
       req.user.id,
@@ -69,11 +82,12 @@ export class CampaniasController {
   }
 
   @Patch(':id/siembras')
-  asignarSiembras(
+  async asignarSiembras(
     @Param('id', ParseIntPipe) id: number,
     @Body('siembraIds') siembraIds: number[],
     @Request() req: AuthRequest,
   ) {
+    await this.validarPlanPro(req.organizacionId);
     return this.campaniasService.asignarSiembras(
       id,
       req.user.id,

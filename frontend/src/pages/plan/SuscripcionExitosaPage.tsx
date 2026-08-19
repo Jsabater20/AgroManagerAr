@@ -37,6 +37,8 @@ export default function SuscripcionExitosaPage() {
               rol: freshUser.rol || 'OPERADOR',
               plan: (freshUser.plan || 'FREE') as 'FREE' | 'PRO',
               rolGlobal: freshUser.rolGlobal,
+              usuarioOrganizacionId: freshUser.usuarioOrganizacionId,
+              organizaciones: freshUser.organizaciones,
             }, token))
             .catch(() => {
               // Fallback si el profile falla

@@ -69,44 +69,61 @@ export class PlanService {
     };
   }
 
-  async getUsuarioPlan(usuarioId: number) {
-    const u = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
-      select: {
-        plan: true,
-        planExpira: true,
-        mpSuscripcionId: true,
-        trialUsado: true,
-      },
-    });
-    return u;
-  }
+  async getPlanOrganizacion(usuarioId: number, organizacionId: number) {
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId);
 
-  async getOrgPlan(organizacionId: number) {
-    const org = await this.prisma.organizacion.findUnique({
-      where: { id: organizacionId },
-      select: { plan: true },
-    });
-    if (!org) return null;
-    return { plan: org.plan };
-  }
-
-  async isPro(usuarioId: number): Promise<boolean> {
-    const u = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
-      select: { plan: true, planExpira: true, rol: true },
-    });
-    if (!u) return false;
-    if (u.rol === 'ADMIN') return true;
-    if (u.plan !== 'PRO') return false;
-    if (u.planExpira && u.planExpira < new Date()) {
-      await this.prisma.usuario.update({
+    const [organizacion, usuario] = await Promise.all([
+      this.prisma.organizacion.findUnique({
+        where: { id: organizacionId },
+        select: { plan: true },
+      }),
+      this.prisma.usuario.findUnique({
         where: { id: usuarioId },
-        data: { plan: 'FREE' },
-      });
-      return false;
+        select: { planExpira: true, mpSuscripcionId: true, trialUsado: true },
+      }),
+    ]);
+
+    if (!organizacion || !usuario) {
+      throw new ForbiddenException('Organización no encontrada');
     }
-    return true;
+
+    return {
+      plan: organizacion.plan,
+      planExpira: usuario.planExpira,
+      mpSuscripcionId: usuario.mpSuscripcionId,
+      trialUsado: usuario.trialUsado,
+    };
+  }
+
+  private async validarAccesoOrganizacion(
+    usuarioId: number,
+    organizacionId: number,
+    requiereOwner = false,
+  ) {
+    if (!Number.isInteger(organizacionId) || organizacionId <= 0) {
+      throw new ForbiddenException('Organización no especificada');
+    }
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { id: true, propietarioId: true },
+    });
+    if (!organizacion) throw new ForbiddenException('Organización no encontrada');
+
+    if (organizacion.propietarioId === usuarioId) return organizacion;
+    if (requiereOwner) {
+      throw new ForbiddenException('Solo el propietario puede administrar el plan');
+    }
+
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { usuarioId_organizacionId: { usuarioId, organizacionId } },
+      select: { activo: true },
+    });
+    if (!miembro?.activo) {
+      throw new ForbiddenException('No tenés acceso a esta organización');
+    }
+
+    return organizacion;
   }
 
   async isOrgPro(organizacionId: number): Promise<boolean> {
@@ -283,8 +300,10 @@ export class PlanService {
   async crearCheckout(
     usuarioId: number,
     email: string,
+    organizacionId: number,
     tipo: 'mensual' | 'anual',
   ) {
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const p = PRECIOS[tipo];
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
@@ -307,7 +326,7 @@ export class PlanService {
         payer_email: email,
         auto_recurring: autoRecurring as any,
         back_url: `${this.frontendUrl}/suscripcion-exitosa`,
-        external_reference: `${usuarioId}:${tipo}`,
+        external_reference: `${usuarioId}:${organizacionId}:${tipo}`,
         status: 'pending',
       },
     });
@@ -324,8 +343,10 @@ export class PlanService {
     const preApproval = new PreApproval(client);
     const suscripcion = await preApproval.get({ id: suscripcionId });
 
-    const [refId, tipo] = (suscripcion.external_reference ?? '').split(':');
+    const [refId, refOrgId, refTipo] = (suscripcion.external_reference ?? '').split(':');
     let usuarioId = parseInt(refId);
+    const organizacionId = parseInt(refTipo ? refOrgId : '', 10);
+    const tipo = refTipo ?? refOrgId;
 
     if (!usuarioId) {
       const raw = suscripcion as unknown as Record<string, unknown>;
@@ -356,9 +377,11 @@ export class PlanService {
         select: { email: true, nombre: true, plan: true, planExpira: true },
       });
 
-      const org = await this.prisma.organizacion.findFirst({
-        where: { propietarioId: usuarioId },
-      });
+      const org = organizacionId
+        ? await this.prisma.organizacion.findFirst({
+            where: { id: organizacionId, propietarioId: usuarioId },
+          })
+        : await this.prisma.organizacion.findFirst({ where: { propietarioId: usuarioId } });
 
       if (org) {
         await this.prisma.organizacion.update({
@@ -388,9 +411,11 @@ export class PlanService {
         select: { email: true, nombre: true },
       });
 
-      const org = await this.prisma.organizacion.findFirst({
-        where: { propietarioId: usuarioId },
-      });
+      const org = organizacionId
+        ? await this.prisma.organizacion.findFirst({
+            where: { id: organizacionId, propietarioId: usuarioId },
+          })
+        : await this.prisma.organizacion.findFirst({ where: { propietarioId: usuarioId } });
 
       if (org) {
         await this.prisma.organizacion.update({
@@ -415,6 +440,7 @@ export class PlanService {
 
   async verificarYActivar(
     usuarioId: number,
+    organizacionId: number,
     preapprovalId: string,
   ): Promise<{
     activado: boolean;
@@ -426,12 +452,13 @@ export class PlanService {
     const preApproval = new PreApproval(client);
     const suscripcion = await preApproval.get({ id: preapprovalId });
 
-    const [refId, tipo] = (suscripcion.external_reference ?? '0:mensual').split(':');
-    if (parseInt(refId) !== usuarioId) {
+    const [refId, refOrgId, tipo] = (suscripcion.external_reference ?? '0:0:mensual').split(':');
+    if (parseInt(refId) !== usuarioId || parseInt(refOrgId) !== organizacionId) {
       throw new ForbiddenException(
         'Esta suscripción no pertenece a tu cuenta.',
       );
     }
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
 
     const status = suscripcion.status ?? 'unknown';
     if (status !== 'authorized') {
@@ -453,7 +480,7 @@ export class PlanService {
     });
 
     const org = await this.prisma.organizacion.findFirst({
-      where: { propietarioId: usuarioId },
+      where: { id: organizacionId, propietarioId: usuarioId },
     });
 
     if (org) {
@@ -486,7 +513,8 @@ export class PlanService {
     };
   }
 
-  async cancelarSuscripcion(usuarioId: number) {
+  async cancelarSuscripcion(usuarioId: number, organizacionId: number) {
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: { mpSuscripcionId: true },
@@ -506,7 +534,7 @@ export class PlanService {
     });
 
     const org = await this.prisma.organizacion.findFirst({
-      where: { propietarioId: usuarioId },
+      where: { id: organizacionId, propietarioId: usuarioId },
     });
 
     if (org) {

@@ -8,6 +8,7 @@ export default function PerfilPage() {
   const usuario = useAuthStore((s) => s.usuario);
   const setAuth = useAuthStore((s) => s.setAuth);
   const token = useAuthStore((s) => s.token);
+  const currentOrg = useAuthStore((s) => s.currentOrg());
 
   const { data: perfil } = useQuery({ queryKey: ['profile'], queryFn: getProfile });
 
@@ -46,8 +47,8 @@ export default function PerfilPage() {
     },
   });
 
-  const planLabel = perfil?.plan === 'PRO' ? '⚡ Pro' : 'Free';
-  const planColor = perfil?.plan === 'PRO'
+  const planLabel = currentOrg?.plan === 'PRO' ? '⚡ Pro' : 'Free';
+  const planColor = currentOrg?.plan === 'PRO'
     ? 'text-yellow-600 dark:text-yellow-400'
     : 'text-green-600 dark:text-green-400';
 
@@ -72,9 +73,9 @@ export default function PerfilPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-gray-500 text-sm w-28">Plan</span>
+          <span className="text-gray-500 text-sm w-28">Plan actual</span>
           <span className={`font-semibold ${planColor}`}>{planLabel}</span>
-          {perfil?.plan === 'FREE' && (
+          {currentOrg?.plan === 'FREE' && (
             <a href="/precios" className="text-xs text-blue-600 dark:text-blue-400 hover:underline ml-2">
               Actualizar a Pro →
             </a>

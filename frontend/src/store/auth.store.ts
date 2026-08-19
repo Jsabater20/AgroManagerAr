@@ -81,15 +81,8 @@ export const useAuthStore = create<AuthState>()(
       setIsLoading: (v) => set({ isLoading: v }),
 
       isPro: () => {
-        if (get().usuario?.rolGlobal === 'SUPERADMIN') return true;
-
         const currentOrg = get().currentOrg();
-
-        if (currentOrg) {
-          return currentOrg.plan === 'PRO' || get().usuario?.plan === 'PRO';
-        }
-
-        return get().usuario?.plan === 'PRO';
+        return currentOrg?.plan === 'PRO';
       },
 
       currentOrg: () => {
