@@ -11,7 +11,7 @@ import type { CreateLoteDto, CreateCampoDto } from '../../api/types';
 const emptyLote: CreateLoteDto = { nombre: '', hectareas: 0 };
 
 export default function CampoDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { orgId, id } = useParams<{ orgId: string; id: string }>();
   const campoId = Number(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -56,7 +56,7 @@ export default function CampoDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campos'] });
       toast.success('Campo eliminado');
-      navigate('/campos');
+      navigate(`/org/${orgId}/campos`);
     },
     onError: () => toast.error('No se pudo eliminar el campo'),
   });
@@ -73,7 +73,7 @@ export default function CampoDetailPage() {
     return (
       <div className="text-center py-24 text-gray-500">
         Campo no encontrado.{' '}
-        <Link to="/campos" className="text-green-700 underline">Volver</Link>
+        <Link to={`/org/${orgId}/campos`} className="text-green-700 underline">Volver</Link>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function CampoDetailPage() {
     <div>
       {/* Breadcrumb / header */}
       <div className="mb-8">
-        <Link to="/campos" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 mb-3 w-fit">
+        <Link to={`/org/${orgId}/campos`} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 mb-3 w-fit">
           <ArrowLeft size={15} />
           Campos
         </Link>
@@ -120,7 +120,7 @@ export default function CampoDetailPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <StatCard label="Hectáreas totales" value={`${campo.hectareas} ha`} />
-        <StatCard label="Lotes" value={String(campo.lotes.length)} />
+        <StatCard label="Lotes" value={String(campo.lotes?.length ?? 0)} />
         {campo.propietario && <StatCard label="Propietario" value={campo.propietario} />}
       </div>
 
@@ -140,17 +140,17 @@ export default function CampoDetailPage() {
           </button>
         </div>
 
-        {campo.lotes.length === 0 ? (
+        {campo.lotes && campo.lotes.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
             <Layers size={32} className="mx-auto mb-2 opacity-40" />
             <p className="text-sm">Este campo no tiene lotes todavía</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {campo.lotes.map((lote) => (
+            {campo.lotes?.map((lote: any) => (
               <Link
                 key={lote.id}
-                to={`/campos/${campo.id}/lotes/${lote.id}`}
+                to={`/org/${orgId}/campos/${campo.id}/lotes/${lote.id}`}
                 className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-1 px-1 rounded-lg transition-colors group"
               >
                 <div>

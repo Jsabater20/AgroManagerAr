@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAuthStore, setQueryClientRef } from './store/auth.store';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { useAuthStore } from './store/auth.store';
 import { getProfile } from './api/users.api';
+import { queryClient } from './lib/queryClient';
 
 import PrivateRoute from './components/layout/PrivateRoute';
 import Layout from './components/layout/Layout';
@@ -38,26 +39,65 @@ import PreciosPage from './pages/precios/PreciosPage';
 import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
 import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
-import OrganizationMembersPage from './pages/organizaciones/OrganizationMembersPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 import RolesPage from './pages/organizaciones/RolesPage';
-
-const queryClient = new QueryClient();
-setQueryClientRef(queryClient);
+import MiembrosPage from './pages/miembros/MiembrosPage';
+import InvitarMiembrosPage from './pages/miembros/InvitarMiembrosPage';
+import AdministracionPersonalPage from './pages/miembros/AdministracionPersonalPage';
+import AsignarTrabajoPage from './pages/miembros/AsignarTrabajoPage';
+import MiembrosTrabajosPage from './pages/miembros/MiembrosTrabajosPage';
 
 export default function App() {
-  const { token, setAuth, logout } = useAuthStore();
+  const { token, setAuth, setIsLoading, logout } = useAuthStore();
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    let mounted = true;
+
+    setIsLoading(true);
+
     getProfile()
-      .then((profile) => setAuth(profile, token))
+      .then((profile) => {
+        if (!mounted) return;
+
+        const organizaciones = profile.organizaciones ?? [];
+
+        const activeOrgId =
+          profile.usuarioOrganizacionId ??
+          (organizaciones.length === 1 ? organizaciones[0]?.id : null);
+
+        setAuth(
+          {
+            id: profile.id,
+            email: profile.email,
+            nombre: profile.nombre,
+            apellido: profile.apellido,
+            rol: profile.rol || 'OPERADOR',
+            plan: (profile.plan || 'FREE') as 'FREE' | 'PRO',
+            rolGlobal: profile.rolGlobal,
+            usuarioOrganizacionId: activeOrgId ?? null,
+            organizaciones,
+          },
+          token,
+        );
+
+        setIsLoading(false);
+      })
       .catch(() => {
+        if (!mounted) return;
         logout();
+        setIsLoading(false);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    return () => {
+      mounted = false;
+    };
+  }, [token, setAuth, setIsLoading, logout]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -77,32 +117,39 @@ export default function App() {
           <Route path="/suscripcion-exitosa" element={<SuscripcionExitosaPage />} />
           <Route path="/terminos" element={<TermsPage />} />
           <Route path="/privacidad" element={<PrivacyPage />} />
+
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/campos" element={<CamposPage />} />
-              <Route path="/campos/:id" element={<CampoDetailPage />} />
-              <Route path="/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />
-              <Route path="/cultivos" element={<CultivosPage />} />
-              <Route path="/siembras" element={<SiembrasPage />} />
-              <Route path="/insumos" element={<InsumosPage />} />
-              <Route path="/ganado" element={<GanadoPage />} />
-              <Route path="/tareas" element={<TareasPage />} />
-              <Route path="/maquinarias" element={<MaquinariasPage />} />
-              <Route path="/maquinarias/:id" element={<MaquinariaDetailPage />} />
-              <Route path="/reportes" element={<ReportesPage />} />
-              <Route path="/finanzas" element={<FinanzasPage />} />
-              <Route path="/campanias" element={<CampaniasPage />} />
-              <Route path="/rentabilidad" element={<RentabilidadPage />} />
-              <Route path="/clima" element={<ClimaPage />} />
+              <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
+              <Route path="/org/:orgId/campos" element={<CamposPage />} />
+              <Route path="/org/:orgId/campos/:id" element={<CampoDetailPage />} />
+              <Route path="/org/:orgId/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />
+              <Route path="/org/:orgId/cultivos" element={<CultivosPage />} />
+              <Route path="/org/:orgId/siembras" element={<SiembrasPage />} />
+              <Route path="/org/:orgId/insumos" element={<InsumosPage />} />
+              <Route path="/org/:orgId/ganado" element={<GanadoPage />} />
+              <Route path="/org/:orgId/tareas" element={<TareasPage />} />
+              <Route path="/org/:orgId/miembros" element={<MiembrosPage />} />
+              <Route path="/org/:orgId/miembros/invitar" element={<InvitarMiembrosPage />} />
+              <Route path="/org/:orgId/miembros/administracion" element={<AdministracionPersonalPage />} />
+              <Route path="/org/:orgId/miembros/asignar-trabajo" element={<AsignarTrabajoPage />} />
+              <Route path="/org/:orgId/miembros/trabajos" element={<MiembrosTrabajosPage />} />
+              <Route path="/org/:orgId/maquinarias" element={<MaquinariasPage />} />
+              <Route path="/org/:orgId/maquinarias/:id" element={<MaquinariaDetailPage />} />
+              <Route path="/org/:orgId/reportes" element={<ReportesPage />} />
+              <Route path="/org/:orgId/finanzas" element={<FinanzasPage />} />
+              <Route path="/org/:orgId/campanias" element={<CampaniasPage />} />
+              <Route path="/org/:orgId/rentabilidad" element={<RentabilidadPage />} />
+              <Route path="/org/:orgId/clima" element={<ClimaPage />} />
+              <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
+              <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
+              <Route path="/org/:orgId/roles" element={<RolesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/organizaciones/:orgId/miembros" element={<OrganizationMembersPage />} />
-              <Route path="/organizaciones/:orgId/auditoria" element={<AuditoriaPage />} />
-              <Route path="/organizaciones/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
-              <Route path="/organizaciones/:orgId/roles" element={<RolesPage />} />
             </Route>
+
+            <Route path="/admin" element={<AdminPage />} />
           </Route>
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

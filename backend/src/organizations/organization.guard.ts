@@ -12,14 +12,20 @@ export class OrganizationGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const user = request.user as { id: number; organizacionId?: number };
-    const orgIdParam = (request.params.organizacionId || request.body?.organizacionId) as
-      | string
-      | undefined;
-    const organizacionId = orgIdParam ? parseInt(orgIdParam, 10) : undefined;
+    const user = request.user as {
+      id: number;
+      organizacionId?: number;
+      usuarioOrganizacionId?: number;
+    };
+    const rawOrgId =
+      request.params?.organizacionId ??
+      request.params?.orgId ??
+      request.query?.organizacionId ??
+      request.body?.organizacionId;
+    const orgIdParam = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
+    const organizacionId = orgIdParam ? parseInt(String(orgIdParam), 10) : undefined;
 
     if (!organizacionId || isNaN(organizacionId)) {
-      // Si no hay organizacionId en la ruta, usar la del JWT
       if (user.organizacionId) {
         request.organizacionId = user.organizacionId;
         return true;
@@ -41,6 +47,14 @@ export class OrganizationGuard implements CanActivate {
 
     if (!esMiembro && esOwner?.propietarioId !== user.id) {
       throw new ForbiddenException('No tenés acceso a esta organización');
+    }
+
+    if (esMiembro && esOwner?.propietarioId !== user.id) {
+      if (!esMiembro.activo) {
+        throw new ForbiddenException('Tu membresia esta inactiva');
+      }
+
+      user.usuarioOrganizacionId = esMiembro.id;
     }
 
     request.organizacionId = organizacionId;

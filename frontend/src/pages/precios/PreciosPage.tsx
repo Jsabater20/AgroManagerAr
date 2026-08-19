@@ -17,6 +17,11 @@ const features = [
   { label: 'Gestión de insumos',              free: true,          pro: true },
   { label: 'Maquinarias registradas',         free: 'Hasta 5',     pro: 'Ilimitadas' },
   { label: 'Tareas rurales',                  free: true,          pro: true },
+  { label: 'Miembros adicionales',            free: '1 + owner',  pro: 'Ilimitados' },
+  { label: 'Trabajos activos asignados',      free: 'Hasta 3',     pro: 'Ilimitados' },
+  { label: 'Asignación de recursos y trabajos', free: true,        pro: true },
+  { label: 'Fechas, horarios y estados',      free: true,          pro: true },
+  { label: 'Gestión de equipo y permisos',    free: 'Básica',      pro: 'Completa' },
   { label: 'Dashboard básico',                free: true,          pro: true },
   { label: 'Finanzas básicas',                free: true,          pro: true },
   { label: 'Animales registrados',            free: 'Hasta 20',    pro: 'Ilimitados' },
@@ -42,11 +47,13 @@ function FeatureCell({ value }: { value: boolean | string }) {
 
 const PRECIOS = {
   mensual: { monto: 13990, label: 'mes', descuento: null },
-  anual:   { monto: 153890, label: 'año', descuento: 'Ahorrá un 16% con el plan anual' },
+  anual:   { monto: 139900, label: 'año', descuento: 'Ahorrá un 16% con el plan anual' },
 };
 
 export default function PreciosPage() {
   const { usuario, setAuth, token } = useAuthStore();
+  const activeOrgId = useAuthStore((state) => state.activeOrgId());
+  const currentOrg = useAuthStore((state) => state.currentOrg());
   const navigate = useNavigate();
   const [showCancel, setShowCancel] = useState(false);
   const [tipo, setTipo] = useState<'mensual' | 'anual'>('mensual');
@@ -72,9 +79,19 @@ export default function PreciosPage() {
       // Re-fetch perfil para actualizar store con plan: 'FREE' fresco del backend
       if (token) {
         getProfile()
-          .then((freshUser) => setAuth(freshUser, token))
+          .then((freshUser) => setAuth({
+            id: freshUser.id,
+            email: freshUser.email,
+            nombre: freshUser.nombre,
+            apellido: freshUser.apellido,
+            rol: freshUser.rol || 'OPERADOR',
+            plan: (freshUser.plan || 'FREE') as 'FREE' | 'PRO',
+            rolGlobal: freshUser.rolGlobal,
+            usuarioOrganizacionId: freshUser.usuarioOrganizacionId,
+            organizaciones: freshUser.organizaciones,
+          }, token))
           .catch(() => {
-            if (usuario && token) setAuth({ ...usuario, plan: 'FREE' }, token);
+            if (usuario && token) setAuth(usuario, token);
           });
       }
       setShowCancel(false);
@@ -84,6 +101,7 @@ export default function PreciosPage() {
   });
 
   const isPro = planInfo?.plan === 'PRO';
+  const canManageSubscription = currentOrg?.propietarioId === usuario?.id;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -178,7 +196,7 @@ export default function PreciosPage() {
             <p className="text-xs text-green-700 font-medium mb-5">✓ 14 días gratis — sin cargo hasta que termine la prueba</p>
           )}
 
-          {!isPro ? (
+          {!isPro && canManageSubscription ? (
             <button
               onClick={() => {
                 if (!token) { navigate('/login'); return; }
@@ -190,7 +208,7 @@ export default function PreciosPage() {
               <Zap size={18} />
               {checkoutMutation.isPending ? 'Redirigiendo...' : 'Suscribirse con MercadoPago'}
             </button>
-          ) : (
+          ) : isPro && canManageSubscription ? (
             <div className="mb-5 space-y-2">
               <div className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl text-center">
                 ✓ Suscripción activa
@@ -201,6 +219,12 @@ export default function PreciosPage() {
               >
                 Cancelar suscripción
               </button>
+            </div>
+          ) : (
+            <div className="mb-5 rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              {isPro
+                ? 'Esta organización ya tiene el plan Pro activo.'
+                : 'Solo el propietario de la organización puede administrar el plan.'}
             </div>
           )}
 
@@ -218,7 +242,7 @@ export default function PreciosPage() {
       {/* Feature comparison table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-700">
-          <div className="px-6 py-3">Feature</div>
+          <div className="px-6 py-3">Funcionalidad</div>
           <div className="px-4 py-3 text-center">Free</div>
           <div className="px-4 py-3 text-center text-green-700">Pro</div>
         </div>
@@ -236,7 +260,7 @@ export default function PreciosPage() {
 
       {/* Back button */}
       <div className="mt-8 text-center">
-        <button onClick={() => navigate('/dashboard')} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => navigate(activeOrgId ? `/org/${activeOrgId}/dashboard` : '/')} className="text-sm text-gray-500 hover:text-gray-700">
           ← Volver al dashboard
         </button>
       </div>

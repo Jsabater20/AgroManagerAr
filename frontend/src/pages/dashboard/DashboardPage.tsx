@@ -2,7 +2,7 @@ import {
   Sprout, Map, Wheat, FlaskConical, ArrowRight, PawPrint, ClipboardList,
   AlertTriangle, TrendingUp, TrendingDown, DollarSign, Activity, Cloud,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { wmoInfo } from '../clima/ClimaPage';
 import {
@@ -16,6 +16,7 @@ import { insumosApi } from '../../api/insumos.api';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 import { finanzasApi } from '../../api/finanzas.api';
+import { organizacionesApi } from '../../api/organizaciones.api';
 import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import AiInsights from '../../components/ui/AiInsights';
 
@@ -30,23 +31,54 @@ const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'O
 
 export default function DashboardPage() {
   const usuario = useAuthStore((s) => s.usuario);
+  const { orgId } = useParams<{ orgId: string }>();
+  const orgIdNum = Number(orgId || 0);
+  const isOwner = usuario?.organizaciones?.some(
+    (organizacion) => organizacion.id === orgIdNum && organizacion.propietarioId === usuario.id,
+  ) ?? false;
+  const isSuperAdmin = usuario?.rolGlobal === 'SUPERADMIN';
+  const miembroActualQuery = useQuery({
+    queryKey: ['miembro-actual', orgIdNum],
+    queryFn: () => organizacionesApi.obtenerMiembroActual(orgIdNum),
+    enabled: orgIdNum > 0 && !isOwner && !isSuperAdmin,
+    retry: false,
+  });
+  const puedeVerDashboard =
+    isOwner ||
+    isSuperAdmin ||
+    miembroActualQuery.data?.modulos.some(
+      (modulo) => modulo.moduloNombre === 'Dashboard' && modulo.activo,
+    ) === true;
 
-  const { data: campos,   isLoading: lCampos }   = useQuery({ queryKey: ['campos'],   queryFn: camposApi.getAll });
-  const { data: siembras, isLoading: lSiembras } = useQuery({ queryKey: ['siembras'], queryFn: siembrasApi.getAll });
-  const { data: insumos                        } = useQuery({ queryKey: ['insumos'],  queryFn: insumosApi.getAll });
-  const { data: animales, isLoading: lAnimales } = useQuery({ queryKey: ['ganado'],   queryFn: ganadoApi.getAll });
-  const { data: tareas,   isLoading: lTareas   } = useQuery({ queryKey: ['tareas'],   queryFn: tareasApi.getAll });
-  const { data: finanzas, isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas'], queryFn: finanzasApi.getAll });
+  const { data: campos = [] as any[],   isLoading: lCampos }   = useQuery({ queryKey: ['campos', orgId],   queryFn: () => camposApi.getAll(), enabled: puedeVerDashboard });
+  const { data: siembras = [] as any[], isLoading: lSiembras } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll(), enabled: puedeVerDashboard });
+  const { data: insumos = [] as any[]                        } = useQuery({ queryKey: ['insumos', orgId],  queryFn: () => insumosApi.getAll(), enabled: puedeVerDashboard });
+  const { data: animales = [] as any[], isLoading: lAnimales } = useQuery({ queryKey: ['ganado', orgId],   queryFn: () => ganadoApi.getAll(), enabled: puedeVerDashboard });
+  const { data: tareas = [] as any[],   isLoading: lTareas   } = useQuery({ queryKey: ['tareas', orgId],   queryFn: () => tareasApi.getAll(), enabled: puedeVerDashboard });
+  const { data: finanzas = [] as any[], isLoading: lFinanzas } = useQuery({ queryKey: ['finanzas', orgId], queryFn: () => finanzasApi.getAll(), enabled: puedeVerDashboard });
+
+  if (!isOwner && !isSuperAdmin && miembroActualQuery.isLoading) {
+    return <div className="py-12 text-center text-sm text-gray-500">Verificando permisos...</div>;
+  }
+
+  if (!puedeVerDashboard) {
+    return (
+      <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-600">
+        El propietario todavía no te habilitó el acceso al dashboard.
+      </div>
+    );
+  }
 
   const isLoading = lCampos || lSiembras || lAnimales;
 
   const totalCampos      = campos?.length ?? 0;
-  const totalHectareas   = campos?.reduce((a, c) => a + c.hectareas, 0) ?? 0;
-  const siembrasEnCurso  = siembras?.filter((s) => s.estado === 'EN_CURSO').length ?? 0;
+  const totalHectareas   = campos?.reduce((a: number, c: any) => a + c.hectareas, 0) ?? 0;
+  const siembrasEnCurso  = siembras?.filter((s: any) => s.estado === 'EN_CURSO').length ?? 0;
   const totalAnimales    = animales?.length ?? 0;
-  const prenecesActivas  = animales?.reduce((a, an) => a + an.preneces.filter((p) => p.estado === 'EN_CURSO').length, 0) ?? 0;
-  const tareasPendientes = tareas?.filter((t) => t.estado === 'PENDIENTE' || t.estado === 'EN_CURSO').length ?? 0;
-  const tareasVencidas   = tareas?.filter((t) => {
+  const prenecesActivas  = animales?.reduce((a: number, an: any) => a + an.preneces.filter((p: any) => p.estado === 'EN_CURSO').length, 0) ?? 0;
+  const tareasPendientes = tareas?.filter((t: any) => t.estado === 'PENDIENTE' || t.estado === 'EN_CURSO').length ?? 0;
+  const tareasVencidas   = tareas?.filter((t: any) => {
+    if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA') return false;
     if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA') return false;
     return new Date(t.fechaProgramada) < new Date(new Date().toDateString());
   }) ?? [];
@@ -62,8 +94,8 @@ export default function DashboardPage() {
 
   // Producción por mes
   const cosechasPorMes: Record<number, number> = {};
-  siembras?.forEach((s) =>
-    s.cosechas.forEach((c) => {
+  siembras?.forEach((s: any) =>
+    s.cosechas.forEach((c: any) => {
       const m = new Date(c.fechaCosecha).getMonth();
       cosechasPorMes[m] = (cosechasPorMes[m] ?? 0) + c.totalKg;
     }),
@@ -117,7 +149,7 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <Link to="/reportes" className="hidden sm:flex items-center gap-1.5 text-sm text-emerald-300 hover:text-white font-medium transition-colors shrink-0 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10">
+          <Link to={`/org/${orgId}/reportes`} className="hidden sm:flex items-center gap-1.5 text-sm text-emerald-300 hover:text-white font-medium transition-colors shrink-0 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10">
             Ver reportes <ArrowRight size={14} />
           </Link>
         </div>
@@ -129,16 +161,16 @@ export default function DashboardPage() {
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
-            <KpiCard icon={Map}           color="emerald" label="Campos"           value={totalCampos}      sub={`${totalHectareas.toLocaleString('es-AR')} ha`}  to="/campos" />
-            <KpiCard icon={Sprout}        color="green"   label="Siembras activas" value={siembrasEnCurso}  sub={`${insumos?.length ?? 0} insumos`}               to="/siembras" />
-            <KpiCard icon={PawPrint}      color="pink"    label="Animales"         value={totalAnimales}    sub={`${prenecesActivas} preñeces`}                   to="/ganado" />
+            <KpiCard icon={Map}           color="emerald" label="Campos"           value={totalCampos}      sub={`${totalHectareas.toLocaleString('es-AR')} ha`}  to={`/org/${orgId}/campos`} />
+            <KpiCard icon={Sprout}        color="green"   label="Siembras activas" value={siembrasEnCurso}  sub={`${insumos?.length ?? 0} insumos`}               to={`/org/${orgId}/siembras`} />
+            <KpiCard icon={PawPrint}      color="pink"    label="Animales"         value={totalAnimales}    sub={`${prenecesActivas} preñeces`}                   to={`/org/${orgId}/ganado`} />
             <KpiCard
               icon={ClipboardList}
               color={tareasVencidas.length > 0 ? 'red' : 'blue'}
               label="Tareas"
               value={tareasPendientes}
               sub={tareasVencidas.length > 0 ? `${tareasVencidas.length} vencidas ⚠` : 'Al día'}
-              to="/tareas"
+              to={`/org/${orgId}/tareas`}
               alert={tareasVencidas.length > 0}
             />
           </>
@@ -155,7 +187,7 @@ export default function DashboardPage() {
       )}
 
       {/* Weather strip */}
-      <WeatherStrip />
+      <WeatherStrip orgId={orgId} />
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -168,7 +200,7 @@ export default function DashboardPage() {
               </h2>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Kg cosechados por mes</p>
             </div>
-            <Link to="/reportes" className="text-xs text-green-700 font-medium flex items-center gap-1">
+            <Link to={`/org/${orgId}/reportes`} className="text-xs text-green-700 font-medium flex items-center gap-1">
               Detalle <ArrowRight size={11} />
             </Link>
           </div>
@@ -201,7 +233,7 @@ export default function DashboardPage() {
               </h2>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Ingresos vs egresos</p>
             </div>
-            <Link to="/finanzas" className="text-xs text-green-700 font-medium flex items-center gap-1">
+            <Link to={`/org/${orgId}/finanzas`} className="text-xs text-green-700 font-medium flex items-center gap-1">
               Ver finanzas <ArrowRight size={11} />
             </Link>
           </div>
@@ -236,7 +268,7 @@ export default function DashboardPage() {
             <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <ClipboardList size={16} className="text-green-500" /> Próximas tareas
             </h2>
-            <Link to="/tareas" className="text-xs text-green-700 font-medium flex items-center gap-1">
+            <Link to={`/org/${orgId}/tareas`} className="text-xs text-green-700 font-medium flex items-center gap-1">
               Ver todas <ArrowRight size={11} />
             </Link>
           </div>
@@ -324,12 +356,12 @@ export default function DashboardPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <QuickStat label="Total cosechas" value={siembras?.reduce((a, s) => a + s.cosechas.length, 0) ?? 0}                                       unit="cosechas" to="/reportes" />
-        <QuickStat label="Lotes activos"  value={campos?.reduce((a, c) => a + c.lotes.length, 0) ?? 0}                                            unit="lotes"    to="/campos" />
-        <QuickStat label="Insumos"        value={insumos?.length ?? 0}                                                                             unit="tipos"    to="/insumos" />
+        <QuickStat label="Total cosechas" value={siembras?.reduce((a: number, s: any) => a + s.cosechas.length, 0) ?? 0}                                       unit="cosechas" to={`/org/${orgId}/reportes`} />
+        <QuickStat label="Lotes activos"  value={campos?.reduce((a: number, c: any) => a + c.lotes.length, 0) ?? 0}                                            unit="lotes"    to={`/org/${orgId}/campos`} />
+        <QuickStat label="Insumos"        value={insumos?.length ?? 0}                                                                             unit="tipos"    to={`/org/${orgId}/insumos`} />
         <QuickStat label="Total producción"
-          value={siembras?.reduce((a, s) => a + s.cosechas.reduce((b, c) => b + c.totalKg, 0), 0) ?? 0}
-          unit="kg" to="/reportes" big />
+          value={siembras?.reduce((a: number, s: any) => a + s.cosechas.reduce((b: number, c: any) => b + c.totalKg, 0), 0) ?? 0}
+          unit="kg" to={`/org/${orgId}/reportes`} big />
       </div>
     </div>
   );
@@ -426,7 +458,7 @@ async function fetchDashboardWeather(): Promise<WeatherCurrent> {
   return data.current as WeatherCurrent;
 }
 
-function WeatherStrip() {
+function WeatherStrip({ orgId }: { orgId?: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['weather-dashboard'],
     queryFn: fetchDashboardWeather,
@@ -444,7 +476,7 @@ function WeatherStrip() {
 
   return (
     <Link
-      to="/clima"
+      to={orgId ? `/org/${orgId}/clima` : '/clima'}
       className="flex items-center justify-between gap-4 bg-linear-to-r from-blue-600 to-sky-500 dark:from-blue-700 dark:to-sky-600 rounded-2xl px-5 py-3.5 text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group"
     >
       <div className="flex items-center gap-3">
@@ -468,4 +500,3 @@ function WeatherStrip() {
     </Link>
   );
 }
-

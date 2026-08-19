@@ -1,93 +1,120 @@
 import { create } from 'zustand';
-import type { QueryClient } from '@tanstack/react-query';
+import { persist } from 'zustand/middleware';
+import { queryClient } from '../lib/queryClient';
 
-// Global queryClient reference for invalidating queries on org change
-let queryClientRef: QueryClient | null = null;
+export interface Organizacion {
+  id: number;
+  nombre: string;
+  email?: string;
+  plan?: 'FREE' | 'PRO';
+  propietarioId: number;
+}
 
-export const setQueryClientRef = (qc: QueryClient) => {
-  queryClientRef = qc;
-};
-
-interface Usuario {
+export interface Usuario {
   id: number;
   email: string;
   nombre: string;
   apellido: string;
-  rol: string;
-  plan: 'FREE' | 'PRO';
+  rol?: string;
+  rolGlobal?: string;
+  plan?: 'FREE' | 'PRO';
+  planExpira?: string | null;
+  usuarioOrganizacionId?: number | null;
+  organizaciones?: Organizacion[];
 }
 
-interface Organizacion {
-  id: number;
-  nombre: string;
-  email: string;
-  plan: 'FREE' | 'PRO';
-  propietarioId: number;
-}
+const normalizeUsuario = (usuario: Usuario | null): Usuario | null => {
+  if (!usuario) return null;
+
+  const organizaciones = (usuario.organizaciones ?? []).filter(Boolean);
+
+  const resolvedOrgId =
+    usuario.usuarioOrganizacionId ??
+    (organizaciones.length === 1 ? organizaciones[0].id : null);
+
+  return {
+    ...usuario,
+    usuarioOrganizacionId: resolvedOrgId,
+    organizaciones,
+  };
+};
 
 interface AuthState {
-  usuario: Usuario | null;
   token: string | null;
-  organizacionId: number | null;
-  organizaciones: Organizacion[];
-  hydrating: boolean;
-  setAuth: (usuario: Usuario, token: string, organizacionId?: number) => void;
-  setOrganizacionId: (id: number) => void;
-  setOrganizaciones: (orgs: Organizacion[]) => void;
-  setHydrating: (v: boolean) => void;
+  usuario: Usuario | null;
+  isLoading: boolean;
+  setAuth: (usuario: Usuario | null, token: string | null) => void;
   logout: () => void;
-  isAuthenticated: () => boolean;
+  setIsLoading: (v: boolean) => void;
   isPro: () => boolean;
+  currentOrg: () => Organizacion | undefined;
+  activeOrgId: () => number | null;
 }
 
-const storedToken = localStorage.getItem('token');
-const storedOrgId = localStorage.getItem('organizacionId');
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      token: null,
+      usuario: null,
+      isLoading: true,
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  usuario: null,
-  token: storedToken,
-  organizacionId: storedOrgId ? parseInt(storedOrgId) : null,
-  organizaciones: [],
-  hydrating: !!storedToken,
+      setAuth: (usuario, token) => {
+        set({
+          usuario: normalizeUsuario(usuario),
+          token,
+          isLoading: false,
+        });
+      },
 
-  setAuth: (usuario, token, organizacionId) => {
-    // Si no viene organizacionId, intentar extraerlo del token JWT
-    if (!organizacionId) {
-      try {
-        const decoded = JSON.parse(atob(token.split('.')[1]));
-        organizacionId = decoded.organizacionId;
-      } catch (e) {
-        organizacionId = undefined;
-      }
-    }
-    localStorage.setItem('token', token);
-    if (organizacionId) {
-      localStorage.setItem('organizacionId', organizacionId.toString());
-    }
-    set({ usuario, token, organizacionId, hydrating: false });
-  },
+      logout: () => {
+        queryClient.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('organizacionId');
 
-  setOrganizacionId: (id) => {
-    localStorage.setItem('organizacionId', id.toString());
-    // Invalidar todas las queries cuando cambia de org
-    if (queryClientRef) {
-      queryClientRef.invalidateQueries();
-    }
-    set({ organizacionId: id });
-  },
+        set({
+          usuario: null,
+          token: null,
+          isLoading: false,
+        });
+      },
 
-  setOrganizaciones: (orgs) => {
-    set({ organizaciones: orgs });
-  },
+      setIsLoading: (v) => set({ isLoading: v }),
 
-  setHydrating: (v: boolean) => set({ hydrating: v }),
+      isPro: () => {
+        const currentOrg = get().currentOrg();
+        return currentOrg?.plan === 'PRO';
+      },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('organizacionId');
-    set({ usuario: null, token: null, organizacionId: null, organizaciones: [], hydrating: false });
-  },
+      currentOrg: () => {
+        const usuario = get().usuario;
 
-  isAuthenticated: () => !!get().token,
-  isPro: () => get().usuario?.plan === 'PRO',
-}));
+        if (!usuario) return undefined;
+
+        const organizaciones = usuario.organizaciones ?? [];
+        const activeId = usuario.usuarioOrganizacionId;
+
+        if (activeId) {
+          return organizaciones.find((org) => org.id === Number(activeId));
+        }
+
+        if (organizaciones.length === 1) {
+          return organizaciones[0];
+        }
+
+        return undefined;
+      },
+
+      activeOrgId: () => {
+        const org = get().currentOrg();
+        return org ? org.id : null;
+      },
+    }),
+    {
+      name: 'agromanager-auth',
+      partialize: (state) => ({
+        token: state.token,
+        usuario: state.usuario,
+      }),
+    },
+  ),
+);

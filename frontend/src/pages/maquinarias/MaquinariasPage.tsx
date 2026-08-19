@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Wrench,
   Plus,
@@ -62,19 +62,20 @@ function fmtDate(d: string) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MaquinariasPage() {
+  const { orgId } = useParams<{ orgId: string }>();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<CreateMaquinariaDto>(EMPTY);
 
   const { data: maquinarias = [], isLoading } = useQuery({
-    queryKey: ['maquinarias'],
+    queryKey: ['maquinarias', orgId],
     queryFn: maquinariasApi.getAll,
   });
 
   const { data: campos = [] } = useQuery({
-    queryKey: ['campos'],
-    queryFn: camposApi.getAll,
+    queryKey: ['campos', orgId],
+    queryFn: () => camposApi.getAll(),
   });
 
   const createMut = useMutation({
@@ -124,7 +125,7 @@ export default function MaquinariasPage() {
 
   // Resumen alertas
   const alertas = maquinarias.filter(
-    (m) =>
+    (m: any) =>
       isAlertDate(m.seguroVencimiento) ||
       isAlertDate(m.vtvVencimiento) ||
       isExpired(m.seguroVencimiento) ||
@@ -132,9 +133,9 @@ export default function MaquinariasPage() {
   ).length;
 
   const totales = {
-    operativas: maquinarias.filter((m) => m.estado === 'OPERATIVA').length,
-    enMant:     maquinarias.filter((m) => m.estado === 'EN_MANTENIMIENTO').length,
-    fuera:      maquinarias.filter((m) => m.estado === 'FUERA_DE_SERVICIO').length,
+    operativas: maquinarias.filter((m: any) => m.estado === 'OPERATIVA').length,
+    enMant:     maquinarias.filter((m: any) => m.estado === 'EN_MANTENIMIENTO').length,
+    fuera:      maquinarias.filter((m: any) => m.estado === 'FUERA_DE_SERVICIO').length,
   };
 
   return (
@@ -190,19 +191,19 @@ export default function MaquinariasPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {maquinarias.map((m) => {
-            const est = ESTADO_CONFIG[m.estado];
+          {maquinarias.map((m: any) => {
+            const est = ESTADO_CONFIG[m.estado as EstadoMaquinaria];
             const EstIcon = est.icon;
             const seguroAlert = isAlertDate(m.seguroVencimiento) || isExpired(m.seguroVencimiento);
             const vtvAlert    = isAlertDate(m.vtvVencimiento)    || isExpired(m.vtvVencimiento);
             const lastMant    = m.mantenimientos?.[0];
-            const totalGastos = m.gastos?.reduce((s, g) => s + g.monto, 0) ?? 0;
+            const totalGastos = m.gastos?.reduce((s: number, g: any) => s + g.monto, 0) ?? 0;
 
             return (
               <div
                 key={m.id}
                 className="bg-white rounded-xl border border-gray-200 hover:border-green-300 hover:shadow-md transition-all cursor-pointer group"
-                onClick={() => navigate(`/maquinarias/${m.id}`)}
+                onClick={() => navigate(`/org/${orgId}/maquinarias/${m.id}`)}
               >
                 <div className="p-4">
                   {/* Title row */}
@@ -210,7 +211,7 @@ export default function MaquinariasPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 truncate">{m.nombre}</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {TIPO_LABEL[m.tipo]}
+                        {TIPO_LABEL[m.tipo as TipoMaquinaria]}
                         {m.marca && ` · ${m.marca}`}
                         {m.modelo && ` ${m.modelo}`}
                         {m.anio && ` (${m.anio})`}
@@ -382,7 +383,7 @@ export default function MaquinariasPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="">Sin campo</option>
-                    {campos.map((c) => (
+                    {campos.map((c: any) => (
                       <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
                   </select>

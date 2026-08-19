@@ -90,7 +90,7 @@ const EMPTY_GASTO: CreateGastoDto = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function MaquinariaDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, orgId } = useParams<{ id: string; orgId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const maqId = Number(id);
@@ -109,9 +109,9 @@ export default function MaquinariaDetailPage() {
     enabled: !isNaN(maqId),
   });
 
-  const { data: campos = [] } = useQuery({
-    queryKey: ['campos'],
-    queryFn: camposApi.getAll,
+  const { data: campos = [] as any[] } = useQuery({
+    queryKey: ['campos', orgId],
+    queryFn: () => camposApi.getAll(),
   });
 
   // Mutations
@@ -131,7 +131,7 @@ export default function MaquinariaDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['maquinarias'] });
       toast.success('Maquinaria eliminada');
-      navigate('/maquinarias');
+      navigate(`/org/${orgId}/maquinarias`);
     },
     onError: () => toast.error('Error al eliminar'),
   });
@@ -244,7 +244,7 @@ export default function MaquinariaDetailPage() {
     return (
       <div className="p-6 text-center text-gray-400">
         <p>Maquinaria no encontrada.</p>
-        <button onClick={() => navigate('/maquinarias')} className="mt-4 text-green-600 underline text-sm">
+        <button onClick={() => navigate(`/org/${orgId}/maquinarias`)} className="mt-4 text-green-600 underline text-sm">
           Volver a Maquinarias
         </button>
       </div>
@@ -262,7 +262,7 @@ export default function MaquinariaDetailPage() {
     <div className="p-6 max-w-5xl mx-auto">
       {/* Back */}
       <button
-        onClick={() => navigate('/maquinarias')}
+        onClick={() => navigate(`/org/${orgId}/maquinarias`)}
         className="flex items-center gap-1 text-sm text-gray-500 hover:text-green-600 mb-4 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Volver a Maquinarias
@@ -352,7 +352,7 @@ export default function MaquinariaDetailPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Sin campo</option>
-                  {campos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {campos.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
               <div>
@@ -453,7 +453,7 @@ export default function MaquinariaDetailPage() {
               </div>
               <div className="bg-gray-50 rounded-xl p-3 text-center">
                 <p className="text-xs text-gray-500">Campo asignado</p>
-                <p className="text-sm font-semibold text-gray-900 mt-1">{maq.campo?.nombre ?? '—'}</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{maq.campoId ? `Campo ${maq.campoId}` : '—'}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-3 text-center">
                 <p className="text-xs text-gray-500">Gastos registrados</p>
@@ -517,7 +517,7 @@ export default function MaquinariaDetailPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t === 'mantenimiento' ? `Mantenimientos (${maq.mantenimientos.length})` : `Gastos (${maq.gastos.length})`}
+            {t === 'mantenimiento' ? `Mantenimientos (${maq.mantenimientos?.length ?? 0})` : `Gastos (${maq.gastos?.length ?? 0})`}
           </button>
         ))}
       </div>
@@ -534,14 +534,14 @@ export default function MaquinariaDetailPage() {
             </button>
           </div>
 
-          {maq.mantenimientos.length === 0 ? (
+          {(maq.mantenimientos?.length ?? 0) === 0 ? (
             <div className="text-center py-10 text-gray-400">
               <Wrench className="w-10 h-10 mx-auto mb-2 opacity-40" />
               <p className="text-sm">Sin registros de mantenimiento</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {maq.mantenimientos.map((m) => (
+              {maq.mantenimientos?.map((m) => (
                 <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -593,7 +593,7 @@ export default function MaquinariaDetailPage() {
             </button>
           </div>
 
-          {maq.gastos.length === 0 ? (
+          {(maq.gastos?.length ?? 0) === 0 ? (
             <div className="text-center py-10 text-gray-400">
               <p className="text-sm">Sin gastos registrados</p>
             </div>
@@ -610,7 +610,7 @@ export default function MaquinariaDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {maq.gastos.map((g) => (
+                  {maq.gastos?.map((g) => (
                     <tr key={g.id} className="bg-white hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-700">{TIPO_GASTO_LABEL[g.tipo]}</td>
                       <td className="px-4 py-3 text-gray-600">{g.descripcion}</td>

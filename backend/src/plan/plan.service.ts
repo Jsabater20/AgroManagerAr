@@ -9,6 +9,8 @@ const LIMITES_FREE = {
   animales: 20,
   siembras: 10,
   maquinarias: 5,
+  miembrosAdicionales: 1,
+  actividadesActivas: 3,
 };
 
 const PRECIOS = {
@@ -19,14 +21,14 @@ const PRECIOS = {
     descuento: null,
   },
   anual: {
-    monto: 153890,
+    monto: 139900,
     frecuencia: 12,
     label: 'AgroManager AR Pro Anual',
     descuento: 'Ahorrá un 16% con el plan anual',
   },
 };
 
-const TRIAL_DIAS = 14;
+const TRIAL_DIAS = 30;
 
 @Injectable()
 export class PlanService {
@@ -67,36 +69,75 @@ export class PlanService {
     };
   }
 
-  async getUsuarioPlan(usuarioId: number) {
-    const u = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
-      select: { plan: true, planExpira: true, mpSuscripcionId: true, trialUsado: true },
-    });
-    return u;
+  async getPlanOrganizacion(usuarioId: number, organizacionId: number) {
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId);
+
+    const [organizacion, usuario] = await Promise.all([
+      this.prisma.organizacion.findUnique({
+        where: { id: organizacionId },
+        select: { plan: true },
+      }),
+      this.prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { planExpira: true, mpSuscripcionId: true, trialUsado: true },
+      }),
+    ]);
+
+    if (!organizacion || !usuario) {
+      throw new ForbiddenException('Organización no encontrada');
+    }
+
+    return {
+      plan: organizacion.plan,
+      planExpira: usuario.planExpira,
+      mpSuscripcionId: usuario.mpSuscripcionId,
+      trialUsado: usuario.trialUsado,
+    };
   }
 
-  async isPro(usuarioId: number): Promise<boolean> {
-    const u = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
-      select: { plan: true, planExpira: true, rol: true },
-    });
-    if (!u) return false;
-    // ADMIN siempre tiene acceso completo
-    if (u.rol === 'ADMIN') return true;
-    if (u.plan !== 'PRO') return false;
-    if (u.planExpira && u.planExpira < new Date()) {
-      await this.prisma.usuario.update({
-        where: { id: usuarioId },
-        data: { plan: 'FREE' },
-      });
-      return false;
+  private async validarAccesoOrganizacion(
+    usuarioId: number,
+    organizacionId: number,
+    requiereOwner = false,
+  ) {
+    if (!Number.isInteger(organizacionId) || organizacionId <= 0) {
+      throw new ForbiddenException('Organización no especificada');
     }
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { id: true, propietarioId: true },
+    });
+    if (!organizacion) throw new ForbiddenException('Organización no encontrada');
+
+    if (organizacion.propietarioId === usuarioId) return organizacion;
+    if (requiereOwner) {
+      throw new ForbiddenException('Solo el propietario puede administrar el plan');
+    }
+
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { usuarioId_organizacionId: { usuarioId, organizacionId } },
+      select: { activo: true },
+    });
+    if (!miembro?.activo) {
+      throw new ForbiddenException('No tenés acceso a esta organización');
+    }
+
+    return organizacion;
+  }
+
+  async isOrgPro(organizacionId: number): Promise<boolean> {
+    const org = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { plan: true },
+    });
+    if (!org || org.plan !== 'PRO') return false;
     return true;
   }
 
-  async checkCamposLimit(usuarioId: number) {
-    if (await this.isPro(usuarioId)) return;
-    const count = await this.prisma.campo.count({ where: { usuarioId } });
+  async checkCamposLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.campo.count({ where: { organizacionId } });
     if (count >= LIMITES_FREE.campos) {
       throw new ForbiddenException(
         `Plan Free: máximo ${LIMITES_FREE.campos} campo. Actualizá a Pro para agregar más.`,
@@ -104,19 +145,21 @@ export class PlanService {
     }
   }
 
-  async checkLotesLimit(campoId: number, usuarioId: number) {
-    if (await this.isPro(usuarioId)) return;
-    const count = await this.prisma.lote.count({ where: { campoId } });
+  async checkLotesLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.lote.count({
+      where: { campo: { organizacionId } },
+    });
     if (count >= LIMITES_FREE.lotesPerCampo) {
       throw new ForbiddenException(
-        `Plan Free: máximo ${LIMITES_FREE.lotesPerCampo} lotes por campo. Actualizá a Pro para agregar más.`,
+        `Plan Free: máximo ${LIMITES_FREE.lotesPerCampo} lotes por organización. Actualizá a Pro para agregar más.`,
       );
     }
   }
 
-  async checkAnimalesLimit(usuarioId: number) {
-    if (await this.isPro(usuarioId)) return;
-    const count = await this.prisma.animal.count({ where: { usuarioId } });
+  async checkAnimalesLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.animal.count({ where: { organizacionId } });
     if (count >= LIMITES_FREE.animales) {
       throw new ForbiddenException(
         `Plan Free: máximo ${LIMITES_FREE.animales} animales. Actualizá a Pro para agregar más.`,
@@ -124,10 +167,10 @@ export class PlanService {
     }
   }
 
-  async checkSiembrasLimit(usuarioId: number) {
-    if (await this.isPro(usuarioId)) return;
+  async checkSiembrasLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
     const count = await this.prisma.siembra.count({
-      where: { lote: { campo: { usuarioId } } },
+      where: { lote: { campo: { organizacionId } } },
     });
     if (count >= LIMITES_FREE.siembras) {
       throw new ForbiddenException(
@@ -136,9 +179,9 @@ export class PlanService {
     }
   }
 
-  async checkMaquinariasLimit(usuarioId: number) {
-    if (await this.isPro(usuarioId)) return;
-    const count = await this.prisma.maquinaria.count({ where: { usuarioId } });
+  async checkMaquinariasLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.maquinaria.count({ where: { organizacionId } });
     if (count >= LIMITES_FREE.maquinarias) {
       throw new ForbiddenException(
         `Plan Free: máximo ${LIMITES_FREE.maquinarias} maquinarias. Actualizá a Pro para agregar más.`,
@@ -146,8 +189,109 @@ export class PlanService {
     }
   }
 
-  async checkProAccess(usuarioId: number, feature: string) {
-    if (await this.isPro(usuarioId)) return;
+  async getMiembrosUso(organizacionId: number) {
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { plan: true, propietarioId: true },
+    });
+
+    if (!organizacion) {
+      throw new ForbiddenException('Organizacion no encontrada');
+    }
+
+    const [miembrosAdicionales, invitacionesPendientes, actividadesActivas] =
+      await Promise.all([
+        this.prisma.usuarioOrganizacion.count({
+          where: {
+            organizacionId,
+            usuarioId: { not: organizacion.propietarioId },
+          },
+        }),
+        this.prisma.invitacionOrganizacion.count({
+          where: {
+            organizacionId,
+            estado: 'PENDIENTE',
+            expiresAt: { gte: new Date() },
+          },
+        }),
+        this.prisma.actividadMiembro.count({
+          where: {
+            organizacionId,
+            activo: true,
+            estado: { in: ['PENDIENTE', 'EN_PROGRESO', 'PAUSADA'] },
+          },
+        }),
+      ]);
+
+    return {
+      plan: organizacion.plan,
+      miembros: {
+        usados: miembrosAdicionales + invitacionesPendientes,
+        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.miembrosAdicionales : null,
+      },
+      actividades: {
+        usadas: actividadesActivas,
+        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.actividadesActivas : null,
+      },
+    };
+  }
+
+  async checkMiembrosLimit(
+    organizacionId: number,
+    invitacionExcluidaId?: number,
+  ) {
+    if (await this.isOrgPro(organizacionId)) return;
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { propietarioId: true },
+    });
+    if (!organizacion) throw new ForbiddenException('Organizacion no encontrada');
+
+    const [miembrosAdicionales, invitacionesPendientes] = await Promise.all([
+      this.prisma.usuarioOrganizacion.count({
+        where: {
+          organizacionId,
+          usuarioId: { not: organizacion.propietarioId },
+        },
+      }),
+      this.prisma.invitacionOrganizacion.count({
+        where: {
+          organizacionId,
+          estado: 'PENDIENTE',
+          expiresAt: { gte: new Date() },
+          ...(invitacionExcluidaId ? { id: { not: invitacionExcluidaId } } : {}),
+        },
+      }),
+    ]);
+
+    if (miembrosAdicionales + invitacionesPendientes >= LIMITES_FREE.miembrosAdicionales) {
+      throw new ForbiddenException(
+        'Alcanzaste el limite del plan Free. Pasate a Pro para agregar mas miembros y trabajos.',
+      );
+    }
+  }
+
+  async checkActividadesActivasLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+
+    const actividadesActivas = await this.prisma.actividadMiembro.count({
+      where: {
+        organizacionId,
+        activo: true,
+        estado: { in: ['PENDIENTE', 'EN_PROGRESO', 'PAUSADA'] },
+      },
+    });
+
+    if (actividadesActivas >= LIMITES_FREE.actividadesActivas) {
+      throw new ForbiddenException(
+        'Alcanzaste el limite del plan Free. Pasate a Pro para agregar mas miembros y trabajos.',
+      );
+    }
+  }
+
+  async checkProAccess(organizacionId: number, feature: string) {
+    if (await this.isOrgPro(organizacionId)) return;
     throw new ForbiddenException(
       `${feature} está disponible solo en el plan Pro. Actualizá para acceder.`,
     );
@@ -156,8 +300,10 @@ export class PlanService {
   async crearCheckout(
     usuarioId: number,
     email: string,
+    organizacionId: number,
     tipo: 'mensual' | 'anual',
   ) {
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const p = PRECIOS[tipo];
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
@@ -178,10 +324,9 @@ export class PlanService {
       body: {
         reason: p.label,
         payer_email: email,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         auto_recurring: autoRecurring as any,
         back_url: `${this.frontendUrl}/suscripcion-exitosa`,
-        external_reference: `${usuarioId}:${tipo}`,
+        external_reference: `${usuarioId}:${organizacionId}:${tipo}`,
         status: 'pending',
       },
     });
@@ -198,10 +343,11 @@ export class PlanService {
     const preApproval = new PreApproval(client);
     const suscripcion = await preApproval.get({ id: suscripcionId });
 
-    const [refId, tipo] = (suscripcion.external_reference ?? '').split(':');
+    const [refId, refOrgId, refTipo] = (suscripcion.external_reference ?? '').split(':');
     let usuarioId = parseInt(refId);
+    const organizacionId = parseInt(refTipo ? refOrgId : '', 10);
+    const tipo = refTipo ?? refOrgId;
 
-    // Fallback para suscripciones antiguas (plan URL) sin external_reference
     if (!usuarioId) {
       const raw = suscripcion as unknown as Record<string, unknown>;
       const payerEmail =
@@ -218,8 +364,8 @@ export class PlanService {
     const status = suscripcion.status;
     if (status === 'authorized') {
       const expira = new Date();
-      // Mensual: +45 días (14 trial + 30 ciclo + buffer); Anual: +400 días
       expira.setDate(expira.getDate() + (tipo === 'anual' ? 400 : 45));
+
       const usuario = await this.prisma.usuario.update({
         where: { id: usuarioId },
         data: {
@@ -228,8 +374,22 @@ export class PlanService {
           mpSuscripcionId: suscripcionId,
           trialUsado: true,
         },
-        select: { email: true, nombre: true },
+        select: { email: true, nombre: true, plan: true, planExpira: true },
       });
+
+      const org = organizacionId
+        ? await this.prisma.organizacion.findFirst({
+            where: { id: organizacionId, propietarioId: usuarioId },
+          })
+        : await this.prisma.organizacion.findFirst({ where: { propietarioId: usuarioId } });
+
+      if (org) {
+        await this.prisma.organizacion.update({
+          where: { id: org.id },
+          data: { plan: 'PRO' },
+        });
+      }
+
       if (this.resend) {
         this.resend.emails
           .send({
@@ -250,6 +410,20 @@ export class PlanService {
         data: { plan: 'FREE', planExpira: null },
         select: { email: true, nombre: true },
       });
+
+      const org = organizacionId
+        ? await this.prisma.organizacion.findFirst({
+            where: { id: organizacionId, propietarioId: usuarioId },
+          })
+        : await this.prisma.organizacion.findFirst({ where: { propietarioId: usuarioId } });
+
+      if (org) {
+        await this.prisma.organizacion.update({
+          where: { id: org.id },
+          data: { plan: 'FREE' },
+        });
+      }
+
       if (this.resend) {
         this.resend.emails
           .send({
@@ -266,6 +440,7 @@ export class PlanService {
 
   async verificarYActivar(
     usuarioId: number,
+    organizacionId: number,
     preapprovalId: string,
   ): Promise<{
     activado: boolean;
@@ -277,32 +452,44 @@ export class PlanService {
     const preApproval = new PreApproval(client);
     const suscripcion = await preApproval.get({ id: preapprovalId });
 
-    // Verificar que la suscripción pertenece a este usuario
-    const [refId, tipo] = (suscripcion.external_reference ?? '0:mensual').split(
-      ':',
-    );
-    if (parseInt(refId) !== usuarioId) {
+    const [refId, refOrgId, tipo] = (suscripcion.external_reference ?? '0:0:mensual').split(':');
+    if (parseInt(refId) !== usuarioId || parseInt(refOrgId) !== organizacionId) {
       throw new ForbiddenException(
         'Esta suscripción no pertenece a tu cuenta.',
       );
     }
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
 
     const status = suscripcion.status ?? 'unknown';
     if (status !== 'authorized') {
       return { activado: false, status };
     }
 
-    // Activar PRO: trial 14 días ya está en MP; damos buffer de 45/400 días en BD
     const expira = new Date();
     expira.setDate(expira.getDate() + (tipo === 'anual' ? 400 : 45));
 
     const usuario = await this.prisma.usuario.update({
       where: { id: usuarioId },
-      data: { plan: 'PRO', planExpira: expira, mpSuscripcionId: preapprovalId, trialUsado: true },
+      data: {
+        plan: 'PRO',
+        planExpira: expira,
+        mpSuscripcionId: preapprovalId,
+        trialUsado: true,
+      },
       select: { email: true, nombre: true, plan: true, planExpira: true },
     });
 
-    // Email de bienvenida (sin bloquear)
+    const org = await this.prisma.organizacion.findFirst({
+      where: { id: organizacionId, propietarioId: usuarioId },
+    });
+
+    if (org) {
+      await this.prisma.organizacion.update({
+        where: { id: org.id },
+        data: { plan: 'PRO' },
+      });
+    }
+
     if (this.resend) {
       this.resend.emails
         .send({
@@ -326,7 +513,8 @@ export class PlanService {
     };
   }
 
-  async cancelarSuscripcion(usuarioId: number) {
+  async cancelarSuscripcion(usuarioId: number, organizacionId: number) {
+    await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: { mpSuscripcionId: true },
@@ -344,6 +532,18 @@ export class PlanService {
       data: { plan: 'FREE', planExpira: null, mpSuscripcionId: null },
       select: { email: true, nombre: true },
     });
+
+    const org = await this.prisma.organizacion.findFirst({
+      where: { id: organizacionId, propietarioId: usuarioId },
+    });
+
+    if (org) {
+      await this.prisma.organizacion.update({
+        where: { id: org.id },
+        data: { plan: 'FREE' },
+      });
+    }
+
     if (this.resend) {
       this.resend.emails
         .send({
@@ -363,7 +563,7 @@ export class PlanService {
     expira: Date,
   ): string {
     const precio =
-      tipo === 'anual' ? '$153.890 ARS / año' : '$13.990 ARS / mes';
+      tipo === 'anual' ? '$139.900 ARS / año' : '$13.990 ARS / mes';
     const renovacion = expira.toLocaleDateString('es-AR', {
       day: 'numeric',
       month: 'long',
@@ -375,49 +575,31 @@ export class PlanService {
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
   <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-
-      <!-- Header -->
-      <tr>
-        <td style="background:#15803d;padding:28px 32px;text-align:center;">
-          <span style="color:#ffffff;font-size:22px;font-weight:700;">🌱 AgroManager AR</span>
-          <p style="color:#bbf7d0;margin:6px 0 0;font-size:13px;">Gestión agrícola para Argentina</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+      <tr style="background:#15803d;">
+        <td style="padding:24px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:28px;">¡Bienvenido a Pro!</h1>
         </td>
       </tr>
-
-      <!-- Cuerpo -->
       <tr>
-        <td style="padding:36px 32px;">
-          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:16px 20px;margin-bottom:28px;text-align:center;">
-            <p style="color:#15803d;font-size:20px;font-weight:700;margin:0 0 4px;">⚡ ¡Suscripción Pro activada!</p>
-            <p style="color:#166534;font-size:13px;margin:0;">Plan ${tipo === 'anual' ? 'Anual' : 'Mensual'} · ${precio}</p>
-          </div>
-
-          <h2 style="color:#111827;font-size:20px;margin:0 0 12px;">Hola, ${nombre} 👋</h2>
+        <td style="padding:32px 24px;">
           <p style="color:#4b5563;line-height:1.7;margin:0 0 24px;">
-            Tu plan Pro está activo. Ahora tenés acceso completo a todas las herramientas
-            de <strong>AgroManager AR</strong> sin límites.
+            Hola <strong>${nombre}</strong>, tu plan Pro está activo. Ahora tenés acceso completo a todas las herramientas de <strong>AgroManager AR</strong> sin límites.
           </p>
-
-          <!-- Beneficios Pro -->
           <p style="color:#374151;font-weight:700;font-size:15px;margin:0 0 12px;">Lo que desbloqueaste:</p>
           <table cellpadding="7" cellspacing="0" width="100%">
             <tr><td style="color:#15803d;font-size:16px;width:28px;">⚡</td><td style="color:#4b5563;font-size:14px;"><strong>Campos, lotes y animales ilimitados</strong></td></tr>
             <tr><td style="color:#15803d;font-size:16px;">🤖</td><td style="color:#4b5563;font-size:14px;"><strong>AgroBot IA</strong> — Asistente con contexto de tu establecimiento</td></tr>
-            <tr><td style="color:#15803d;font-size:16px;">📊</td><td style="color:#4b5563;font-size:14px;"><strong>Reportes avanzados</strong> y análisis de rentabilidad</td></tr>
-            <tr><td style="color:#15803d;font-size:16px;">🌾</td><td style="color:#4b5563;font-size:14px;"><strong>Campañas agrícolas</strong> — Agrupá siembras por temporada</td></tr>
-            <tr><td style="color:#15803d;font-size:16px;">📥</td><td style="color:#4b5563;font-size:14px;"><strong>Export CSV/PDF</strong> y historial completo</td></tr>
-            <tr><td style="color:#15803d;font-size:16px;">🎯</td><td style="color:#4b5563;font-size:14px;"><strong>Soporte prioritario</strong></td></tr>
+            <tr><td style="color:#15803d;font-size:16px;">📊</td><td style="color:#4b5563;font-size:14px;"><strong>Reportes avanzados</strong> y export de datos</td></tr>
+            <tr><td style="color:#15803d;font-size:16px;">🎯</td><td style="color:#4b5563;font-size:14px;"><strong>Campañas y gestión integral</strong></td></tr>
+            <tr><td style="color:#15803d;font-size:16px;">👥</td><td style="color:#4b5563;font-size:14px;"><strong>Soporte prioritario</strong></td></tr>
           </table>
-
-          <!-- Renovación -->
-          <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin:28px 0 0;">
-            <p style="color:#92400e;font-size:13px;margin:0;">
-              📅 Tu suscripción renueva el <strong>${renovacion}</strong>. Podés cancelarla en cualquier momento desde <a href="${this.frontendUrl}/precios" style="color:#92400e;">Planes</a>.
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px;margin:20px 0;text-align:center;">
+            <p style="color:#166534;font-weight:700;font-size:14px;margin:0;">
+              ${precio} • ${tipo === 'anual' ? 'Anual' : 'Mensual'}<br/>
+              <span style="font-size:12px;color:#4b7c0f;">Próxima renovación: ${renovacion}</span>
             </p>
           </div>
-
-          <!-- CTA -->
           <table cellpadding="0" cellspacing="0" style="margin:28px 0 0;">
             <tr>
               <td style="background:#15803d;border-radius:10px;">
@@ -430,8 +612,6 @@ export class PlanService {
           </table>
         </td>
       </tr>
-
-      <!-- Footer -->
       <tr>
         <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
           <p style="color:#9ca3af;font-size:12px;margin:0;">
@@ -439,7 +619,6 @@ export class PlanService {
           </p>
         </td>
       </tr>
-
     </table>
   </td></tr>
 </table>
@@ -454,64 +633,38 @@ export class PlanService {
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
   <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-
-      <!-- Header -->
-      <tr>
-        <td style="background:#15803d;padding:28px 32px;text-align:center;">
-          <span style="color:#ffffff;font-size:22px;font-weight:700;">🌱 AgroManager AR</span>
-          <p style="color:#bbf7d0;margin:6px 0 0;font-size:13px;">Gestión agrícola para Argentina</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+      <tr style="background:#dc2626;">
+        <td style="padding:24px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:28px;">Tu suscripción fue cancelada</h1>
         </td>
       </tr>
-
-      <!-- Cuerpo -->
       <tr>
-        <td style="padding:36px 32px;">
-          <h2 style="color:#111827;font-size:20px;margin:0 0 12px;">Hola, ${nombre}</h2>
-          <p style="color:#4b5563;line-height:1.7;margin:0 0 20px;">
-            Tu suscripción <strong>Pro</strong> fue cancelada. Tu cuenta vuelve al plan <strong>Free</strong>.
-            Tus datos están seguros — no se borra nada.
+        <td style="padding:32px 24px;">
+          <p style="color:#4b5563;line-height:1.7;margin:0 0 24px;">
+            Hola <strong>${nombre}</strong>, tu suscripción Pro ha sido cancelada.
           </p>
-
-          <!-- Qué perdés -->
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;margin:0 0 24px;">
             <p style="color:#991b1b;font-weight:700;font-size:14px;margin:0 0 10px;">Lo que ya no tenés disponible:</p>
             <table cellpadding="5" cellspacing="0">
               <tr><td style="color:#dc2626;font-size:14px;width:22px;">✕</td><td style="color:#6b7280;font-size:13px;">AgroBot IA</td></tr>
               <tr><td style="color:#dc2626;font-size:14px;">✕</td><td style="color:#6b7280;font-size:13px;">Campos y animales ilimitados</td></tr>
-              <tr><td style="color:#dc2626;font-size:14px;">✕</td><td style="color:#6b7280;font-size:13px;">Reportes avanzados y export</td></tr>
-              <tr><td style="color:#dc2626;font-size:14px;">✕</td><td style="color:#6b7280;font-size:13px;">Campañas agrícolas</td></tr>
+              <tr><td style="color:#dc2626;font-size:14px;">✕</td><td style="color:#6b7280;font-size:13px;">Reportes avanzados</td></tr>
+              <tr><td style="color:#dc2626;font-size:14px;">✕</td><td style="color:#6b7280;font-size:13px;">Campañas</td></tr>
             </table>
           </div>
-
-          <p style="color:#4b5563;line-height:1.7;margin:0 0 24px;">
-            Si fue un error o querés volver, podés reactivar Pro en cualquier momento con <strong>14 días gratis</strong>.
+          <p style="color:#6b7280;font-size:13px;margin:0;">
+            Tus datos están seguros y siguen disponibles en tu cuenta Free. Si cambias de idea, podés reactivar Pro en cualquier momento.
           </p>
-
-          <!-- CTA volver -->
-          <table cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
-            <tr>
-              <td style="background:#15803d;border-radius:10px;">
-                <a href="${this.frontendUrl}/precios"
-                   style="display:inline-block;padding:13px 28px;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;">
-                  Reactivar Pro →
-                </a>
-              </td>
-            </tr>
-          </table>
         </td>
       </tr>
-
-      <!-- Footer -->
       <tr>
         <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
           <p style="color:#9ca3af;font-size:12px;margin:0;">
             AgroManager AR · <a href="${this.frontendUrl}" style="color:#9ca3af;">www.agromanagerar.com</a>
           </p>
-          <p style="color:#d1d5db;font-size:11px;margin:6px 0 0;">Tus datos están seguros y siguen disponibles en tu cuenta Free.</p>
         </td>
       </tr>
-
     </table>
   </td></tr>
 </table>

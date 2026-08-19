@@ -24,7 +24,7 @@ import {
 import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
-  user: { id: number };
+  user: { id: number; usuarioOrganizacionId?: number };
   organizacionId: number;
 }
 
@@ -38,7 +38,11 @@ export class MaquinariasController {
 
   @Get()
   findAll(@Request() req: AuthRequest) {
-    return this.maquinariasService.findAll(req.user.id, req.organizacionId);
+    return this.maquinariasService.findAll(
+      req.user.id,
+      req.organizacionId,
+      req.user.usuarioOrganizacionId,
+    );
   }
 
   @Get(':id')
@@ -50,7 +54,7 @@ export class MaquinariasController {
   @Post()
   @Auditar('crear_maquinaria', 'Maquinaria')
   async create(@Request() req: AuthRequest, @Body() dto: CreateMaquinariaDto) {
-    await this.planService.checkMaquinariasLimit(req.user.id);
+    await this.planService.checkMaquinariasLimit(req.organizacionId);
     return this.maquinariasService.create(
       req.user.id,
       req.organizacionId,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Map, PawPrint, ClipboardList, X, ArrowRight } from 'lucide-react';
 import { camposApi } from '../../api/campos.api';
@@ -40,10 +40,11 @@ export default function GlobalSearch({ open, onClose }: Props) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { orgId } = useParams<{ orgId: string }>();
 
-  const { data: campos = [] }  = useQuery({ queryKey: ['campos'],  queryFn: camposApi.getAll,  enabled: open });
-  const { data: animales = [] } = useQuery({ queryKey: ['ganado'],  queryFn: ganadoApi.getAll,  enabled: open });
-  const { data: tareas = [] }   = useQuery({ queryKey: ['tareas'],  queryFn: tareasApi.getAll,  enabled: open });
+  const { data: campos = [] as any[] }  = useQuery({ queryKey: ['campos', orgId],  queryFn: () => camposApi.getAll(),  enabled: open && !!orgId });
+  const { data: animales = [] as any[] } = useQuery({ queryKey: ['ganado', orgId],  queryFn: () => ganadoApi.getAll(),  enabled: open && !!orgId });
+  const { data: tareas = [] as any[] }   = useQuery({ queryKey: ['tareas', orgId],  queryFn: () => tareasApi.getAll(),  enabled: open && !!orgId });
 
   useEffect(() => {
     if (open) { setQuery(''); setTimeout(() => inputRef.current?.focus(), 50); }
@@ -53,24 +54,24 @@ export default function GlobalSearch({ open, onClose }: Props) {
 
   const results: Result[] = q.length < 1 ? [] : [
     ...campos
-      .filter((c) => c.nombre.toLowerCase().includes(q) || c.ubicacion?.toLowerCase().includes(q))
+      .filter((c: any) => c.nombre.toLowerCase().includes(q) || c.ubicacion?.toLowerCase().includes(q))
       .slice(0, 3)
-      .map((c) => ({
+      .map((c: any) => ({
         id: c.id,
         label: c.nombre,
         sublabel: c.ubicacion ?? 'Campo',
         icon: <Map size={15} className="text-blue-500" />,
-        href: `/campos/${c.id}`,
+        href: `/org/${orgId}/campos/${c.id}`,
       })),
     ...animales
-      .filter((a) => a.nombre.toLowerCase().includes(q))
+      .filter((a: any) => a.nombre.toLowerCase().includes(q))
       .slice(0, 3)
-      .map((a) => ({
+      .map((a: any) => ({
         id: a.id,
         label: a.nombre,
         sublabel: `${a.especie} · ${a.categoria}`,
         icon: <PawPrint size={15} className="text-amber-500" />,
-        href: `/ganado`,
+        href: `/org/${orgId}/ganado`,
       })),
     ...tareas
       .filter((t) => t.titulo.toLowerCase().includes(q))
@@ -80,7 +81,7 @@ export default function GlobalSearch({ open, onClose }: Props) {
         label: t.titulo,
         sublabel: t.tipo,
         icon: <ClipboardList size={15} className="text-green-500" />,
-        href: `/tareas`,
+        href: `/org/${orgId}/tareas`,
       })),
   ];
 

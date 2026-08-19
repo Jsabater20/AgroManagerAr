@@ -28,6 +28,15 @@ export class UpdateUserPlanDto {
 }
 
 export class UpdateUserRolDto {
-  @IsIn(['ADMIN', 'OPERADOR'])
-  rol!: 'ADMIN' | 'OPERADOR';
+  @IsIn(['SUPERADMIN', 'USER'])
+  rol!: 'SUPERADMIN' | 'USER';
+}
+
+export interface AdminPanelUserDto {
+  id: number;
+  email: string;
+  nombre: string;
+  apellido: string;
+  rolGlobal: string;
+  createdAt: string;
 }

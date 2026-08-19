@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import {
   Sprout, Plus, Loader2, BadgeCheck, AlertCircle, Clock,
   ChevronDown, Wheat, FlaskConical, ChevronLeft, ChevronRight, X,
@@ -35,6 +36,7 @@ const ESTADOS: EstadoSiembra[] = ['EN_CURSO', 'COSECHADA', 'PERDIDA'];
 
 export default function SiembrasPage() {
   const queryClient = useQueryClient();
+  const { orgId } = useParams<{ orgId: string }>();
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<CreateSiembraDto>(emptyForm);
@@ -50,16 +52,16 @@ export default function SiembrasPage() {
   const [filterCampoId, setFilterCampoId] = useState<number>(0);
   const [page, setPage] = useState(1);
 
-  const { data: siembras, isLoading } = useQuery({ queryKey: ['siembras'], queryFn: siembrasApi.getAll });
-  const { data: campos } = useQuery({ queryKey: ['campos'], queryFn: camposApi.getAll });
-  const { data: cultivos } = useQuery({ queryKey: ['cultivos'], queryFn: cultivosApi.getAll });
-  const { data: insumos } = useQuery({ queryKey: ['insumos'], queryFn: insumosApi.getAll });
+  const { data: siembras, isLoading } = useQuery({ queryKey: ['siembras', orgId], queryFn: () => siembrasApi.getAll() });
+  const { data: campos = [] as any[] } = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll() });
+  const { data: cultivos = [] as any[] } = useQuery({ queryKey: ['cultivos', orgId], queryFn: () => cultivosApi.getAll() });
+  const { data: insumos = [] as any[] } = useQuery({ queryKey: ['insumos', orgId], queryFn: () => insumosApi.getAll() });
 
-  const lotesDisponibles = campos?.find((c) => c.id === selectedCampoId)?.lotes ?? [];
+  const lotesDisponibles = campos?.find((c: any) => c.id === selectedCampoId)?.lotes ?? [];
 
   const filtered = (siembras ?? []).filter((s) => {
     if (filterEstado && s.estado !== filterEstado) return false;
-    if (filterCampoId && s.lote.campo.id !== filterCampoId) return false;
+    if (filterCampoId && s.lote?.campo?.id !== filterCampoId) return false;
     return true;
   });
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -132,7 +134,7 @@ export default function SiembrasPage() {
           </select>
           <select value={filterCampoId} onChange={(e) => { setFilterCampoId(Number(e.target.value)); setPage(1); }} className="input w-auto! text-sm">
             <option value={0}>Todos los campos</option>
-            {campos?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            {campos?.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
           {hasFilters && (
             <button onClick={resetFilters} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -176,13 +178,13 @@ export default function SiembrasPage() {
                   return (
                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-3.5 font-medium text-gray-900">
-                        {s.lote.campo.nombre}<span className="text-gray-400 font-normal"> / {s.lote.nombre}</span>
+                        {s.lote?.campo?.nombre ?? '-'}<span className="text-gray-400 font-normal"> / {s.lote?.nombre ?? '-'}</span>
                       </td>
-                      <td className="px-5 py-3.5 text-gray-700">{s.tipoCultivo.nombre}</td>
+                      <td className="px-5 py-3.5 text-gray-700">{s.tipoCultivo?.nombre ?? '-'}</td>
                       <td className="px-5 py-3.5 text-gray-600">{formatDate(s.fechaSiembra)}</td>
                       <td className="px-5 py-3.5 text-gray-600">{s.densidad ? `${s.densidad} kg/ha` : '-'}</td>
                       <td className="px-5 py-3.5 text-gray-600">
-                        {s.cosechas.length > 0 ? <span className="font-medium text-green-700">{s.cosechas.length}</span> : '-'}
+                        {((s.cosechas?.length ?? 0) > 0) ? <span className="font-medium text-green-700">{s.cosechas?.length ?? 0}</span> : '-'}
                       </td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => openEstadoModal(s)}
@@ -241,13 +243,13 @@ export default function SiembrasPage() {
             <Field label="Campo *">
               <select required value={selectedCampoId} onChange={(e) => { setSelectedCampoId(Number(e.target.value)); setForm({ ...form, loteId: 0 }); }} className="input">
                 <option value={0} disabled>Selecciona un campo</option>
-                {campos?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                {campos?.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </Field>
             <Field label="Lote *">
               <select required value={form.loteId} disabled={!selectedCampoId} onChange={(e) => setForm({ ...form, loteId: Number(e.target.value) })} className="input">
                 <option value={0} disabled>Selecciona un lote</option>
-                {lotesDisponibles.map((l) => <option key={l.id} value={l.id}>{l.nombre} - {l.hectareas} ha</option>)}
+                {lotesDisponibles.map((l: any) => <option key={l.id} value={l.id}>{l.nombre} - {l.hectareas} ha</option>)}
               </select>
             </Field>
             <Field label="Tipo de cultivo *">
@@ -273,7 +275,7 @@ export default function SiembrasPage() {
       {estadoTarget && (
         <Modal title="Cambiar estado" onClose={() => setEstadoTarget(null)}>
           <p className="text-sm text-gray-600 mb-4">
-            <strong>{estadoTarget.tipoCultivo.nombre}</strong> en <strong>{estadoTarget.lote.campo.nombre} / {estadoTarget.lote.nombre}</strong>
+            <strong>{estadoTarget?.tipoCultivo?.nombre ?? 'Cultivo'}</strong> en <strong>{estadoTarget?.lote?.campo?.nombre ?? 'Campo'} / {estadoTarget?.lote?.nombre ?? 'Lote'}</strong>
           </p>
           <div className="flex flex-col gap-2 mb-5">
             {ESTADOS.map((e) => {
@@ -300,7 +302,7 @@ export default function SiembrasPage() {
       {cosechaTarget && (
         <Modal title="Registrar cosecha" onClose={() => setCosechaTarget(null)}>
           <p className="text-sm text-gray-600 mb-4">
-            <strong>{cosechaTarget.tipoCultivo.nombre}</strong> - {cosechaTarget.lote.campo.nombre} / {cosechaTarget.lote.nombre}
+            <strong>{cosechaTarget?.tipoCultivo?.nombre ?? 'Cultivo'}</strong> - {cosechaTarget?.lote?.campo?.nombre ?? 'Campo'}/ {cosechaTarget?.lote?.nombre ?? 'Lote'}
           </p>
           <form onSubmit={(e) => { e.preventDefault(); cosechaMutation.mutate({ id: cosechaTarget.id, dto: cosechaForm }); }} className="space-y-4">
             <Field label="Fecha de cosecha *">
@@ -331,7 +333,7 @@ export default function SiembrasPage() {
       {aplicacionTarget && (
         <Modal title="Registrar aplicacion de insumo" onClose={() => setAplicacionTarget(null)}>
           <p className="text-sm text-gray-600 mb-4">
-            <strong>{aplicacionTarget.tipoCultivo.nombre}</strong> - {aplicacionTarget.lote.campo.nombre} / {aplicacionTarget.lote.nombre}
+            <strong>{aplicacionTarget?.tipoCultivo?.nombre ?? 'Cultivo'}</strong> - {aplicacionTarget?.lote?.campo?.nombre ?? 'Campo'} / {aplicacionTarget?.lote?.nombre ?? 'Lote'}
           </p>
           <form onSubmit={(e) => { e.preventDefault(); aplicacionMutation.mutate({ id: aplicacionTarget.id, dto: aplicacionForm }); }} className="space-y-4">
             <Field label="Insumo *">

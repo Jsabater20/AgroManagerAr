@@ -9,8 +9,10 @@ import type {
 } from './types';
 
 export const maquinariasApi = {
-  getAll: (): Promise<Maquinaria[]> =>
-    api.get('/maquinarias').then((r) => r.data),
+  getAll: async () => {
+    const { data } = await api.get('/maquinarias');
+    return data;
+  },
 
   getOne: (id: number): Promise<Maquinaria> =>
     api.get(`/maquinarias/${id}`).then((r) => r.data),

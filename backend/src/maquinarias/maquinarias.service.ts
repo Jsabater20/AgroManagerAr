@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import {
   CreateGastoDto,
   CreateMaquinariaDto,
@@ -13,11 +14,37 @@ import {
 
 @Injectable()
 export class MaquinariasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private memberAccessService: MemberAccessService,
+  ) {}
 
-  findAll(usuarioId: number, organizacionId: number) {
+  async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
+    await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Maquinarias',
+    );
+    let whereClause: any = { organizacionId };
+
+    // Si viene usuarioOrganizacionId, filtrar por maquinarias asignadas
+    if (usuarioOrganizacionId) {
+      whereClause = {
+        organizacionId,
+        // Nota: si no hay AsignacionMaquinaria, solo mostrar al owner
+        usuarioId: undefined, // Cambiar lógica si existe junction table
+      };
+      // Por ahora, retornar vacío si no es owner (no existe junction table de asignaciones)
+      // TODO: Crear tabla AsignacionMaquinaria si se necesita reasignar maquinarias
+    } else {
+      // Owner ve todas las maquinarias de la org
+      whereClause = { organizacionId };
+    }
+
+    whereClause = { organizacionId };
+
     return this.prisma.maquinaria.findMany({
-      where: { usuarioId, organizacionId },
+      where: whereClause,
       include: {
         campo: { select: { id: true, nombre: true } },
         mantenimientos: {
@@ -40,15 +67,22 @@ export class MaquinariasService {
       },
     });
     if (!maquinaria) throw new NotFoundException('Maquinaria no encontrada');
-    if (
-      maquinaria.usuarioId !== usuarioId ||
-      maquinaria.organizacionId !== organizacionId
-    )
+    if (maquinaria.organizacionId !== organizacionId)
       throw new ForbiddenException('No autorizado');
+    await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Maquinarias',
+    );
     return maquinaria;
   }
 
-  create(usuarioId: number, organizacionId: number, dto: CreateMaquinariaDto) {
+  async create(usuarioId: number, organizacionId: number, dto: CreateMaquinariaDto) {
+    await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Maquinarias',
+    );
     return this.prisma.maquinaria.create({
       data: {
         ...dto,

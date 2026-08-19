@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import {
   ClipboardList, Plus, Loader2, CheckCircle2, Clock, AlertTriangle,
   XCircle, ChevronLeft, ChevronRight, X, Trash2, Pencil, RefreshCw,
@@ -7,6 +8,9 @@ import {
 import toast from 'react-hot-toast';
 import { tareasApi } from '../../api/tareas.api';
 import { camposApi } from '../../api/campos.api';
+import { ActividadesOwner } from './components/ActividadesOwner/ActividadesOwner';
+import { ActividadesAsignadas } from './components/ActividadesAsignadas';
+import { useAuthStore } from '../../store/auth.store';
 import type {
   TareaRural, CreateTareaDto,
   TipoTarea, EstadoTarea, Prioridad, RepetirTarea,
@@ -88,7 +92,14 @@ function formatDate(iso: string) {
 function today() { return new Date().toISOString().split('T')[0]; }
 
 export default function TareasPage() {
+  const { orgId } = useParams<{ orgId: string }>();
+  const usuario = useAuthStore((state) => state.usuario);
+  const orgIdNum = Number(orgId || 0);
+  const esOwner = usuario?.organizaciones?.some(
+    (organizacion) => organizacion.id === orgIdNum && organizacion.propietarioId === usuario.id,
+  ) || usuario?.rolGlobal === 'SUPERADMIN';
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab]         = useState<'rurales' | 'actividades'>(esOwner ? 'rurales' : 'actividades');
   const [showModal, setShowModal]         = useState(false);
   const [editTarget, setEditTarget]       = useState<TareaRural | null>(null);
   const [form, setForm]                   = useState<CreateTareaDto>(emptyForm);
@@ -98,8 +109,8 @@ export default function TareasPage() {
   const [filterTipo, setFilterTipo]       = useState<TipoTarea | ''>('');
   const [page, setPage]                   = useState(1);
 
-  const { data: tareas, isLoading } = useQuery({ queryKey: ['tareas'], queryFn: tareasApi.getAll });
-  const { data: campos }            = useQuery({ queryKey: ['campos'], queryFn: camposApi.getAll });
+  const { data: tareas = [] as any[], isLoading } = useQuery({ queryKey: ['tareas', orgId], queryFn: () => tareasApi.getAll() });
+  const { data: campos = [] as any[] }            = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll() });
 
   const filtered = useMemo(() => (tareas ?? []).filter((t) => {
     if (filterEstado && t.estado !== filterEstado) return false;
@@ -181,94 +192,122 @@ export default function TareasPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tareas rurales</h1>
-          <p className="text-gray-500 mt-1 text-sm">Planificación y seguimiento de actividades</p>
-        </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-          <Plus size={16} />Nueva tarea
+      {/* Tabs */}
+      <div className="flex gap-0 border-b border-gray-200 mb-6">
+        {esOwner && (
+          <button
+            onClick={() => setActiveTab('rurales')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'rurales'
+                ? 'border-green-700 text-green-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Tareas Rurales
+          </button>
+        )}
+        <button
+          onClick={() => setActiveTab('actividades')}
+          className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+            activeTab === 'actividades'
+              ? 'border-green-700 text-green-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Centro de Actividades
         </button>
       </div>
 
-      {/* Mini stats */}
-      {!isLoading && (tareas?.length ?? 0) > 0 && (
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <StatCard label="Pendientes" value={pendientes} color="text-yellow-600" bg="bg-yellow-50" />
-          <StatCard label="En curso"   value={enCurso}    color="text-blue-600"   bg="bg-blue-50" />
-          <StatCard label="Vencidas"   value={vencidas}   color="text-red-600"    bg="bg-red-50" icon={vencidas > 0 ? <AlertTriangle size={16} className="text-red-500" /> : undefined} />
-        </div>
-      )}
-
-      {/* Filtros */}
-      {!isLoading && (tareas?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap items-center gap-3 mb-5 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <select value={filterEstado} onChange={(e) => { setFilterEstado(e.target.value as EstadoTarea | ''); setPage(1); }} className="input w-auto! text-sm">
-            <option value="">Todos los estados</option>
-            {ESTADOS.map((e) => <option key={e} value={e}>{ESTADO_CONFIG[e].label}</option>)}
-          </select>
-          <select value={filterTipo} onChange={(e) => { setFilterTipo(e.target.value as TipoTarea | ''); setPage(1); }} className="input w-auto! text-sm">
-            <option value="">Todos los tipos</option>
-            {TIPOS.map((t) => <option key={t} value={t}>{TIPO_LABELS[t]}</option>)}
-          </select>
-          {hasFilters && (
-            <button onClick={resetFilters} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-              <X size={14} />Limpiar
-            </button>
-          )}
-          <span className="text-xs text-gray-400 ml-auto">
-            {filtered.length} {filtered.length === 1 ? 'tarea' : 'tareas'}{hasFilters ? ' encontradas' : ' en total'}
-          </span>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 size={32} className="animate-spin text-green-600" /></div>
-      ) : tareas?.length === 0 ? (
-        <EmptyState onAdd={openCreate} />
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No hay tareas que coincidan con los filtros.</p>
-          <button onClick={resetFilters} className="mt-2 text-green-700 text-sm hover:underline">Limpiar filtros</button>
-        </div>
-      ) : (
+      {activeTab === 'rurales' && esOwner && (
         <>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                  <th className="text-left px-5 py-3">Tarea</th>
-                  <th className="text-left px-5 py-3">Tipo</th>
-                  <th className="text-left px-5 py-3">Campo</th>
-                  <th className="text-left px-5 py-3">Fecha</th>
-                  <th className="text-left px-5 py-3">Prioridad</th>
-                  <th className="text-left px-5 py-3">Estado</th>
-                  <th className="px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {paged.map((t) => {
-                  const estadoCfg = ESTADO_CONFIG[t.estado];
-                  const EstadoIcon = estadoCfg.Icon;
-                  const priCfg    = PRIORIDAD_CONFIG[t.prioridad];
-                  const overdue   = isOverdue(t);
-                  return (
-                    <tr key={t.id} className={`hover:bg-gray-50 transition-colors ${overdue ? 'bg-red-50/40' : ''}`}>
-                      <td className="px-5 py-3.5">
-                        <p className="font-medium text-gray-900">{t.titulo}</p>
-                        {t.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{t.descripcion}</p>}
-                        {t.repetir && t.repetir !== 'UNICA' && (
-                          <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-indigo-600">
-                            <RefreshCw size={10} />
-                            {REPETIR_OPTIONS.find(r => r.value === t.repetir)?.label}
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Tareas rurales</h1>
+              <p className="text-gray-500 mt-1 text-sm">Planificación y seguimiento de actividades</p>
+            </div>
+            <button onClick={openCreate}
+              className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+              <Plus size={16} />Nueva tarea
+            </button>
+          </div>
+
+          {/* Mini stats */}
+          {!isLoading && (tareas?.length ?? 0) > 0 && (
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <StatCard label="Pendientes" value={pendientes} color="text-yellow-600" bg="bg-yellow-50" />
+              <StatCard label="En curso"   value={enCurso}    color="text-blue-600"   bg="bg-blue-50" />
+              <StatCard label="Vencidas"   value={vencidas}   color="text-red-600"    bg="bg-red-50" icon={vencidas > 0 ? <AlertTriangle size={16} className="text-red-500" /> : undefined} />
+            </div>
+          )}
+
+          {/* Filtros */}
+          {!isLoading && (tareas?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap items-center gap-3 mb-5 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+              <select value={filterEstado} onChange={(e) => { setFilterEstado(e.target.value as EstadoTarea | ''); setPage(1); }} className="input w-auto! text-sm">
+                <option value="">Todos los estados</option>
+                {ESTADOS.map((e) => <option key={e} value={e}>{ESTADO_CONFIG[e].label}</option>)}
+              </select>
+              <select value={filterTipo} onChange={(e) => { setFilterTipo(e.target.value as TipoTarea | ''); setPage(1); }} className="input w-auto! text-sm">
+                <option value="">Todos los tipos</option>
+                {TIPOS.map((t) => <option key={t} value={t}>{TIPO_LABELS[t]}</option>)}
+              </select>
+              {hasFilters && (
+                <button onClick={resetFilters} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                  <X size={14} />Limpiar
+                </button>
+              )}
+              <span className="text-xs text-gray-400 ml-auto">
+                {filtered.length} {filtered.length === 1 ? 'tarea' : 'tareas'}{hasFilters ? ' encontradas' : ' en total'}
+              </span>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="flex justify-center py-20"><Loader2 size={32} className="animate-spin text-green-600" /></div>
+          ) : tareas?.length === 0 ? (
+            <EmptyState onAdd={openCreate} />
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <p className="text-sm">No hay tareas que coincidan con los filtros.</p>
+              <button onClick={resetFilters} className="mt-2 text-green-700 text-sm hover:underline">Limpiar filtros</button>
+            </div>
+          ) : (
+            <>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+                      <th className="text-left px-5 py-3">Tarea</th>
+                      <th className="text-left px-5 py-3">Tipo</th>
+                      <th className="text-left px-5 py-3">Campo</th>
+                      <th className="text-left px-5 py-3">Fecha</th>
+                      <th className="text-left px-5 py-3">Prioridad</th>
+                      <th className="text-left px-5 py-3">Estado</th>
+                      <th className="px-5 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paged.map((t: any) => {
+                      const estadoCfg = ESTADO_CONFIG[t.estado as EstadoTarea];
+                      const EstadoIcon = estadoCfg.Icon;
+                      const priCfg    = PRIORIDAD_CONFIG[t.prioridad as Prioridad];
+                      const overdue   = isOverdue(t);
+                      return (
+                        <tr key={t.id} className={`hover:bg-gray-50 transition-colors ${overdue ? 'bg-red-50/40' : ''}`}>
+                          <td className="px-5 py-3.5">
+                            <p className="font-medium text-gray-900">{t.titulo}</p>
+                            {t.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{t.descripcion}</p>}
+                            {t.repetir && t.repetir !== 'UNICA' && (
+                              <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-indigo-600">
+                                <RefreshCw size={10} />
+                                {REPETIR_OPTIONS.find(r => r.value === t.repetir)?.label}
                           </span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TIPO_COLORS[t.tipo]}`}>
-                          {TIPO_LABELS[t.tipo]}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TIPO_COLORS[t.tipo as TipoTarea]}`}>
+                          {TIPO_LABELS[t.tipo as TipoTarea]}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-gray-600">{t.campo?.nombre ?? '—'}</td>
@@ -305,32 +344,40 @@ export default function TareasPage() {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 px-1">
-              <p className="text-xs text-gray-400">Página {page} de {totalPages}</p>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                  className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronLeft size={16} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <button key={p} onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${p === page ? 'bg-green-700 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                    {p}
-                  </button>
-                ))}
-                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronRight size={16} />
-                </button>
+                  </tbody>
+                </table>
               </div>
-            </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 px-1">
+                  <p className="text-xs text-gray-400">Página {page} de {totalPages}</p>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                      className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      <ChevronLeft size={16} />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button key={p} onClick={() => setPage(p)}
+                        className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${p === page ? 'bg-green-700 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                        {p}
+                      </button>
+                    ))}
+                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                      className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
+      )}
+
+      {activeTab === 'actividades' && (
+        esOwner
+          ? <ActividadesOwner organizacionId={orgIdNum} />
+          : <ActividadesAsignadas organizacionId={orgIdNum} />
       )}
 
       {/* Modal: Crear / Editar tarea */}
@@ -372,7 +419,7 @@ export default function TareasPage() {
               <Field label="Campo">
                 <select value={form.campoId ?? 0} onChange={(e) => setForm({ ...form, campoId: Number(e.target.value) || undefined })} className="input">
                   <option value={0}>Sin campo</option>
-                  {campos?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {campos?.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </Field>
             </div>

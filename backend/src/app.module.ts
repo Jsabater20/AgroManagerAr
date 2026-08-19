@@ -25,6 +25,8 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { AuditModule } from './audit/audit.module';
 import { MailerModule } from './mailer/mailer.module';
 import { AuditInterceptor } from './audit/interceptors/audit.interceptor';
+import { RecursosModule } from './recursos/recursos.module';
+import { ActividadesModule } from './actividades/actividades.module';
 
 @Module({
   imports: [
@@ -54,9 +56,11 @@ import { AuditInterceptor } from './audit/interceptors/audit.interceptor';
     AiModule,
     UbicacionModule,
     OrganizationsModule,
+    RecursosModule,
     PermissionsModule,
     AuditModule,
     MailerModule,
+    ActividadesModule,
   ],
   controllers: [AppController],
   providers: [

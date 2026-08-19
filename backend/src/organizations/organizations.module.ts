@@ -3,11 +3,13 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { MailerModule } from '../mailer/mailer.module';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { OrganizationsController } from '../organizations/organizations.controller';
+import { MemberAccessService } from './member-access.service';
+import { PlanModule } from '../plan/plan.module';
 
 @Module({
-  imports: [PrismaModule, MailerModule],
+  imports: [PrismaModule, MailerModule, PlanModule],
   controllers: [OrganizationsController],
-  providers: [OrganizationsService],
-  exports: [OrganizationsService],
+  providers: [OrganizationsService, MemberAccessService],
+  exports: [OrganizationsService, MemberAccessService],
 })
 export class OrganizationsModule {}

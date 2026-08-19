@@ -15,6 +15,7 @@ import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import { useAuthStore } from '../../store/auth.store';
 import { PlanBanner } from '../../components/ui/PlanBanner';
 
+
 const fmtARS = (n: number) =>
   `$${Math.abs(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -22,38 +23,38 @@ function RentabilidadContent() {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const { data: campanias, isLoading: lCamp } = useQuery({ queryKey: ['campanias'], queryFn: campaniasApi.getAll });
-  const { data: finanzas,  isLoading: lFin  } = useQuery({ queryKey: ['finanzas'],  queryFn: finanzasApi.getAll });
-  const { data: siembras,  isLoading: lSiem  } = useQuery({ queryKey: ['siembras'],  queryFn: siembrasApi.getAll });
+  const { data: finanzas,  isLoading: lFin  } = useQuery({ queryKey: ['finanzas'],  queryFn: () => finanzasApi.getAll() });
+  const { data: siembras,  isLoading: lSiem  } = useQuery({ queryKey: ['siembras'],  queryFn: () => siembrasApi.getAll() });
 
   const isLoading = lCamp || lFin || lSiem;
 
   // ── Global financiero ──────────────────────────────────────────────────────
-  const totalIngresos = finanzas?.filter((f) => f.tipo === 'INGRESO').reduce((a, f) => a + f.monto, 0) ?? 0;
-  const totalEgresos  = finanzas?.filter((f) => f.tipo === 'EGRESO').reduce((a, f) => a + f.monto, 0) ?? 0;
+  const totalIngresos = finanzas?.filter((f: any) => f.tipo === 'INGRESO').reduce((a: any, f: any) => a + f.monto, 0) ?? 0;
+  const totalEgresos  = finanzas?.filter((f: any) => f.tipo === 'EGRESO').reduce((a: any, f: any) => a + f.monto, 0) ?? 0;
   const saldoGlobal   = totalIngresos - totalEgresos;
 
   // ── Total producción ───────────────────────────────────────────────────────
   const totalKg = (siembras ?? []).reduce(
-    (a, s) => a + s.cosechas.reduce((b, c) => b + c.totalKg, 0),
+    (a: any, s: any) => a + s.cosechas.reduce((b: any, c: any) => b + c.totalKg, 0),
     0,
   );
 
   // ── Por campaña ────────────────────────────────────────────────────────────
-  const campaniasData = (campanias ?? []).map((camp) => {
+  const campaniasData = (campanias ?? []).map((camp: any) => {
     const kgProducidos = camp.siembras.reduce(
-      (a, s) => a + s.cosechas.reduce((b, c) => b + c.totalKg, 0),
+      (a: any, s: any) => a + s.cosechas.reduce((b: any, c: any) => b + c.totalKg, 0),
       0,
     );
     // Ingresos por cosecha (categoría COSECHA) y egresos por insumo (categoría INSUMO)
     // en el rango de fechas de la campaña
     const inicio = new Date(camp.fechaInicio).getTime();
     const fin    = camp.fechaFin ? new Date(camp.fechaFin).getTime() : new Date().getTime();
-    const movs   = (finanzas ?? []).filter((f) => {
+    const movs   = (finanzas ?? []).filter((f: any) => {
       const t = new Date(f.fecha).getTime();
       return t >= inicio && t <= fin;
     });
-    const ingresos = movs.filter((f) => f.tipo === 'INGRESO').reduce((a, f) => a + f.monto, 0);
-    const egresos  = movs.filter((f) => f.tipo === 'EGRESO').reduce((a, f) => a + f.monto, 0);
+    const ingresos = movs.filter((f: any) => f.tipo === 'INGRESO').reduce((a: any, f: any) => a + f.monto, 0);
+    const egresos  = movs.filter((f: any) => f.tipo === 'EGRESO').reduce((a: any, f: any) => a + f.monto, 0);
     const margen   = ingresos - egresos;
     const rentabilidad = ingresos > 0 ? Math.round((margen / ingresos) * 100) : 0;
 
@@ -68,7 +69,7 @@ function RentabilidadContent() {
 
   // ── Desglose egresos por categoría (global) ────────────────────────────────
   const egresosPorCat: Record<string, number> = {};
-  finanzas?.filter((f) => f.tipo === 'EGRESO').forEach((f) => {
+  finanzas?.filter((f: any) => f.tipo === 'EGRESO').forEach((f: any) => {
     egresosPorCat[f.categoria] = (egresosPorCat[f.categoria] ?? 0) + f.monto;
   });
   const egresosCatData = Object.entries(egresosPorCat)
@@ -234,8 +235,8 @@ function RentabilidadContent() {
                           <p className="text-sm text-gray-400">Sin siembras asignadas</p>
                         ) : (
                           <div className="space-y-2">
-                            {camp.siembras.map((s) => {
-                              const kg = s.cosechas.reduce((a, c) => a + c.totalKg, 0);
+                            {camp.siembras.map((s: any) => {
+                              const kg = s.cosechas.reduce((a: any, c: any) => a + c.totalKg, 0);
                               return (
                                 <div key={s.id} className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-gray-100 text-sm">
                                   <span className="font-medium text-gray-900">{s.tipoCultivo.nombre}</span>
@@ -254,7 +255,7 @@ function RentabilidadContent() {
                           <p className="text-sm text-gray-400">Sin movimientos en este período</p>
                         ) : (
                           <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {movs.slice(0, 8).map((m) => (
+                            {movs.slice(0, 8).map((m: any) => (
                               <div key={m.id} className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-gray-100 text-sm">
                                 <div>
                                   <span className="font-medium text-gray-900">{m.concepto}</span>

@@ -63,17 +63,44 @@ export class PermissionsService {
   // Crear permiso temporal (ASESOR visitando campo X del 01/10 al 05/10)
   async crearPermisoTemporal(
     usuarioOrganizacionId: number,
-    rolPersonalizadoId: number,
     fechaInicio: Date,
     fechaVencimiento: Date,
-    recursoTipo?: string,
-    recursoId?: number,
+    recursoTipo: string,
+    recursoId: number,
     notas?: string,
   ) {
+    // 1. Obtener usuarioOrganizacion actual
+    const usuarioOrg = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrganizacionId },
+      include: { usuario: true, organizacion: true },
+    });
+
+    if (!usuarioOrg) {
+      throw new Error('Usuario/Organización no encontrada');
+    }
+
+    // 2. Obtener o crear rol personalizado por defecto
+    let rolPersonalizado = await this.prisma.rolPersonalizado.findFirst({
+      where: { organizacionId: usuarioOrg.organizacionId, activo: true },
+    });
+
+    // Si no existe, crear uno por defecto
+    if (!rolPersonalizado) {
+      rolPersonalizado = await this.prisma.rolPersonalizado.create({
+        data: {
+          organizacionId: usuarioOrg.organizacionId,
+          nombre: 'Acceso Temporal',
+          descripcion: 'Rol para permisos temporales de recursos',
+          activo: true,
+        },
+      });
+    }
+
+    // 3. Crear permiso temporal con el rol personalizado
     return this.prisma.asignacionPermiso.create({
       data: {
         usuarioOrganizacionId,
-        rolPersonalizadoId,
+        rolPersonalizadoId: rolPersonalizado.id,
         fechaInicio,
         fechaVencimiento,
         recursoTipo,
@@ -97,11 +124,47 @@ export class PermissionsService {
     });
   }
 
+  // Listar permisos temporales de una organización
+  async listarPermisosTemporalesPorOrganizacion(organizacionId: number) {
+    return this.prisma.asignacionPermiso.findMany({
+      where: {
+        usuarioOrganizacion: {
+          organizacionId,
+        },
+        activo: true,
+      },
+      include: {
+        rolPersonalizado: true,
+        usuarioOrganizacion: {
+          include: {
+            usuario: true,
+          },
+        },
+      },
+    });
+  }
+
   // Desactivar un permiso
   async desactivarPermiso(permisoId: number) {
     return this.prisma.asignacionPermiso.update({
       where: { id: permisoId },
       data: { activo: false },
+    });
+  }
+
+  // Obtener roles personalizados de una organización
+  async obtenerRolesPersonalizados(organizacionId: number) {
+    return this.prisma.rolPersonalizado.findMany({
+      where: {
+        organizacionId,
+      },
+      select: {
+        id: true,
+        nombre: true,
+      },
+      orderBy: {
+        nombre: 'asc',
+      },
     });
   }
 }

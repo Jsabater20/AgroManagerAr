@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -25,8 +26,14 @@ export class PlanController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  getPlan(@Request() req: AuthRequest) {
-    return this.planService.getUsuarioPlan(req.user.id);
+  getPlan(
+    @Request() req: AuthRequest,
+    @Query('organizacionId') organizacionId: string,
+  ) {
+    return this.planService.getPlanOrganizacion(
+      req.user.id,
+      parseInt(organizacionId, 10),
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -34,14 +41,26 @@ export class PlanController {
   checkout(
     @Request() req: AuthRequest,
     @Body('tipo') tipo: 'mensual' | 'anual' = 'mensual',
+    @Query('organizacionId') organizacionId: string,
   ) {
-    return this.planService.crearCheckout(req.user.id, req.user.email, tipo);
+    return this.planService.crearCheckout(
+      req.user.id,
+      req.user.email,
+      parseInt(organizacionId, 10),
+      tipo,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('cancelar')
-  cancelar(@Request() req: AuthRequest) {
-    return this.planService.cancelarSuscripcion(req.user.id);
+  cancelar(
+    @Request() req: AuthRequest,
+    @Query('organizacionId') organizacionId: string,
+  ) {
+    return this.planService.cancelarSuscripcion(
+      req.user.id,
+      parseInt(organizacionId, 10),
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -49,8 +68,13 @@ export class PlanController {
   verificar(
     @Request() req: AuthRequest,
     @Body('preapprovalId') preapprovalId: string,
+    @Query('organizacionId') organizacionId: string,
   ) {
-    return this.planService.verificarYActivar(req.user.id, preapprovalId);
+    return this.planService.verificarYActivar(
+      req.user.id,
+      parseInt(organizacionId, 10),
+      preapprovalId,
+    );
   }
 
   // Webhook público para MercadoPago

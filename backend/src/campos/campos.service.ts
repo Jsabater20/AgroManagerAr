@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlanService } from '../plan/plan.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import {
   CreateCampoDto,
   UpdateCampoDto,
@@ -16,12 +17,33 @@ export class CamposService {
   constructor(
     private prisma: PrismaService,
     private planService: PlanService,
+    private memberAccessService: MemberAccessService,
   ) {}
 
-  async findAll(usuarioId: number, organizacionId: number) {
+  async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Campos',
+    );
+    let whereClause: any = { organizacionId };
+
+    // Los miembros sólo ven campos asignados; el propietario ve todos los de su organización.
+    if (!acceso.esOwner) {
+      whereClause = {
+        organizacionId,
+        AsignacionCampo: {
+          some: {
+            usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+            activo: true,
+          },
+        },
+      };
+    }
+
     return this.prisma.campo.findMany({
-      where: { usuarioId, organizacionId },
-      include: { lotes: true },
+      where: whereClause,
+      include: { lotes: true, usuario: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -38,20 +60,23 @@ export class CamposService {
             },
           },
         },
+        usuario: true,
       },
     });
     if (!campo) throw new NotFoundException('Campo no encontrado');
-    if (campo.usuarioId !== usuarioId || campo.organizacionId !== organizacionId) {
+    if (campo.organizacionId !== organizacionId) {
       throw new ForbiddenException('No tenés acceso a este campo');
     }
+    await this.memberAccessService.requireCampo(usuarioId, organizacionId, id);
     return campo;
   }
 
   async create(dto: CreateCampoDto, usuarioId: number, organizacionId: number) {
-    await this.planService.checkCamposLimit(usuarioId);
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Campos');
+    await this.planService.checkCamposLimit(organizacionId);
     return this.prisma.campo.create({
       data: { ...dto, usuarioId, organizacionId },
-      include: { lotes: true },
+      include: { lotes: true, usuario: true },
     });
   }
 
@@ -65,14 +90,13 @@ export class CamposService {
     return this.prisma.campo.update({
       where: { id },
       data: dto,
-      include: { lotes: true },
+      include: { lotes: true, usuario: true },
     });
   }
 
   async remove(id: number, usuarioId: number, organizacionId: number) {
     await this.findOne(id, usuarioId, organizacionId);
 
-    // Obtener IDs de lotes y siembras para eliminar en cascada
     const lotes = await this.prisma.lote.findMany({
       where: { campoId: id },
       select: { id: true },
@@ -89,22 +113,18 @@ export class CamposService {
     const siembraIds = siembras.map((s) => s.id);
 
     await this.prisma.$transaction([
-      // Eliminar registros hijos de siembras
       this.prisma.aplicacionInsumo.deleteMany({
         where: { siembraId: { in: siembraIds } },
       }),
       this.prisma.cosecha.deleteMany({
         where: { siembraId: { in: siembraIds } },
       }),
-      // Desvincular campañas de siembras (campaniaId nullable)
       this.prisma.siembra.updateMany({
         where: { id: { in: siembraIds } },
         data: { campaniaId: null },
       }),
-      // Eliminar siembras y lotes
       this.prisma.siembra.deleteMany({ where: { id: { in: siembraIds } } }),
       this.prisma.lote.deleteMany({ where: { campoId: id } }),
-      // Desvincular tareas y movimientos (campoId nullable)
       this.prisma.tareaRural.updateMany({
         where: { campoId: id },
         data: { campoId: null },
@@ -113,7 +133,6 @@ export class CamposService {
         where: { campoId: id },
         data: { campoId: null },
       }),
-      // Eliminar el campo
       this.prisma.campo.delete({ where: { id } }),
     ]);
   }
@@ -124,8 +143,8 @@ export class CamposService {
     usuarioId: number,
     organizacionId: number,
   ) {
-    await this.findOne(campoId, usuarioId, organizacionId);
-    await this.planService.checkLotesLimit(campoId, usuarioId);
+    const campo = await this.findOne(campoId, usuarioId, organizacionId);
+    await this.planService.checkLotesLimit(organizacionId);
     return this.prisma.lote.create({
       data: { ...dto, campoId },
     });

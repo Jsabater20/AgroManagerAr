@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlanService } from '../plan/plan.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import {
   CreateAnimalDto,
   UpdateAnimalDto,
@@ -27,32 +28,32 @@ export class GanadoService {
   constructor(
     private prisma: PrismaService,
     private planService: PlanService,
+    private memberAccessService: MemberAccessService,
   ) {}
 
-  findAll(usuarioId: number, organizacionId: number) {
+  async findAll(usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
     return this.prisma.animal.findMany({
-      where: { usuarioId, organizacionId },
+      where: { organizacionId },
       include: { preneces: { orderBy: { createdAt: 'desc' } } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(id: number, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
     const animal = await this.prisma.animal.findUnique({
       where: { id },
       include: { preneces: { orderBy: { createdAt: 'desc' } } },
     });
     if (!animal) throw new NotFoundException('Animal no encontrado');
-    if (
-      animal.usuarioId !== usuarioId ||
-      animal.organizacionId !== organizacionId
-    )
-      throw new ForbiddenException();
+    if (animal.organizacionId !== organizacionId) throw new ForbiddenException();
     return animal;
   }
 
   async create(dto: CreateAnimalDto, usuarioId: number, organizacionId: number) {
-    await this.planService.checkAnimalesLimit(usuarioId);
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    await this.planService.checkAnimalesLimit(organizacionId);
     return this.prisma.animal.create({
       data: {
         nombre: dto.nombre,
@@ -126,16 +127,13 @@ export class GanadoService {
     usuarioId: number,
     organizacionId: number,
   ) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
     const prenez = await this.prisma.prenez.findUnique({
       where: { id: prenezId },
       include: { animal: true },
     });
     if (!prenez) throw new NotFoundException('Preñez no encontrada');
-    if (
-      prenez.animal.usuarioId !== usuarioId ||
-      prenez.animal.organizacionId !== organizacionId
-    )
-      throw new ForbiddenException();
+    if (prenez.animal.organizacionId !== organizacionId) throw new ForbiddenException();
 
     return this.prisma.prenez.update({
       where: { id: prenezId },
@@ -178,16 +176,13 @@ export class GanadoService {
   }
 
   async removePeso(pesoId: number, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
     const peso = await this.prisma.registroPeso.findUnique({
       where: { id: pesoId },
       include: { animal: true },
     });
     if (!peso) throw new NotFoundException('Registro de peso no encontrado');
-    if (
-      peso.animal.usuarioId !== usuarioId ||
-      peso.animal.organizacionId !== organizacionId
-    )
-      throw new ForbiddenException();
+    if (peso.animal.organizacionId !== organizacionId) throw new ForbiddenException();
     return this.prisma.registroPeso.delete({ where: { id: pesoId } });
   }
 }

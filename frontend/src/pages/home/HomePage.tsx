@@ -24,11 +24,15 @@ const FREE_FEATURES = [
   'Hasta 10 siembras',
   'Gestión de cultivos e insumos',
   'Tareas rurales',
+  '1 miembro adicional + hasta 3 trabajos activos',
+  'Asigná recursos y trabajos con fechas y estados',
   'Clima actual',
   'Dashboard básico',
 ];
 const PRO_FEATURES = [
   'Campos, lotes y animales ilimitados',
+  'Miembros, recursos y trabajos ilimitados',
+  'Permisos, horarios e historial completo del equipo',
   'Campañas agrícolas',
   'AgroBot IA',
   'Analytics avanzados + rentabilidad',

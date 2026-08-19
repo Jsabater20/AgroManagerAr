@@ -2,248 +2,633 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
   ForbiddenException,
-  Logger,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mailer/mailer.service';
-import {
-  CreateOrganizacionDto,
-  UpdateOrganizacionDto,
-  InvitarMiembroDto,
-} from './organizations.dto';
 import * as crypto from 'crypto';
-import { RolOrganizacion } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { ActualizarMiembroDto } from './dto/actualizar-miembro.dto';
+import { AsignarCampoDto } from './dto/asignar-campo.dto';
+import { ActualizarVisibilidadModuloDto } from './dto/actualizar-visibilidad-modulo.dto';
+import { InvitarMiembroDto } from './dto/invitar-miembro.dto';
+import { MiembroResponseDto } from './dto/miembro-response.dto';
+import { InvitacionResponseDto } from './dto/invitacion-response.dto';
+import { MiembroPanelDto, ActivityCountDto } from './dto/miembro-panel.dto';
+import { RecursoAsignableDto } from './dto/recurso-asignable.dto';
+import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
+import { MailerService } from '../mailer/mailer.service';
+import { PlanService } from '../plan/plan.service';
+
+const MODULOS_DISPONIBLES = [
+  'Dashboard',
+  'Campos',
+  'Cultivos',
+  'Siembras',
+  'Insumos',
+  'Ganadería',
+  'Tareas',
+  'Maquinarias',
+  'Finanzas',
+  'Reportes',
+  'Clima',
+];
+
+const DURACION_INVITACION_DIAS = 7;
 
 @Injectable()
 export class OrganizationsService {
-  private readonly logger = new Logger(OrganizationsService.name);
-
   constructor(
     private prisma: PrismaService,
-    private mailer: MailerService,
+    private mailerService: MailerService,
+    private planService: PlanService,
   ) {}
 
-  async crearOrganizacion(usuarioId: number, dto: CreateOrganizacionDto) {
-    return await this.prisma.organizacion.create({
-      data: {
-        nombre: dto.nombre,
-        email: dto.email,
-        plan: 'FREE',
-        propietarioId: usuarioId,
-      },
-    });
+  private invitationUrl(token: string): string {
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
+    return `${frontendUrl}/aceptar-invitacion?token=${token}`;
   }
 
-  async obtenerOrganizacionesDelUsuario(usuarioId: number) {
-    // Orgs donde es dueño
-    const comoOwner = await this.prisma.organizacion.findMany({
-      where: { propietarioId: usuarioId },
-      select: { id: true, nombre: true, email: true, plan: true, propietarioId: true },
+  // ─── VALIDACIÓN ───────────────────────────────────────────────────────────
+
+  private async validarOwner(orgId: number, userId: number): Promise<void> {
+    const org = await this.prisma.organizacion.findUnique({
+      where: { id: orgId },
+      select: { propietarioId: true },
     });
 
-    // Orgs donde es miembro
-    const comoMiembro = await this.prisma.usuarioOrganizacion.findMany({
-      where: { usuarioId },
+    if (!org || org.propietarioId !== userId) {
+      throw new ForbiddenException(
+        'Solo el propietario puede realizar esta acción',
+      );
+    }
+  }
+
+  // ─── ORGANIZACIONES ───────────────────────────────────────────────────────
+
+  async obtenerOrganizaciones(userId?: number) {
+    if (!userId) {
+      return await this.prisma.organizacion.findMany({
+        select: {
+          id: true,
+          nombre: true,
+          propietarioId: true,
+        },
+      });
+    }
+
+    const orgsComoOwner = await this.prisma.organizacion.findMany({
+      where: { propietarioId: userId },
+      select: {
+        id: true,
+        nombre: true,
+        propietarioId: true,
+      },
+    });
+
+    const orgsComoMiembro = await this.prisma.usuarioOrganizacion.findMany({
+      where: { usuarioId: userId, activo: true },
       select: {
         organizacion: {
-          select: { id: true, nombre: true, email: true, plan: true, propietarioId: true },
-        },
-      },
-    });
-
-    // Combinar y eliminar duplicados (en caso que sea owner y miembro)
-    const todas = [
-      ...comoOwner,
-      ...comoMiembro.map((m) => m.organizacion),
-    ];
-
-    // Eliminar duplicados por ID
-    const unicas = Array.from(
-      new Map(todas.map((org) => [org.id, org])).values(),
-    );
-
-    return unicas;
-  }
-
-  async obtenerOrganizacion(organizacionId: number, usuarioId: number) {
-    const org = await this.prisma.organizacion.findUnique({
-      where: { id: organizacionId },
-      include: {
-        propietario: { select: { id: true, email: true, nombre: true } },
-        miembros: {
-          include: {
-            usuario: { select: { id: true, email: true, nombre: true } },
+          select: {
+            id: true,
+            nombre: true,
+            propietarioId: true,
           },
         },
       },
     });
 
-    if (!org) {
-      throw new NotFoundException('Organización no encontrada');
-    }
+    const allOrgs = [
+      ...orgsComoOwner,
+      ...orgsComoMiembro.map((m) => m.organizacion),
+    ];
 
-    // Validar que el usuario sea owner o miembro
-    const esOwner = org.propietarioId === usuarioId;
-    const esMiembro = org.miembros.some((m) => m.usuarioId === usuarioId);
+    const uniqueOrgs = Array.from(
+      new Map(allOrgs.map((org) => [org.id, org])).values(),
+    );
 
-    if (!esOwner && !esMiembro) {
-      throw new ForbiddenException('No tenés acceso a esta organización');
-    }
-
-    return org;
+    return uniqueOrgs;
   }
 
-  async actualizarOrganizacion(
-    organizacionId: number,
-    usuarioId: number,
-    dto: UpdateOrganizacionDto,
-  ) {
-    const org = await this.prisma.organizacion.findUnique({
-      where: { id: organizacionId },
-    });
+  // ─── MIEMBROS ─────────────────────────────────────────────────────────────
 
-    if (!org) {
-      throw new NotFoundException('Organización no encontrada');
-    }
-
-    if (org.propietarioId !== usuarioId) {
-      throw new ForbiddenException(
-        'Solo el dueño puede actualizar la organización',
-      );
-    }
-
-    return await this.prisma.organizacion.update({
-      where: { id: organizacionId },
-      data: {
-        nombre: dto.nombre,
-        email: dto.email,
+  async obtenerMiembros(organizacionId: number): Promise<MiembroResponseDto[]> {
+    const miembros = await this.prisma.usuarioOrganizacion.findMany({
+      where: { organizacionId, activo: true },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            email: true,
+            nombre: true,
+            apellido: true,
+          },
+        },
+        AsignacionCampo: {
+          where: { activo: true },
+          include: { Campo: { select: { id: true, nombre: true } } },
+        },
+        VisibilidadModulo: {
+          select: { moduloNombre: true, activo: true },
+        },
       },
     });
+
+    return miembros.map((m) => ({
+      id: m.id,
+      usuarioId: m.usuarioId,
+      nombre: m.usuario.nombre,
+      apellido: m.usuario.apellido,
+      email: m.usuario.email,
+      rol: m.roles,
+      activo: m.activo,
+      fechaIncorporacion: m.fechaInvitacion?.toISOString() || new Date().toISOString(),
+      usuario: m.usuario,
+      roles: m.roles ? [m.roles] : [],
+      campos: m.AsignacionCampo.map((ac) => ({
+        id: ac.Campo.id,
+        nombre: ac.Campo.nombre,
+      })),
+      modulos: m.VisibilidadModulo,
+    }));
+  }
+
+  // ─── PANEL DEL OWNER ───────────────────────────────────────────────────────
+
+  async obtenerMiembroActual(
+    organizacionId: number,
+    usuarioId: number,
+  ): Promise<MiembroResponseDto> {
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: {
+        usuarioId_organizacionId: { usuarioId, organizacionId },
+      },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            email: true,
+            nombre: true,
+            apellido: true,
+          },
+        },
+        AsignacionCampo: {
+          where: { activo: true },
+          include: { Campo: { select: { id: true, nombre: true } } },
+        },
+        VisibilidadModulo: {
+          select: { moduloNombre: true, activo: true },
+        },
+      },
+    });
+
+    if (!miembro || !miembro.activo) {
+      throw new NotFoundException('Membresia activa no encontrada');
+    }
+
+    const tieneTrabajosAsignados = await this.prisma.actividadMiembro.count({
+      where: {
+        organizacionId,
+        usuarioOrganizacionId: miembro.id,
+        activo: true,
+      },
+    });
+
+    let modulos = miembro.VisibilidadModulo;
+    if (tieneTrabajosAsignados > 0) {
+      const moduloTareas = await this.prisma.visibilidadModulo.upsert({
+        where: {
+          usuarioOrganizacionId_moduloNombre: {
+            usuarioOrganizacionId: miembro.id,
+            moduloNombre: 'Tareas',
+          },
+        },
+        update: { activo: true },
+        create: {
+          usuarioOrganizacionId: miembro.id,
+          moduloNombre: 'Tareas',
+          activo: true,
+        },
+        select: { moduloNombre: true, activo: true },
+      });
+
+      modulos = [
+        ...miembro.VisibilidadModulo.filter(
+          (modulo) => modulo.moduloNombre !== 'Tareas',
+        ),
+        moduloTareas,
+      ];
+    }
+
+    return {
+      id: miembro.id,
+      usuarioId: miembro.usuarioId,
+      usuario: miembro.usuario,
+      roles: miembro.roles ? [miembro.roles] : [],
+      activo: miembro.activo,
+      campos: miembro.AsignacionCampo.map((asignacion) => ({
+        id: asignacion.Campo.id,
+        nombre: asignacion.Campo.nombre,
+      })),
+      modulos,
+    };
+  }
+
+  async obtenerMiembrosPanel(
+    orgId: number,
+    userId: number,
+  ): Promise<MiembroPanelDto[]> {
+    // Validar que es owner
+    await this.validarOwner(orgId, userId);
+
+    const miembros = await this.prisma.usuarioOrganizacion.findMany({
+      where: { organizacionId: orgId },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            email: true,
+          },
+        },
+        AsignacionCampo: {
+          where: { activo: true },
+          include: { Campo: { select: { nombre: true } } },
+        },
+        VisibilidadModulo: {
+          select: { moduloNombre: true, activo: true },
+        },
+      },
+    });
+
+    const miembrosPanelPromises = miembros.map(async (m) => {
+      // Contar actividades por estado
+      const actividades = await this.prisma.tareaRural.groupBy({
+        by: ['estado'],
+        where: {
+          usuarioId: m.usuarioId,
+          organizacionId: orgId,
+        },
+        _count: true,
+      });
+
+      const activityCount: ActivityCountDto = {
+        pendientes: 0,
+        enProgreso: 0,
+        completadas: 0,
+      };
+
+      actividades.forEach((a: any) => {
+        if (a.estado === 'PENDIENTE') activityCount.pendientes = a._count;
+        if (a.estado === 'EN_PROGRESO') activityCount.enProgreso = a._count;
+        if (a.estado === 'COMPLETADA') activityCount.completadas = a._count;
+      });
+
+      return {
+        id: m.id,
+        nombre: m.usuario.nombre,
+        apellido: m.usuario.apellido,
+        email: m.usuario.email,
+        rol: m.roles,
+        activo: m.activo,
+        fechaIncorporacion: m.fechaInvitacion?.toISOString() || '',
+        actividades: activityCount,
+        recursosCampos: m.AsignacionCampo.map((ac) => ac.Campo.nombre),
+        modulos: m.VisibilidadModulo,
+      };
+    });
+
+    return await Promise.all(miembrosPanelPromises);
+  }
+
+  async cambiarRolMiembroOwner(
+    orgId: number,
+    usuarioOrganizacionId: number,
+    dto: CambiarRolOwnerDto,
+    userId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    // Validar owner
+    await this.validarOwner(orgId, userId);
+
+    // Verificar que no cambia el rol del owner
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrganizacionId },
+      include: { usuario: true },
+    });
+
+    if (!miembro || miembro.organizacionId !== orgId) {
+      throw new NotFoundException('Miembro no encontrado');
+    }
+
+    const org = await this.prisma.organizacion.findUnique({
+      where: { id: orgId },
+      select: { propietarioId: true },
+    });
+
+    if (miembro.usuarioId === org?.propietarioId) {
+      throw new BadRequestException('No puedes cambiar el rol del propietario');
+    }
+
+    // Actualizar rol
+    await this.prisma.usuarioOrganizacion.update({
+      where: { id: usuarioOrganizacionId },
+      data: {
+        roles: dto.nuevoRol,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Rol actualizado a ${dto.nuevoRol}`,
+    };
+  }
+
+  async suspenderMiembro(
+    orgId: number,
+    usuarioOrganizacionId: number,
+    userId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.validarOwner(orgId, userId);
+
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrganizacionId },
+    });
+
+    if (!miembro || miembro.organizacionId !== orgId) {
+      throw new NotFoundException('Miembro no encontrado');
+    }
+
+    await this.prisma.usuarioOrganizacion.update({
+      where: { id: usuarioOrganizacionId },
+      data: { activo: false },
+    });
+
+    return { success: true, message: 'Miembro suspendido' };
+  }
+
+  async activarMiembro(
+    orgId: number,
+    usuarioOrganizacionId: number,
+    userId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.validarOwner(orgId, userId);
+
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrganizacionId },
+    });
+
+    if (!miembro || miembro.organizacionId !== orgId) {
+      throw new NotFoundException('Miembro no encontrado');
+    }
+
+    await this.prisma.usuarioOrganizacion.update({
+      where: { id: usuarioOrganizacionId },
+      data: { activo: true },
+    });
+
+    return { success: true, message: 'Miembro activado' };
+  }
+
+  async quitarMiembro(
+    orgId: number,
+    usuarioOrganizacionId: number,
+    userId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.validarOwner(orgId, userId);
+
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrganizacionId },
+    });
+
+    if (!miembro || miembro.organizacionId !== orgId) {
+      throw new NotFoundException('Miembro no encontrado');
+    }
+
+    // Eliminar asignaciones de campos
+    await this.prisma.asignacionCampo.deleteMany({
+      where: { usuarioOrganizacionId },
+    });
+
+    // Marcar como inactivo (soft delete)
+    await this.prisma.usuarioOrganizacion.update({
+      where: { id: usuarioOrganizacionId },
+      data: { activo: false },
+    });
+
+    return { success: true, message: 'Miembro removido de la organización' };
+  }
+
+  async obtenerRecursosAsignables(
+    orgId: number,
+    usuarioOrganizacionId: number,
+    userId: number,
+  ): Promise<RecursoAsignableDto[]> {
+    await this.validarOwner(orgId, userId);
+
+    // Obtener campos de la organización
+    const campos = await this.prisma.campo.findMany({
+      where: { organizacionId: orgId },
+      select: { id: true, nombre: true },
+    });
+
+    // Obtener asignaciones actuales del miembro
+    const asignacionesActuales = await this.prisma.asignacionCampo.findMany({
+      where: { usuarioOrganizacionId, activo: true },
+      select: { campoId: true },
+    });
+
+    const camposAsignadosIds = asignacionesActuales.map((a) => a.campoId);
+
+    return campos.map((campo) => ({
+      id: campo.id,
+      nombre: campo.nombre,
+      tipo: 'CAMPO' as const,
+      asignado: camposAsignadosIds.includes(campo.id),
+    }));
+  }
+
+  async asignarRecurso(
+    orgId: number,
+    usuarioOrganizacionId: number,
+    recursoTipo: string,
+    recursoId: number,
+    userId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.validarOwner(orgId, userId);
+
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrganizacionId },
+    });
+
+    if (!miembro || miembro.organizacionId !== orgId) {
+      throw new NotFoundException('Miembro no encontrado');
+    }
+
+    if (recursoTipo === 'CAMPO') {
+      // Verificar que el campo pertenece a la organización
+      const campo = await this.prisma.campo.findUnique({
+        where: { id: recursoId },
+        select: { organizacionId: true },
+      });
+
+      if (!campo || campo.organizacionId !== orgId) {
+        throw new NotFoundException('Campo no encontrado en esta organización');
+      }
+
+      // Verificar que no está ya asignado
+      const yaAsignado = await this.prisma.asignacionCampo.findFirst({
+        where: {
+          usuarioOrganizacionId,
+          campoId: recursoId,
+        },
+      });
+
+      if (yaAsignado && yaAsignado.activo) {
+        throw new BadRequestException('El campo ya está asignado a este miembro');
+      }
+
+      if (yaAsignado && !yaAsignado.activo) {
+        // Reactivar si fue desactivado
+        await this.prisma.asignacionCampo.update({
+          where: { id: yaAsignado.id },
+          data: { activo: true },
+        });
+      } else {
+        // Crear nueva asignación
+        await this.prisma.asignacionCampo.create({
+          data: {
+            usuarioOrganizacionId,
+            campoId: recursoId,
+            activo: true,
+          },
+        });
+      }
+    }
+
+    return { success: true, message: `Recurso asignado al miembro` };
+  }
+
+  async retirarRecurso(
+    orgId: number,
+    usuarioOrganizacionId: number,
+    recursoTipo: string,
+    recursoId: number,
+    userId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.validarOwner(orgId, userId);
+
+    if (recursoTipo === 'CAMPO') {
+      const asignacion = await this.prisma.asignacionCampo.findFirst({
+        where: {
+          usuarioOrganizacionId,
+          campoId: recursoId,
+        },
+      });
+
+      if (!asignacion) {
+        throw new NotFoundException('Asignación no encontrada');
+      }
+
+      await this.prisma.asignacionCampo.update({
+        where: { id: asignacion.id },
+        data: { activo: false },
+      });
+    }
+
+    return { success: true, message: 'Recurso retirado del miembro' };
+  }
+
+  // ─── INVITACIONES ─────────────────────────────────────────────────────────
+
+  async obtenerUsoMiembros(
+    organizacionId: number,
+    userId: number,
+  ) {
+    await this.validarOwner(organizacionId, userId);
+    return this.planService.getMiembrosUso(organizacionId);
   }
 
   async invitarMiembro(
     organizacionId: number,
-    usuarioId: number,
     dto: InvitarMiembroDto,
-  ) {
-    const org = await this.prisma.organizacion.findUnique({
-      where: { id: organizacionId },
+  ): Promise<InvitacionResponseDto> {
+    await this.planService.checkMiembrosLimit(organizacionId);
+
+    // Verificar que el email no está ya en la organización
+    const usuarioExistente = await this.prisma.usuario.findUnique({
+      where: { email: dto.email },
+      select: { id: true },
     });
 
-    if (!org) {
-      throw new NotFoundException('Organización no encontrada');
-    }
-
-    // Solo owner o admin pueden invitar
-    if (org.propietarioId !== usuarioId) {
-      const miembroActual = await this.prisma.usuarioOrganizacion.findUnique({
-        where: { usuarioId_organizacionId: { usuarioId, organizacionId } },
+    if (usuarioExistente) {
+      const yaEsMiembro = await this.prisma.usuarioOrganizacion.findFirst({
+        where: {
+          organizacionId,
+          usuarioId: usuarioExistente.id,
+        },
       });
 
-      if (!miembroActual || miembroActual.rol !== 'ADMIN') {
-        throw new ForbiddenException('No tenés permiso para invitar miembros');
+      if (yaEsMiembro) {
+        throw new BadRequestException(
+          'Este usuario ya es miembro de la organización',
+        );
       }
     }
 
-    // Chequear si ya existe invitación pendiente (para permitir reinvitar)
-    const invitacionExistente = await this.prisma.invitacionOrganizacion.findFirst({
-      where: {
-        organizacionId,
-        email: dto.email,
-        estado: 'PENDIENTE',
-      },
-    });
-
-    // Si existe una invitación pendiente, eliminar la vieja para permitir reinvitar
-    // (esto permite re-enviar si se borraron emails, etc.)
-    if (invitacionExistente) {
-      await this.prisma.invitacionOrganizacion.delete({
-        where: { id: invitacionExistente.id },
-      });
-    }
-
+    // Crear token de invitación
     const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
-    const rol: RolOrganizacion = (dto.rol as RolOrganizacion) || 'OPERARIO';
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + DURACION_INVITACION_DIAS);
 
-    // Validar que no intenten hacer propietario a través de invitación
-    if (rol === 'OWNER') {
-      throw new BadRequestException('No se puede invitar como OWNER. Solo el propietario de la organización puede tener este rol');
-    }
-
-    // Crear la invitación
     const invitacion = await this.prisma.invitacionOrganizacion.create({
       data: {
         organizacionId,
         email: dto.email,
-        rol,
+        rol: (dto.rol || 'OPERARIO') as any,
         token,
         estado: 'PENDIENTE',
         expiresAt,
+        mensaje: dto.mensaje || null,
       },
     });
 
-    // Obtener datos del usuario que invita
-    const usuarioInvitador = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: {
+        nombre: true,
+        propietario: { select: { nombre: true } },
+      },
     });
 
-    // Construir link de invitación (usar frontend URL)
-    const frontendUrl = process.env.FRONTEND_URL || 'https://agro-manager-ar-px8f-git-develop-agro-manager-ar-s-projects.vercel.app';
-    const linkInvitacion = `${frontendUrl}/aceptar-invitacion?token=${token}`;
-
-    // Enviar email
-    try {
-      this.logger.log(`[invitarMiembro] Enviando email a ${dto.email}...`);
-      const mailResult = await this.mailer.enviarInvitacion(
-        dto.email,
-        org.nombre,
-        `${usuarioInvitador?.nombre || 'Un usuario'} ${usuarioInvitador?.apellido || ''}`.trim(),
-        linkInvitacion,
+    if (organizacion) {
+      await this.mailerService.enviarInvitacion(
+        invitacion.email,
+        organizacion.nombre,
+        organizacion.propietario.nombre,
+        this.invitationUrl(invitacion.token),
       );
-      this.logger.log(`[invitarMiembro] Email enviado exitosamente: ${JSON.stringify(mailResult)}`);
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`[invitarMiembro] Error al enviar email: ${err.message}`, err.stack);
-      // No fallar si el email no se envía, pero logear el error
-    }
-
-    return invitacion;
-  }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // NUEVO: Obtener invitación por token (público, sin autenticación)
-  // ────────────────────────────────────────────────────────────────────────────
-  async obtenerInvitacionPorToken(token: string) {
-    const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
-      where: { token },
-      include: { organizacion: true },
-    });
-
-    if (!invitacion) {
-      throw new BadRequestException('Invitación no encontrada');
-    }
-
-    if (invitacion.estado !== 'PENDIENTE') {
-      throw new BadRequestException('Invitación ya fue usada');
-    }
-
-    if (new Date() > invitacion.expiresAt) {
-      throw new BadRequestException('Invitación expirada');
     }
 
     return {
-      organizacionId: invitacion.organizacionId,
-      organizacionNombre: invitacion.organizacion.nombre,
-      rol: invitacion.rol,
+      id: invitacion.id,
       email: invitacion.email,
+      rol: invitacion.rol,
+      estado: invitacion.estado,
+      mensaje: invitacion.mensaje || undefined,
+      fechaInvitacion: invitacion.createdAt.toISOString(),
+      expiresAt: invitacion.expiresAt.toISOString(),
+      token: invitacion.token,
     };
   }
 
-  async aceptarInvitacion(token: string, usuarioId: number) {
+  async aceptarInvitacion(
+    token: string,
+    userId: number,
+  ): Promise<{ success: boolean; message: string }> {
     const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
       where: { token },
+      include: { organizacion: true },
     });
 
     if (!invitacion) {
@@ -252,137 +637,287 @@ export class OrganizationsService {
 
     if (invitacion.estado !== 'PENDIENTE') {
       throw new BadRequestException(
-        `La invitación ya fue ${invitacion.estado.toLowerCase()}`,
+        `La invitación ya ha sido ${invitacion.estado.toLowerCase()}`,
       );
     }
 
-    if (invitacion.expiresAt < new Date()) {
+    if (new Date() > invitacion.expiresAt) {
       throw new BadRequestException('La invitación ha expirado');
     }
 
+    await this.planService.checkMiembrosLimit(
+      invitacion.organizacionId,
+      invitacion.id,
+    );
+
     const usuario = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
+      where: { id: userId },
     });
 
-    if (!usuario || usuario.email !== invitacion.email) {
-      throw new ForbiddenException(
-        'No podés aceptar esta invitación con este email',
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Transacción: actualizar invitación y crear membresía
+    await this.prisma.$transaction(async (tx) => {
+      await tx.invitacionOrganizacion.update({
+        where: { id: invitacion.id },
+        data: {
+          estado: 'ACEPTADA',
+          aceptadoEn: new Date(),
+          usuarioId: userId,
+        },
+      });
+
+      const miembro = await tx.usuarioOrganizacion.create({
+        data: {
+          usuarioId: userId,
+          organizacionId: invitacion.organizacionId,
+          roles: invitacion.rol,
+          activo: true,
+          fechaInvitacion: new Date(),
+        },
+      });
+
+      // Habilitar módulos por defecto
+      await tx.visibilidadModulo.createMany({
+        data: MODULOS_DISPONIBLES.map((moduloNombre) => ({
+          usuarioOrganizacionId: miembro.id,
+          moduloNombre,
+          activo: false,
+        })),
+      });
+    });
+
+    return {
+      success: true,
+      message: 'Invitación aceptada correctamente',
+    };
+  }
+
+  async obtenerInvitaciones(
+    organizacionId: number,
+  ): Promise<InvitacionResponseDto[]> {
+    const invitaciones = await this.prisma.invitacionOrganizacion.findMany({
+      where: { organizacionId, estado: 'PENDIENTE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return invitaciones.map((inv) => ({
+      id: inv.id,
+      email: inv.email,
+      rol: inv.rol,
+      estado: inv.estado,
+      mensaje: inv.mensaje || undefined,
+      fechaInvitacion: inv.createdAt.toISOString(),
+      expiresAt: inv.expiresAt.toISOString(),
+      token: inv.token,
+    }));
+  }
+
+  async reenviarInvitacion(
+    organizacionId: number,
+    invitacionId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
+      where: { id: invitacionId },
+    });
+
+    if (!invitacion || invitacion.organizacionId !== organizacionId) {
+      throw new NotFoundException('Invitación no encontrada');
+    }
+
+    if (invitacion.estado !== 'PENDIENTE') {
+      throw new BadRequestException(
+        'Solo puedes reenviar invitaciones pendientes',
       );
     }
 
-    // Crear membresía
-    await this.prisma.usuarioOrganizacion.create({
-      data: {
-        usuarioId,
-        organizacionId: invitacion.organizacionId,
-        rol: invitacion.rol,
-        estado: 'ACTIVO',
+    // Extender fecha de expiración
+    const newExpiresAt = new Date();
+    newExpiresAt.setDate(newExpiresAt.getDate() + DURACION_INVITACION_DIAS);
+
+    const invitacionActualizada = await this.prisma.invitacionOrganizacion.update({
+      where: { id: invitacionId },
+      data: { expiresAt: newExpiresAt },
+    });
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: {
+        nombre: true,
+        propietario: { select: { nombre: true } },
       },
     });
 
-    // Actualizar invitación
-    await this.prisma.invitacionOrganizacion.update({
-      where: { id: invitacion.id },
-      data: {
-        estado: 'ACEPTADA',
-        aceptadoEn: new Date(),
-        usuarioId,
-      },
-    });
+    if (organizacion) {
+      await this.mailerService.enviarInvitacion(
+        invitacionActualizada.email,
+        organizacion.nombre,
+        organizacion.propietario.nombre,
+        this.invitationUrl(invitacionActualizada.token),
+      );
+    }
 
-    return { message: 'Invitación aceptada' };
+    return { success: true, message: 'Invitación reenviada' };
   }
 
-  async obtenerMiembros(organizacionId: number, usuarioId: number) {
-    await this.obtenerOrganizacion(organizacionId, usuarioId);
-
-    return await this.prisma.usuarioOrganizacion.findMany({
-      where: { organizacionId },
-      include: {
-        usuario: {
-          select: { id: true, email: true, nombre: true, apellido: true },
-        },
-      },
+  async cancelarInvitacion(
+    organizacionId: number,
+    invitacionId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
+      where: { id: invitacionId },
     });
+
+    if (!invitacion || invitacion.organizacionId !== organizacionId) {
+      throw new NotFoundException('Invitación no encontrada');
+    }
+
+    await this.prisma.invitacionOrganizacion.update({
+      where: { id: invitacionId },
+      data: { estado: 'CANCELADA' },
+    });
+
+    return { success: true, message: 'Invitación cancelada' };
+  }
+
+  // ─── MIEMBROS (MÉTODOS HEREDADOS) ─────────────────────────────────────────
+
+  async actualizarMiembro(
+    organizacionId: number,
+    usuarioOrgId: number,
+    dto: ActualizarMiembroDto,
+  ): Promise<void> {
+    const usuarioOrg = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrgId },
+    });
+
+    if (!usuarioOrg || usuarioOrg.organizacionId !== organizacionId) {
+      throw new NotFoundException('Usuario de la organización no encontrado');
+    }
+
+    if (dto.roles && dto.roles.length > 0) {
+      await this.prisma.usuarioOrganizacion.update({
+        where: { id: usuarioOrgId },
+        data: { roles: dto.roles[0] },
+      });
+    }
   }
 
   async eliminarMiembro(
     organizacionId: number,
-    usuarioId: number,
-    miembroId: number,
-  ) {
-    const org = await this.prisma.organizacion.findUnique({
-      where: { id: organizacionId },
+    usuarioOrgId: number,
+  ): Promise<void> {
+    const usuarioOrg = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrgId },
     });
 
-    if (!org) {
-      throw new NotFoundException('Organización no encontrada');
+    if (!usuarioOrg || usuarioOrg.organizacionId !== organizacionId) {
+      throw new NotFoundException('Usuario de la organización no encontrado');
     }
 
-    if (org.propietarioId !== usuarioId) {
-      throw new ForbiddenException('Solo el dueño puede eliminar miembros');
+    await this.prisma.asignacionCampo.deleteMany({
+      where: { usuarioOrganizacionId: usuarioOrgId },
+    });
+
+    await this.prisma.usuarioOrganizacion.delete({
+      where: { id: usuarioOrgId },
+    });
+  }
+
+  // ─── CAMPOS ────────────────────────────────────────────────────────────────
+
+  async asignarCampo(
+    organizacionId: number,
+    usuarioOrgId: number,
+    dto: AsignarCampoDto,
+  ): Promise<void> {
+    const campo = await this.prisma.campo.findUnique({
+      where: { id: dto.campoId },
+    });
+
+    if (!campo || campo.organizacionId !== organizacionId) {
+      throw new NotFoundException('Campo no encontrado');
     }
 
-    if (miembroId === usuarioId) {
-      throw new BadRequestException('No podés eliminarte a ti mismo');
-    }
-
-    return await this.prisma.usuarioOrganizacion.delete({
+    const yaAsignado = await this.prisma.asignacionCampo.findFirst({
       where: {
-        usuarioId_organizacionId: {
-          usuarioId: miembroId,
-          organizacionId,
-        },
+        usuarioOrganizacionId: usuarioOrgId,
+        campoId: dto.campoId,
+      },
+    });
+
+    if (yaAsignado) {
+      throw new BadRequestException('El campo ya está asignado a este miembro');
+    }
+
+    await this.prisma.asignacionCampo.create({
+      data: {
+        usuarioOrganizacionId: usuarioOrgId,
+        campoId: dto.campoId,
+        activo: true,
       },
     });
   }
 
-  async cambiarRolMiembro(
+  async desasignarCampo(
     organizacionId: number,
-    miembroId: number,
-    nuevoRol: 'OWNER' | 'ADMIN' | 'OPERARIO' | 'ASESOR' | 'CONTRATISTA' | 'CONTADOR',
-    usuarioActualId: number,
-  ) {
-    // Validar que el usuario actual sea OWNER o ADMIN
-    const org = await this.prisma.organizacion.findUnique({
-      where: { id: organizacionId },
-    });
-
-    if (!org) {
-      throw new NotFoundException('Organización no encontrada');
-    }
-
-    const esOwner = org.propietarioId === usuarioActualId;
-    const esMiembro = await this.prisma.usuarioOrganizacion.findUnique({
-      where: { usuarioId_organizacionId: { usuarioId: usuarioActualId, organizacionId } },
-    });
-
-    if (!esOwner && (!esMiembro || !['OWNER', 'ADMIN'].includes(esMiembro.rol))) {
-      throw new ForbiddenException('No tienes permisos para cambiar roles');
-    }
-
-    // No permitir cambiar el OWNER
-    const miembroActual = await this.prisma.usuarioOrganizacion.findUnique({
-      where: { usuarioId_organizacionId: { usuarioId: miembroId, organizacionId } },
-    });
-
-    if (miembroActual?.rol === 'OWNER') {
-      throw new ForbiddenException('No puedes cambiar el rol del propietario');
-    }
-
-    if (!miembroActual) {
-      throw new NotFoundException('Miembro no encontrado');
-    }
-
-    // Cambiar rol
-    return this.prisma.usuarioOrganizacion.update({
-      where: { usuarioId_organizacionId: { usuarioId: miembroId, organizacionId } },
-      data: { rol: nuevoRol as RolOrganizacion },
-      include: {
-        usuario: {
-          select: { id: true, email: true, nombre: true, apellido: true },
-        },
+    usuarioOrgId: number,
+    campoId: number,
+  ): Promise<void> {
+    const asignacion = await this.prisma.asignacionCampo.findFirst({
+      where: {
+        usuarioOrganizacionId: usuarioOrgId,
+        campoId,
       },
     });
+
+    if (!asignacion) {
+      throw new NotFoundException('Asignación no encontrada');
+    }
+
+    await this.prisma.asignacionCampo.delete({
+      where: { id: asignacion.id },
+    });
+  }
+
+  // ─── MÓDULOS ───────────────────────────────────────────────────────────────
+
+  async actualizarVisibilidadModulo(
+    organizacionId: number,
+    usuarioOrgId: number,
+    dto: ActualizarVisibilidadModuloDto,
+  ): Promise<void> {
+    // Validar que el usuario existe en la organización
+    const usuarioOrg = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { id: usuarioOrgId },
+    });
+
+    if (!usuarioOrg || usuarioOrg.organizacionId !== organizacionId) {
+      throw new NotFoundException('Usuario de la organización no encontrado');
+    }
+
+    const modulo = await this.prisma.visibilidadModulo.findFirst({
+      where: {
+        usuarioOrganizacionId: usuarioOrgId,
+        moduloNombre: dto.moduloNombre,
+      },
+    });
+
+    if (!modulo) {
+      await this.prisma.visibilidadModulo.create({
+        data: {
+          usuarioOrganizacionId: usuarioOrgId,
+          moduloNombre: dto.moduloNombre,
+          activo: dto.activo,
+        },
+      });
+    } else {
+      await this.prisma.visibilidadModulo.update({
+        where: { id: modulo.id },
+        data: { activo: dto.activo },
+      });
+    }
   }
 }

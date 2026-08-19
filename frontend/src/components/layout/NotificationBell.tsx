@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell, AlertTriangle, Clock, PawPrint, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 
@@ -16,11 +16,12 @@ interface Alerta {
 }
 
 export default function NotificationBell() {
+  const { orgId } = useParams<{ orgId: string }>();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const { data: animales } = useQuery({ queryKey: ['ganado'],  queryFn: ganadoApi.getAll });
-  const { data: tareas }   = useQuery({ queryKey: ['tareas'],  queryFn: tareasApi.getAll });
+  const { data: animales } = useQuery({ queryKey: ['ganado'],  queryFn: () => ganadoApi.getAll() });
+  const { data: tareas }   = useQuery({ queryKey: ['tareas'],  queryFn: () => tareasApi.getAll() });
 
   // Cerrar al click afuera
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function NotificationBell() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
   // Tareas vencidas
-  const vencidas = (tareas ?? []).filter(t => {
+  const vencidas = (tareas ?? []).filter((t: any) => {
     if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA') return false;
     return new Date(t.fechaProgramada) < today;
   });
@@ -44,15 +45,15 @@ export default function NotificationBell() {
       id: 'tareas-vencidas',
       tipo: 'vencida',
       titulo: `${vencidas.length} tarea${vencidas.length > 1 ? 's' : ''} vencida${vencidas.length > 1 ? 's' : ''}`,
-      sub: vencidas.slice(0, 2).map(t => t.titulo).join(', ') + (vencidas.length > 2 ? '...' : ''),
-      link: '/tareas',
+      sub: vencidas.slice(0, 2).map((t: any) => t.titulo).join(', ') + (vencidas.length > 2 ? '...' : ''),
+      link: orgId ? `/org/${orgId}/tareas` : '/',
       icon: AlertTriangle,
       color: 'text-red-600 bg-red-50',
     });
   }
 
   // Tareas para hoy
-  const paraHoy = (tareas ?? []).filter(t => {
+  const paraHoy = (tareas ?? []).filter((t: any) => {
     if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA') return false;
     const d = new Date(t.fechaProgramada); d.setHours(0, 0, 0, 0);
     return d.getTime() === today.getTime();
@@ -62,32 +63,32 @@ export default function NotificationBell() {
       id: 'tareas-hoy',
       tipo: 'tarea_hoy',
       titulo: `${paraHoy.length} tarea${paraHoy.length > 1 ? 's' : ''} para hoy`,
-      sub: paraHoy.slice(0, 2).map(t => t.titulo).join(', ') + (paraHoy.length > 2 ? '...' : ''),
-      link: '/tareas',
+      sub: paraHoy.slice(0, 2).map((t: any) => t.titulo).join(', ') + (paraHoy.length > 2 ? '...' : ''),
+      link: orgId ? `/org/${orgId}/tareas` : '/',
       icon: Clock,
       color: 'text-orange-600 bg-orange-50',
     });
   }
 
   // Preñeces próximas (≤ 14 días)
-  const prenecesProximas = (animales ?? []).flatMap(a =>
+  const prenecesProximas = (animales ?? []).flatMap((a: any) =>
     a.preneces
-      .filter(p => p.estado === 'EN_CURSO')
-      .map(p => {
+      .filter((p: any) => p.estado === 'EN_CURSO')
+      .map((p: any) => {
         const parto = new Date(p.fechaEstimadaParto); parto.setHours(0, 0, 0, 0);
         const diff  = Math.ceil((parto.getTime() - today.getTime()) / 86400000);
         return { animal: a.nombre, diff };
       })
-      .filter(p => p.diff >= 0 && p.diff <= 14)
+      .filter((p: any) => p.diff >= 0 && p.diff <= 14)
   );
   if (prenecesProximas.length > 0) {
-    const closest = prenecesProximas.sort((a, b) => a.diff - b.diff);
+    const closest = prenecesProximas.sort((a: any, b: any) => a.diff - b.diff);
     alertas.push({
       id: 'preneces',
       tipo: 'prenez',
       titulo: `${closest.length} preñez${closest.length > 1 ? 'ces' : ''} próxima${closest.length > 1 ? 's' : ''} a parir`,
-      sub: closest.slice(0, 2).map(p => `${p.animal} (${p.diff === 0 ? 'hoy' : `en ${p.diff}d`})`).join(', '),
-      link: '/ganado',
+      sub: closest.slice(0, 2).map((p: any) => `${p.animal} (${p.diff === 0 ? 'hoy' : `en ${p.diff}d`})`).join(', '),
+      link: orgId ? `/org/${orgId}/ganado` : '/',
       icon: PawPrint,
       color: 'text-pink-600 bg-pink-50',
     });

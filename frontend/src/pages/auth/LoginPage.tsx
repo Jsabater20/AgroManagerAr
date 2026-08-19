@@ -8,10 +8,10 @@ import toast from 'react-hot-toast';
 const REMEMBER_KEY = 'agromanager_remembered_email';
 
 const FEATURES = [
-  { icon: Map,          label: 'Campos & Lotes',      desc: 'Gestión de tu establecimiento' },
-  { icon: Wheat,        label: 'Cultivos & Siembras',  desc: 'Seguimiento de campañas agrícolas' },
-  { icon: PawPrint,     label: 'Ganadería',            desc: 'Control de rodeo y preñeces' },
-  { icon: ClipboardList, label: 'Tareas rurales',      desc: 'Planificación de actividades' },
+  { icon: Map, label: 'Campos & Lotes', desc: 'Gestión de tu establecimiento' },
+  { icon: Wheat, label: 'Cultivos & Siembras', desc: 'Seguimiento de campañas agrícolas' },
+  { icon: PawPrint, label: 'Ganadería', desc: 'Control de rodeo y preñeces' },
+  { icon: ClipboardList, label: 'Tareas rurales', desc: 'Planificación de actividades' },
 ];
 
 export default function LoginPage() {
@@ -26,15 +26,31 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const { data } = await api.post('/auth/login', form);
+
       if (remember) {
         localStorage.setItem(REMEMBER_KEY, form.email);
       } else {
         localStorage.removeItem(REMEMBER_KEY);
       }
-      setAuth(data.usuario, data.token);
-      navigate('/dashboard');
+
+      const organizaciones = data.usuario?.organizaciones ?? [];
+      const resolvedOrgId =
+        data.usuario?.usuarioOrganizacionId ??
+        (organizaciones.length === 1 ? organizaciones[0]?.id : null);
+
+      setAuth(
+        {
+          ...data.usuario,
+          usuarioOrganizacionId: resolvedOrgId ?? null,
+          organizaciones,
+        },
+        data.token,
+      );
+
+      navigate(resolvedOrgId ? `/org/${resolvedOrgId}/dashboard` : '/');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || 'Email o contraseña incorrectos');
@@ -45,14 +61,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Panel izquierdo — branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-green-950 via-green-900 to-emerald-800 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Círculos decorativos */}
         <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full" />
         <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-white/5 rounded-full" />
         <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl" />
 
-        {/* Logo */}
         <div className="relative flex items-center gap-3">
           <div className="bg-white/10 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
             <Sprout size={28} className="text-emerald-300" />
@@ -63,7 +76,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Tagline */}
         <div className="relative">
           <h2 className="text-4xl font-bold text-white leading-tight mb-4">
             Tu campo,<br />
@@ -86,11 +98,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer branding */}
         <p className="relative text-green-400/50 text-xs">© 2026 AgroManager AR — Mercado argentino</p>
       </div>
 
-      {/* Panel derecho — formulario */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gray-50 relative">
         <Link
           to="/"
@@ -99,8 +109,8 @@ export default function LoginPage() {
           <ArrowLeft size={16} />
           Volver
         </Link>
+
         <div className="w-full max-w-sm">
-          {/* Logo mobile */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <div className="bg-green-700 p-2.5 rounded-xl">
               <Sprout size={22} className="text-white" />
@@ -182,7 +192,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Acceso demo */}
           <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
             <p className="text-xs font-semibold text-amber-800 mb-1">🎮 Probar sin registrarse</p>
             <p className="text-xs text-amber-700 mb-2">Accedé a la cuenta demo con plan PRO activo y datos de ejemplo. Los datos se reinician cada 24 hs.</p>
@@ -199,5 +208,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-

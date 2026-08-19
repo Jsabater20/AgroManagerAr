@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -26,11 +27,28 @@ export class PermissionsController {
     );
   }
 
+  @Get('temporales')
+  async listarPermisosTemporales(
+    @Query('organizacionId') organizacionId: string,
+  ) {
+    return this.permissionsService.listarPermisosTemporalesPorOrganizacion(
+      parseInt(organizacionId),
+    );
+  }
+
+  @Get('roles/:organizacionId')
+  async obtenerRolesPersonalizados(
+    @Param('organizacionId') organizacionId: string,
+  ) {
+    return this.permissionsService.obtenerRolesPersonalizados(
+      parseInt(organizacionId),
+    );
+  }
+
   @Post('temporales')
   async crearPermisoTemporal(@Body() dto: CreatePermisoTemporalDto) {
     return this.permissionsService.crearPermisoTemporal(
       dto.usuarioOrganizacionId,
-      dto.rolPersonalizadoId,
       new Date(dto.fechaInicio),
       new Date(dto.fechaVencimiento),
       dto.recursoTipo,

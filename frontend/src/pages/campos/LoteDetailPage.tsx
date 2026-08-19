@@ -18,7 +18,7 @@ const ESTADO_SIEMBRA: Record<string, { label: string; color: string }> = {
 };
 
 export default function LoteDetailPage() {
-  const { campoId, loteId } = useParams<{ campoId: string; loteId: string }>();
+  const { orgId, campoId, loteId } = useParams<{ orgId: string; campoId: string; loteId: string }>();
   const cId = Number(campoId);
   const lId = Number(loteId);
 
@@ -30,11 +30,11 @@ export default function LoteDetailPage() {
 
   const { data: siembras, isLoading: lSiembras } = useQuery({
     queryKey: ['siembras'],
-    queryFn: siembrasApi.getAll,
+    queryFn: () => siembrasApi.getAll(),
   });
 
-  const lote = campo?.lotes.find((l) => l.id === lId);
-  const loteSiembras = (siembras ?? []).filter((s) => s.loteId === lId);
+  const lote = campo?.lotes?.find((l: any) => l.id === lId);
+  const loteSiembras = (siembras ?? []).filter((s: any) => s.loteId === lId);
 
   const isLoading = lCampo || lSiembras;
 
@@ -50,7 +50,7 @@ export default function LoteDetailPage() {
     return (
       <div className="text-center py-24 text-gray-500">
         Lote no encontrado.{' '}
-        <Link to="/campos" className="text-green-700 underline">
+        <Link to={`/org/${orgId}/campos`} className="text-green-700 underline">
           Volver a campos
         </Link>
       </div>
@@ -58,13 +58,13 @@ export default function LoteDetailPage() {
   }
 
   const totalKg = loteSiembras.reduce(
-    (a, s) => a + s.cosechas.reduce((b, c) => b + c.totalKg, 0),
+    (a: any, s: any) => a + s.cosechas.reduce((b: any, c: any) => b + c.totalKg, 0),
     0,
   );
-  const totalAplicaciones = loteSiembras.reduce((a, s) => a + s.aplicaciones.length, 0);
+  const totalAplicaciones = loteSiembras.reduce((a: any, s: any) => a + s.aplicaciones.length, 0);
   const avgRendimiento = (() => {
-    const all = loteSiembras.flatMap((s) => s.cosechas.map((c) => c.rendimientoKgHa));
-    return all.length ? Math.round(all.reduce((a, v) => a + v, 0) / all.length) : 0;
+    const all = loteSiembras.flatMap((s: any) => s.cosechas.map((c: any) => c.rendimientoKgHa));
+    return all.length ? Math.round(all.reduce((a: any, v: any) => a + v, 0) / all.length) : 0;
   })();
 
   return (
@@ -72,13 +72,13 @@ export default function LoteDetailPage() {
       {/* Breadcrumb */}
       <div className="mb-6 space-y-1">
         <div className="flex items-center gap-1.5 text-sm text-gray-400">
-          <Link to="/campos" className="hover:text-green-700 transition-colors">Campos</Link>
+          <Link to={`/org/${orgId}/campos`} className="hover:text-green-700 transition-colors">Campos</Link>
           <ChevronRight size={13} />
-          <Link to={`/campos/${cId}`} className="hover:text-green-700 transition-colors">{campo.nombre}</Link>
+          <Link to={`/org/${orgId}/campos/${cId}`} className="hover:text-green-700 transition-colors">{campo.nombre}</Link>
           <ChevronRight size={13} />
           <span className="text-gray-700 font-medium">{lote.nombre}</span>
         </div>
-        <Link to={`/campos/${cId}`} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700">
+        <Link to={`/org/${orgId}/campos/${cId}`} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700">
           <ArrowLeft size={14} /> Volver al campo
         </Link>
       </div>
@@ -90,7 +90,7 @@ export default function LoteDetailPage() {
           <p className="text-gray-500 text-sm mt-0.5">{campo.nombre} · {lote.hectareas} ha</p>
         </div>
         <Link
-          to="/siembras"
+          to={`/org/${orgId}/siembras`}
           className="flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
           <Sprout size={15} />
@@ -130,8 +130,8 @@ export default function LoteDetailPage() {
 
 function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) {
   const st = ESTADO_SIEMBRA[siembra.estado];
-  const totalKg    = siembra.cosechas.reduce((a, c) => a + c.totalKg, 0);
-  const totalCostas = siembra.cosechas.length;
+  const totalKg    = siembra.cosechas?.reduce((a, c) => a + c.totalKg, 0) ?? 0;
+  const totalCostas = siembra.cosechas?.length ?? 0;
 
   // Construir timeline cronológico
   type TimelineItem = {
@@ -147,20 +147,20 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
     {
       date: siembra.fechaSiembra,
       type: 'siembra' as const,
-      label: `Siembra de ${siembra.tipoCultivo.nombre}`,
+      label: `Siembra de ${siembra.tipoCultivo?.nombre ?? 'cultivo'}`,
       sub: siembra.densidad ? `Densidad: ${siembra.densidad} kg/ha` : 'Sin densidad registrada',
       icon: Sprout,
       color: 'bg-green-100 text-green-700 border-green-200',
     },
-    ...siembra.aplicaciones.map((ap) => ({
+    ...(siembra.aplicaciones ?? []).map((ap) => ({
       date: ap.fecha,
       type: 'aplicacion' as const,
-      label: `${ap.insumo.nombre}`,
+      label: `${ap.insumo?.nombre ?? 'insumo'}`,
       sub: `${ap.cantidad} ${ap.unidad}${ap.observaciones ? ` · ${ap.observaciones}` : ''}`,
       icon: FlaskConical,
       color: 'bg-purple-100 text-purple-700 border-purple-200',
     })),
-    ...siembra.cosechas.map((co) => ({
+    ...(siembra.cosechas ?? []).map((co) => ({
       date: co.fechaCosecha,
       type: 'cosecha' as const,
       label: `Cosecha`,
@@ -179,7 +179,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
             <Sprout size={18} className="text-green-700" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{siembra.tipoCultivo.nombre}</h3>
+            <h3 className="font-semibold text-gray-900">{siembra.tipoCultivo?.nombre ?? 'Sin cultivo'}</h3>
             <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
               <Clock size={11} />
               Siembra: {fmtDate(siembra.fechaSiembra)}
@@ -200,11 +200,11 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
       {/* Resumen rápido */}
       <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
         <div className="px-6 py-3 text-center">
-          <p className="text-lg font-bold text-gray-900">{siembra.aplicaciones.length}</p>
+          <p className="text-lg font-bold text-gray-900">{siembra.aplicaciones?.length ?? 0}</p>
           <p className="text-xs text-gray-400">Aplicaciones</p>
         </div>
         <div className="px-6 py-3 text-center">
-          <p className="text-lg font-bold text-gray-900">{siembra.cosechas.length}</p>
+          <p className="text-lg font-bold text-gray-900">{siembra.cosechas?.length ?? 0}</p>
           <p className="text-xs text-gray-400">Cosechas</p>
         </div>
         <div className="px-6 py-3 text-center">

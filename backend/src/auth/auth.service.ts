@@ -39,7 +39,6 @@ export class AuthService {
       throw new ConflictException('Ya existe un usuario con ese email');
     }
 
-    // Si hay token de invitación, validar que sea válido
     let invitacion:
       | (InvitacionOrganizacion & { organizacion: Organizacion })
       | null = null;
@@ -62,7 +61,6 @@ export class AuthService {
         throw new BadRequestException('Invitación expirada');
       }
 
-      // Validar que el email coincida
       if (foundInvitacion.email !== dto.email) {
         throw new BadRequestException(
           `Esta invitación es para el email ${foundInvitacion.email}`,
@@ -91,19 +89,16 @@ export class AuthService {
       select: { id: true, email: true, nombre: true, apellido: true },
     });
 
-    // Si hay invitación, aceptarla automáticamente
     if (invitacion) {
-      // Crear membresía con el rol de la invitación (NUNCA OWNER)
       await this.prisma.usuarioOrganizacion.create({
         data: {
           usuarioId: usuario.id,
           organizacionId: invitacion.organizacionId,
-          rol: invitacion.rol,
-          estado: 'ACTIVO',
+          roles: JSON.stringify([invitacion.rol]),
+          activo: true,
         },
       });
 
-      // Marcar invitación como aceptada
       await this.prisma.invitacionOrganizacion.update({
         where: { id: invitacion.id },
         data: {
@@ -113,7 +108,6 @@ export class AuthService {
         },
       });
     } else {
-      // Si NO hay invitación, crear organización personal
       await this.prisma.organizacion.create({
         data: {
           nombre: `${usuario.nombre} ${dto.apellido}`,
@@ -153,8 +147,10 @@ export class AuthService {
         id: true,
         email: true,
         nombre: true,
+        apellido: true,
         password: true,
         rol: true,
+        rolGlobal: true,
         plan: true,
         emailVerificado: true,
       },
@@ -174,20 +170,41 @@ export class AuthService {
       );
     }
 
-    // Obtener org principal del usuario (la que es dueño)
-    const orgPrincipal = await this.prisma.organizacion.findFirst({
+    const orgsDelUsuario = await this.prisma.organizacion.findMany({
       where: { propietarioId: usuario.id },
-      select: { id: true },
+      select: { id: true, nombre: true, plan: true },
     });
 
+    const orgsComoMiembro = await this.prisma.usuarioOrganizacion.findMany({
+      where: { usuarioId: usuario.id, activo: true },
+      select: {
+        organizacion: { select: { id: true, nombre: true, plan: true } },
+      },
+    });
+
+    const organizaciones = [
+      ...orgsDelUsuario,
+      ...orgsComoMiembro.map((m) => m.organizacion),
+    ];
+
+    const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
+    const usuarioOrganizacionId = orgPrincipal?.id ?? null;
     const token = this.generarToken(
       usuario.id,
       usuario.email,
-      orgPrincipal?.id,
+      usuarioOrganizacionId,
+      usuario.rolGlobal,
     );
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const { password, emailVerificado, ...usuarioSinPassword } = usuario;
-    return { usuario: usuarioSinPassword, token };
+    return {
+      usuario: {
+        ...usuarioSinPassword,
+        organizaciones,
+        usuarioOrganizacionId,
+      },
+      token,
+    };
   }
 
   async verifyEmail(token: string) {
@@ -215,7 +232,6 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    // Respuesta genérica para no revelar si el email existe
     if (!usuario) {
       console.log(
         `[Auth] forgotPassword: email no encontrado en BD: ${dto.email}`,
@@ -231,7 +247,7 @@ export class AuthService {
       .createHash('sha256')
       .update(rawToken)
       .digest('hex');
-    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    const expiry = new Date(Date.now() + 60 * 60 * 1000);
 
     await this.prisma.usuario.update({
       where: { id: usuario.id },
@@ -239,7 +255,7 @@ export class AuthService {
     });
 
     console.log(
-      `[Auth] forgotPassword: usuario encontrado id=${usuario.id}, resend=${!!this.resend}, from=${this.fromEmail}, to=${usuario.email}`,
+      `[Auth] forgotPassword: usuario encontrado id=${usuario.id}, resend=${!!this.resend}`,
     );
     if (this.resend) {
       const resetUrl = `${this.frontendUrl}/reset-password?token=${rawToken}`;
@@ -250,12 +266,11 @@ export class AuthService {
         html: this.buildResetEmail(usuario.nombre, resetUrl),
       });
       if (result.error) {
-        console.error('[Resend] Error enviando email de reset:', result.error);
-      } else {
-        console.log(`[Auth] Email de reset enviado OK, id=${result.data?.id}`);
+        console.error(
+          '[Resend] Error enviando email de recuperación:',
+          result.error,
+        );
       }
-    } else {
-      console.warn('[Auth] Resend no inicializado — RESEND_API_KEY faltante');
     }
 
     return {
@@ -265,34 +280,31 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
+    const rawToken = dto.token;
     const tokenHash = crypto
       .createHash('sha256')
-      .update(dto.token)
+      .update(rawToken)
       .digest('hex');
 
     const usuario = await this.prisma.usuario.findFirst({
-      where: {
-        resetToken: tokenHash,
-        resetTokenExpiry: { gt: new Date() },
-      },
+      where: { resetToken: tokenHash },
     });
 
     if (!usuario) {
-      throw new BadRequestException(
-        'El enlace de recuperación es inválido o ya expiró.',
-      );
+      throw new BadRequestException('Token de recuperación inválido o expirado.');
+    }
+
+    if (usuario.resetTokenExpiry && new Date() > usuario.resetTokenExpiry) {
+      throw new BadRequestException('El token de recuperación ha expirado.');
     }
 
     const hash = await bcrypt.hash(dto.newPassword, 10);
-
     await this.prisma.usuario.update({
       where: { id: usuario.id },
       data: {
         password: hash,
         resetToken: null,
         resetTokenExpiry: null,
-        emailVerificado: true, // si recibió el email, el address está verificado
-        emailVerifToken: null,
       },
     });
 
@@ -302,165 +314,40 @@ export class AuthService {
   private generarToken(
     userId: number,
     email: string,
-    organizacionId?: number,
-  ): string {
+    orgId?: number,
+    rolGlobal?: string,
+  ) {
     return this.jwtService.sign({
       sub: userId,
       email,
-      organizacionId: organizacionId || null,
+      organizacionId: orgId,
+      rolGlobal,
     });
   }
 
-  private buildWelcomeEmail(nombre: string): string {
+  private buildVerifyEmail(nombre: string, verifyUrl: string) {
     return `
-<!DOCTYPE html>
-<html lang="es">
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-
-      <!-- Header verde -->
-      <tr>
-        <td style="background:#15803d;padding:28px 32px;text-align:center;">
-          <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">🌱 AgroManager AR</span>
-          <p style="color:#bbf7d0;margin:6px 0 0;font-size:13px;">Gestión agrícola para Argentina</p>
-        </td>
-      </tr>
-
-      <!-- Cuerpo -->
-      <tr>
-        <td style="padding:36px 32px;">
-          <h2 style="color:#111827;font-size:22px;margin:0 0 12px;">¡Bienvenido, ${nombre}! 👋</h2>
-          <p style="color:#4b5563;line-height:1.7;margin:0 0 24px;">
-            Tu cuenta en <strong>AgroManager AR</strong> fue creada exitosamente.
-            Ya podés ingresar y empezar a gestionar tu campo desde un solo lugar.
-          </p>
-
-          <!-- Botón CTA -->
-          <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
-            <tr>
-              <td style="background:#15803d;border-radius:10px;">
-                <a href="${this.frontendUrl}/dashboard"
-                   style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;">
-                  Ir a mi dashboard →
-                </a>
-              </td>
-            </tr>
-          </table>
-
-          <!-- Lo que podés hacer -->
-          <p style="color:#374151;font-weight:700;font-size:15px;margin:0 0 12px;">¿Qué podés hacer con tu cuenta Free?</p>
-          <table cellpadding="6" cellspacing="0" width="100%">
-            <tr><td style="color:#15803d;font-size:18px;width:28px;">✓</td><td style="color:#4b5563;font-size:14px;">1 campo con hasta 3 lotes</td></tr>
-            <tr><td style="color:#15803d;font-size:18px;">✓</td><td style="color:#4b5563;font-size:14px;">Hasta 20 animales y 10 siembras</td></tr>
-            <tr><td style="color:#15803d;font-size:18px;">✓</td><td style="color:#4b5563;font-size:14px;">Gestión de tareas, finanzas e insumos</td></tr>
-            <tr><td style="color:#15803d;font-size:18px;">✓</td><td style="color:#4b5563;font-size:14px;">Pronóstico del tiempo y mapa de Argentina</td></tr>
-          </table>
-
-          <!-- Upgrade hint -->
-          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;margin:28px 0 0;">
-            <p style="color:#15803d;font-weight:700;margin:0 0 6px;font-size:14px;">⚡ Querés más? Probá Pro 14 días gratis</p>
-            <p style="color:#4b5563;font-size:13px;margin:0 0 12px;">Campos, lotes y animales ilimitados · AgroBot IA · Reportes avanzados · Campañas</p>
-            <a href="${this.frontendUrl}/precios"
-               style="color:#15803d;font-weight:700;font-size:13px;text-decoration:underline;">
-              Ver planes y precios →
-            </a>
-          </div>
-        </td>
-      </tr>
-
-      <!-- Footer -->
-      <tr>
-        <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-          <p style="color:#9ca3af;font-size:12px;margin:0;">
-            AgroManager AR · <a href="${this.frontendUrl}" style="color:#9ca3af;">www.agromanagerar.com</a>
-          </p>
-          <p style="color:#d1d5db;font-size:11px;margin:6px 0 0;">
-            Recibiste este email porque te registraste en AgroManager AR.
-          </p>
-        </td>
-      </tr>
-
-    </table></td></tr>
-</table>
-</body>
-</html>`;
-  }
-
-  private buildResetEmail(nombre: string, resetUrl: string): string {
-    return `
-      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#f9fafb;border-radius:12px;">
-        <div style="text-align:center;margin-bottom:24px;">
-          <span style="font-size:24px;font-weight:bold;color:#15803d;">AgroManager AR</span>
-        </div>
-        <h2 style="color:#111827;margin-bottom:8px;">Recuperá tu contraseña</h2>
-        <p style="color:#6b7280;line-height:1.6;">
-          Hola ${nombre}, recibimos una solicitud para restablecer la contraseña de tu cuenta.
-          Hacé clic en el botón de abajo. El enlace expira en <strong>1 hora</strong>.
-        </p>
-        <div style="text-align:center;margin:32px 0;">
-          <a href="${resetUrl}"
-             style="background:#15803d;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
-            Restablecer contraseña
-          </a>
-        </div>
-        <p style="color:#6b7280;font-size:13px;">
-          Si no solicitaste este cambio, ignorá este email. Tu contraseña no fue modificada.
-        </p>
-        <p style="color:#9ca3af;font-size:12px;text-align:center;">AgroManager AR — Gestión agrícola para Argentina</p>
-      </div>
+      <html>
+        <body>
+          <h1>Verificá tu cuenta</h1>
+          <p>Hola ${nombre},</p>
+          <p>Hace clic en el siguiente enlace para verificar tu cuenta:</p>
+          <a href="${verifyUrl}">Verificar cuenta</a>
+        </body>
+      </html>
     `;
   }
 
-  private buildVerifyEmail(nombre: string, verifyUrl: string): string {
+  private buildResetEmail(nombre: string, resetUrl: string) {
     return `
-<!DOCTYPE html>
-<html lang="es">
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-      <tr>
-        <td style="background:#15803d;padding:28px 32px;text-align:center;">
-          <span style="color:#ffffff;font-size:22px;font-weight:700;">🌱 AgroManager AR</span>
-          <p style="color:#bbf7d0;margin:6px 0 0;font-size:13px;">Gestión agrícola para Argentina</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:36px 32px;">
-          <h2 style="color:#111827;font-size:22px;margin:0 0 12px;">Hola, ${nombre} 👋</h2>
-          <p style="color:#4b5563;line-height:1.7;margin:0 0 8px;">
-            Gracias por registrarte en <strong>AgroManager AR</strong>.
-            Para activar tu cuenta y comenzar a usarla, confirmá tu email haciendo clic en el botón de abajo.
-          </p>
-          <p style="color:#9ca3af;font-size:13px;margin:0 0 28px;">El enlace expira en <strong>24 horas</strong>.</p>
-          <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-            <tr>
-              <td style="background:#15803d;border-radius:10px;">
-                <a href="${verifyUrl}"
-                   style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;">
-                  Verificar mi cuenta →
-                </a>
-              </td>
-            </tr>
-          </table>
-          <p style="color:#6b7280;font-size:13px;margin:0;">
-            Si no creaste esta cuenta, podés ignorar este email sin problema.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-          <p style="color:#9ca3af;font-size:12px;margin:0;">
-            AgroManager AR · <a href="${this.frontendUrl}" style="color:#9ca3af;">www.agromanagerar.com</a>
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>`;
+      <html>
+        <body>
+          <h1>Recuperá tu contraseña</h1>
+          <p>Hola ${nombre},</p>
+          <p>Hace clic en el siguiente enlace para recuperar tu contraseña:</p>
+          <a href="${resetUrl}">Recuperar contraseña</a>
+        </body>
+      </html>
+    `;
   }
 }

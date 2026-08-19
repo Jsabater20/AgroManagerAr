@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, Layers, Plus, Trash2, Loader2, CheckCircle,
   Wheat, Beef, ChevronLeft, ChevronRight, ArrowRight,
@@ -29,6 +29,7 @@ const STEPS = [
 
 export default function NuevoCampoWizard({ onClose }: Props) {
   const navigate = useNavigate();
+  const { orgId } = useParams<{ orgId: string }>();
   const qc = useQueryClient();
 
   // Paso 0 — Datos básicos
@@ -440,7 +441,7 @@ export default function NuevoCampoWizard({ onClose }: Props) {
                 <button
                   onClick={() => {
                     onClose();
-                    navigate(`/campos/${createdCampoId}`);
+                    navigate(`/org/${orgId}/campos/${createdCampoId}`);
                   }}
                   className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
