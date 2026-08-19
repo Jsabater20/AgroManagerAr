@@ -17,6 +17,11 @@ const features = [
   { label: 'Gestión de insumos',              free: true,          pro: true },
   { label: 'Maquinarias registradas',         free: 'Hasta 5',     pro: 'Ilimitadas' },
   { label: 'Tareas rurales',                  free: true,          pro: true },
+  { label: 'Miembros adicionales',            free: '1 + owner',  pro: 'Ilimitados' },
+  { label: 'Trabajos activos asignados',      free: 'Hasta 3',     pro: 'Ilimitados' },
+  { label: 'Asignación de recursos y trabajos', free: true,        pro: true },
+  { label: 'Fechas, horarios y estados',      free: true,          pro: true },
+  { label: 'Gestión de equipo y permisos',    free: 'Básica',      pro: 'Completa' },
   { label: 'Dashboard básico',                free: true,          pro: true },
   { label: 'Finanzas básicas',                free: true,          pro: true },
   { label: 'Animales registrados',            free: 'Hasta 20',    pro: 'Ilimitados' },
@@ -227,7 +232,7 @@ export default function PreciosPage() {
       {/* Feature comparison table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-700">
-          <div className="px-6 py-3">Feature</div>
+          <div className="px-6 py-3">Funcionalidad</div>
           <div className="px-4 py-3 text-center">Free</div>
           <div className="px-4 py-3 text-center text-green-700">Pro</div>
         </div>

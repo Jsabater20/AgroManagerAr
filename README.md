@@ -58,6 +58,7 @@ ERP agrícola integral para el mercado argentino. Gestión de campos, cultivos, 
 | **Clima** | Mapa interactivo de Argentina con 15 regiones agrícolas y pronóstico 7 días |
 | **Perfil** | Edición de datos y cambio de contraseña |
 | **AgroBot** | Chat IA flotante con contexto del establecimiento del usuario |
+| **Miembros** | Invitaciones, permisos, recursos y trabajos asignados por el owner |
 | **Admin** | Panel de administración de usuarios (solo rol ADMIN) |
 
 ---
@@ -88,10 +89,10 @@ Rate limits por ruta:
 
 | Plan | Acceso |
 |---|---|
-| **FREE** | Módulos básicos con límites |
-| **PRO** | Acceso completo a todos los módulos |
+| **FREE** | Módulos básicos con límites, 1 miembro adicional y hasta 3 trabajos activos asignados |
+| **PRO** | Acceso completo, miembros, recursos y trabajos ilimitados |
 
-El plan del usuario se persiste en la BD (`PlanTipo` enum) y se hidrata en el cliente desde `/api/auth/me` al iniciar sesión.
+Los límites se determinan por organización mediante `Organizacion.plan`; el OWNER no cuenta como miembro adicional.
 
 ---
 
@@ -288,5 +289,4 @@ Campos en `Usuario`: `email`, `nombre`, `password`, `rol` (ADMIN/OPERADOR), `pla
 - **Hidratación de auth**: al montar la app, si hay token en localStorage se hace `GET /api/auth/me` para restaurar el perfil completo (plan, rol, nombre). `PrivateRoute` muestra spinner durante la hidratación.
 - **CORS** acepta localhost:5173 y localhost:5174 en dev; en prod se sobreescribe con `FRONTEND_URL`.
 - **Rate limiting** con `@nestjs/throttler`: global 100 req/min, con límites más estrictos en rutas de auth.
-
 
