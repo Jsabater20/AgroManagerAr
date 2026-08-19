@@ -285,6 +285,21 @@ export class ActividadesService {
         },
       });
 
+      await tx.visibilidadModulo.upsert({
+        where: {
+          usuarioOrganizacionId_moduloNombre: {
+            usuarioOrganizacionId: dto.usuarioOrganizacionId,
+            moduloNombre: 'Tareas',
+          },
+        },
+        update: { activo: true },
+        create: {
+          usuarioOrganizacionId: dto.usuarioOrganizacionId,
+          moduloNombre: 'Tareas',
+          activo: true,
+        },
+      });
+
       await tx.auditoriaLog.create({
         data: {
           usuarioId: userId,

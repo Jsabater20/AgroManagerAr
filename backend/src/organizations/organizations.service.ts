@@ -184,6 +184,40 @@ export class OrganizationsService {
       throw new NotFoundException('Membresia activa no encontrada');
     }
 
+    const tieneTrabajosAsignados = await this.prisma.actividadMiembro.count({
+      where: {
+        organizacionId,
+        usuarioOrganizacionId: miembro.id,
+        activo: true,
+      },
+    });
+
+    let modulos = miembro.VisibilidadModulo;
+    if (tieneTrabajosAsignados > 0) {
+      const moduloTareas = await this.prisma.visibilidadModulo.upsert({
+        where: {
+          usuarioOrganizacionId_moduloNombre: {
+            usuarioOrganizacionId: miembro.id,
+            moduloNombre: 'Tareas',
+          },
+        },
+        update: { activo: true },
+        create: {
+          usuarioOrganizacionId: miembro.id,
+          moduloNombre: 'Tareas',
+          activo: true,
+        },
+        select: { moduloNombre: true, activo: true },
+      });
+
+      modulos = [
+        ...miembro.VisibilidadModulo.filter(
+          (modulo) => modulo.moduloNombre !== 'Tareas',
+        ),
+        moduloTareas,
+      ];
+    }
+
     return {
       id: miembro.id,
       usuarioId: miembro.usuarioId,
@@ -194,7 +228,7 @@ export class OrganizationsService {
         id: asignacion.Campo.id,
         nombre: asignacion.Campo.nombre,
       })),
-      modulos: miembro.VisibilidadModulo,
+      modulos,
     };
   }
 
