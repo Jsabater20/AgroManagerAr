@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import {
   CreateGastoDto,
   CreateMaquinariaDto,
@@ -13,9 +14,17 @@ import {
 
 @Injectable()
 export class MaquinariasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private memberAccessService: MemberAccessService,
+  ) {}
 
   async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
+    await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Maquinarias',
+    );
     let whereClause: any = { organizacionId };
 
     // Si viene usuarioOrganizacionId, filtrar por maquinarias asignadas
@@ -31,6 +40,8 @@ export class MaquinariasService {
       // Owner ve todas las maquinarias de la org
       whereClause = { organizacionId };
     }
+
+    whereClause = { organizacionId };
 
     return this.prisma.maquinaria.findMany({
       where: whereClause,
@@ -58,10 +69,20 @@ export class MaquinariasService {
     if (!maquinaria) throw new NotFoundException('Maquinaria no encontrada');
     if (maquinaria.organizacionId !== organizacionId)
       throw new ForbiddenException('No autorizado');
+    await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Maquinarias',
+    );
     return maquinaria;
   }
 
-  create(usuarioId: number, organizacionId: number, dto: CreateMaquinariaDto) {
+  async create(usuarioId: number, organizacionId: number, dto: CreateMaquinariaDto) {
+    await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Maquinarias',
+    );
     return this.prisma.maquinaria.create({
       data: {
         ...dto,

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlanService } from '../plan/plan.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import {
   CreateSiembraDto,
   UpdateSiembraDto,
@@ -17,13 +18,29 @@ export class SiembrasService {
   constructor(
     private prisma: PrismaService,
     private planService: PlanService,
+    private memberAccessService: MemberAccessService,
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number) {
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Siembras',
+    );
     return this.prisma.siembra.findMany({
       where: {
         lote: {
-          campo: { usuarioId, organizacionId },
+          campo: acceso.esOwner
+            ? { organizacionId }
+            : {
+                organizacionId,
+                AsignacionCampo: {
+                  some: {
+                    usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+                    activo: true,
+                  },
+                },
+              },
         },
       },
       include: {
@@ -49,11 +66,23 @@ export class SiembrasService {
       },
     });
     if (!siembra) throw new NotFoundException('Siembra no encontrada');
-    if (
-      siembra.lote.campo.usuarioId !== usuarioId ||
-      siembra.lote.campo.organizacionId !== organizacionId
-    )
+    if (siembra.lote.campo.organizacionId !== organizacionId)
       throw new ForbiddenException();
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Siembras',
+    );
+    if (!acceso.esOwner) {
+      const asignacion = await this.prisma.asignacionCampo.findFirst({
+        where: {
+          usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+          campoId: siembra.lote.campo.id,
+          activo: true,
+        },
+      });
+      if (!asignacion) throw new ForbiddenException();
+    }
     return siembra;
   }
 
@@ -63,16 +92,28 @@ export class SiembrasService {
     organizacionId: number,
   ) {
     // Verificar que el lote pertenece al usuario y organización
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Siembras',
+    );
     const lote = await this.prisma.lote.findUnique({
       where: { id: dto.loteId },
       include: { campo: true },
     });
     if (!lote) throw new NotFoundException('Lote no encontrado');
-    if (
-      lote.campo.usuarioId !== usuarioId ||
-      lote.campo.organizacionId !== organizacionId
-    )
+    if (lote.campo.organizacionId !== organizacionId)
       throw new ForbiddenException();
+    if (!acceso.esOwner) {
+      const asignacion = await this.prisma.asignacionCampo.findFirst({
+        where: {
+          usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+          campoId: lote.campoId,
+          activo: true,
+        },
+      });
+      if (!asignacion) throw new ForbiddenException();
+    }
 
     await this.planService.checkSiembrasLimit(organizacionId);
 

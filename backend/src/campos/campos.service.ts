@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlanService } from '../plan/plan.service';
+import { MemberAccessService } from '../organizations/member-access.service';
 import {
   CreateCampoDto,
   UpdateCampoDto,
@@ -16,22 +17,24 @@ export class CamposService {
   constructor(
     private prisma: PrismaService,
     private planService: PlanService,
+    private memberAccessService: MemberAccessService,
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
-    const organizacion = await this.prisma.organizacion.findUnique({
-      where: { id: organizacionId },
-      select: { propietarioId: true },
-    });
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Campos',
+    );
     let whereClause: any = { organizacionId };
 
     // Los miembros sólo ven campos asignados; el propietario ve todos los de su organización.
-    if (usuarioOrganizacionId && organizacion?.propietarioId !== usuarioId) {
+    if (!acceso.esOwner) {
       whereClause = {
         organizacionId,
         AsignacionCampo: {
           some: {
-            usuarioOrganizacionId,
+            usuarioOrganizacionId: acceso.usuarioOrganizacionId,
             activo: true,
           },
         },
@@ -64,10 +67,12 @@ export class CamposService {
     if (campo.organizacionId !== organizacionId) {
       throw new ForbiddenException('No tenés acceso a este campo');
     }
+    await this.memberAccessService.requireCampo(usuarioId, organizacionId, id);
     return campo;
   }
 
   async create(dto: CreateCampoDto, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Campos');
     await this.planService.checkCamposLimit(organizacionId);
     return this.prisma.campo.create({
       data: { ...dto, usuarioId, organizacionId },
