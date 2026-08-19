@@ -74,12 +74,12 @@ export class DemoService implements OnModuleInit {
         where: { usuarioId: demo.id, latitud: null },
       });
       if (
-        campoCount < 2 ||
-        siembraCount === 0 ||
-        animalCount === 0 ||
-        tareaCount === 0 ||
-        maquinariaCount === 0 ||
-        finanzaCount === 0 ||
+        campoCount < 4 ||
+        siembraCount < 8 ||
+        animalCount < 20 ||
+        tareaCount < 14 ||
+        maquinariaCount < 8 ||
+        finanzaCount < 28 ||
         campoSinGps
       ) {
         this.logger.log('Demo incompleta — ejecutando reset...');
@@ -277,8 +277,50 @@ export class DemoService implements OnModuleInit {
       include: { lotes: true },
     });
 
+    const campoLasMeninas = await this.prisma.campo.create({
+      data: {
+        nombre: 'Las Meninas',
+        hectareas: 275,
+        ubicacion: 'Rojas, Buenos Aires',
+        latitud: -34.1975,
+        longitud: -60.7331,
+        propietario: 'Juan Pérez',
+        usuarioId: uid,
+        organizacionId,
+        lotes: {
+          create: [
+            { nombre: 'Lote Molino', hectareas: 115 },
+            { nombre: 'Lote Arboleda', hectareas: 160 },
+          ],
+        },
+      },
+      include: { lotes: true },
+    });
+
+    const campoElOmbu = await this.prisma.campo.create({
+      data: {
+        nombre: 'El Ombú',
+        hectareas: 190,
+        ubicacion: 'Colón, Buenos Aires',
+        latitud: -33.8997,
+        longitud: -61.1015,
+        propietario: 'Juan Pérez',
+        usuarioId: uid,
+        organizacionId,
+        lotes: {
+          create: [
+            { nombre: 'Bajo del Ombú', hectareas: 90 },
+            { nombre: 'Loma Sur', hectareas: 100 },
+          ],
+        },
+      },
+      include: { lotes: true },
+    });
+
     const [lNorte, lSur, lEste] = campoEsperanza.lotes;
     const [p1, p2] = campoProgreso.lotes;
+    const [lMolino, lArboleda] = campoLasMeninas.lotes;
+    const [lOmbu] = campoElOmbu.lotes;
 
     // ─── Campañas ────────────────────────────────────────────────────────────
     const camp2425 = await this.prisma.campania.create({
@@ -297,6 +339,16 @@ export class DemoService implements OnModuleInit {
         nombre: 'Campaña 2025/2026',
         fechaInicio: new Date('2025-10-01'),
         descripcion: 'Campaña actual en curso',
+        usuarioId: uid,
+        organizacionId,
+      },
+    });
+
+    const camp2627 = await this.prisma.campania.create({
+      data: {
+        nombre: 'Campaña 2026/2027',
+        fechaInicio: new Date('2026-10-01'),
+        descripcion: 'Planificación de rotaciones y cultivos de cobertura',
         usuarioId: uid,
         organizacionId,
       },
@@ -526,6 +578,66 @@ export class DemoService implements OnModuleInit {
     });
 
     // ─── Animales ─────────────────────────────────────────────────────────────
+    const siem6 = await this.prisma.siembra.create({
+      data: {
+        loteId: lMolino.id,
+        tipoCultivoId: maiz.id,
+        fechaSiembra: new Date('2025-10-18'),
+        densidad: 7.5,
+        estado: 'EN_CURSO',
+        observaciones: 'Maíz temprano con monitoreo semanal de humedad.',
+        campaniaId: camp2526.id,
+      },
+    });
+    await this.prisma.aplicacionInsumo.createMany({
+      data: [
+        { siembraId: siem6.id, insumoId: semMaiz.id, fecha: new Date('2025-10-18'), cantidad: 20, unidad: 'kg' },
+        { siembraId: siem6.id, insumoId: urea.id, fecha: new Date('2025-11-20'), cantidad: 130, unidad: 'kg' },
+      ],
+    });
+
+    const siem7 = await this.prisma.siembra.create({
+      data: {
+        loteId: lArboleda.id,
+        tipoCultivoId: trigo.id,
+        fechaSiembra: new Date('2025-06-12'),
+        densidad: 118,
+        estado: 'COSECHADA',
+        observaciones: 'Trigo de alta proteína para mercado local.',
+        campaniaId: camp2425.id,
+      },
+    });
+    await this.prisma.cosecha.create({
+      data: {
+        siembraId: siem7.id,
+        fechaCosecha: new Date('2025-12-02'),
+        rendimientoKgHa: 3550,
+        totalKg: 3550 * 160,
+        humedad: 12.4,
+      },
+    });
+
+    const siem8 = await this.prisma.siembra.create({
+      data: {
+        loteId: lOmbu.id,
+        tipoCultivoId: girasol.id,
+        fechaSiembra: new Date('2026-10-10'),
+        densidad: 5.2,
+        estado: 'EN_CURSO',
+        observaciones: 'Lote previsto para girasol alto oleico.',
+        campaniaId: camp2627.id,
+      },
+    });
+    await this.prisma.aplicacionInsumo.create({
+      data: {
+        siembraId: siem8.id,
+        insumoId: fda.id,
+        fecha: new Date('2026-10-10'),
+        cantidad: 95,
+        unidad: 'kg',
+      },
+    });
+
     const animalesData = [
       {
         nombre: 'Pantanera 01',
@@ -622,6 +734,70 @@ export class DemoService implements OnModuleInit {
         categoria: 'NOVILLO',
         peso: 410,
         fechaNacimiento: new Date('2022-07-15'),
+      },
+      {
+        nombre: 'Pantanera 06',
+        especie: 'BOVINO',
+        sexo: 'HEMBRA',
+        categoria: 'VACA',
+        peso: 505,
+        fechaNacimiento: new Date('2018-09-08'),
+      },
+      {
+        nombre: 'Vaquillona 02',
+        especie: 'BOVINO',
+        sexo: 'HEMBRA',
+        categoria: 'VAQUILLONA',
+        peso: 355,
+        fechaNacimiento: new Date('2022-06-21'),
+      },
+      {
+        nombre: 'Novillo 03',
+        especie: 'BOVINO',
+        sexo: 'MACHO',
+        categoria: 'NOVILLO',
+        peso: 430,
+        fechaNacimiento: new Date('2021-11-12'),
+      },
+      {
+        nombre: 'Ternero 03',
+        especie: 'BOVINO',
+        sexo: 'MACHO',
+        categoria: 'TERNERO',
+        peso: 152,
+        fechaNacimiento: new Date('2024-08-30'),
+      },
+      {
+        nombre: 'Ternera 02',
+        especie: 'BOVINO',
+        sexo: 'HEMBRA',
+        categoria: 'TERNERA',
+        peso: 142,
+        fechaNacimiento: new Date('2024-10-18'),
+      },
+      {
+        nombre: 'Mora',
+        especie: 'EQUINO',
+        sexo: 'HEMBRA',
+        categoria: 'YEGUA',
+        peso: 460,
+        fechaNacimiento: new Date('2016-03-04'),
+      },
+      {
+        nombre: 'Rayo',
+        especie: 'EQUINO',
+        sexo: 'MACHO',
+        categoria: 'POTRO',
+        peso: 290,
+        fechaNacimiento: new Date('2023-01-18'),
+      },
+      {
+        nombre: 'Oveja 01',
+        especie: 'OVINO',
+        sexo: 'HEMBRA',
+        categoria: 'OVEJA',
+        peso: 68,
+        fechaNacimiento: new Date('2021-05-16'),
       },
     ] as const;
 
@@ -773,6 +949,46 @@ export class DemoService implements OnModuleInit {
           fechaProgramada: new Date('2026-01-10'),
           campoId: campoProgreso.id,
         },
+        {
+          usuarioId: uid,
+          titulo: 'Relevar malezas en Las Meninas',
+          descripcion: 'Recorrer Lote Molino y registrar focos de rama negra',
+          tipo: 'OTRO',
+          estado: 'PENDIENTE',
+          prioridad: 'MEDIA',
+          fechaProgramada: new Date('2026-05-28'),
+          campoId: campoLasMeninas.id,
+        },
+        {
+          usuarioId: uid,
+          titulo: 'Servicio tractor principal',
+          descripcion: 'Cambio de aceite, filtros y revisión hidráulica',
+          tipo: 'MANTENIMIENTO',
+          estado: 'PENDIENTE',
+          prioridad: 'ALTA',
+          fechaProgramada: new Date('2026-06-03'),
+          campoId: campoEsperanza.id,
+        },
+        {
+          usuarioId: uid,
+          titulo: 'Planificar siembra de cobertura',
+          descripcion: 'Definir mezcla de vicia y centeno para El Ombú',
+          tipo: 'SIEMBRA',
+          estado: 'EN_CURSO',
+          prioridad: 'MEDIA',
+          fechaProgramada: new Date('2026-06-12'),
+          campoId: campoElOmbu.id,
+        },
+        {
+          usuarioId: uid,
+          titulo: 'Control sanitario equinos',
+          descripcion: 'Desparasitación y control odontológico anual',
+          tipo: 'VETERINARIA',
+          estado: 'CANCELADA',
+          prioridad: 'BAJA',
+          fechaProgramada: new Date('2025-12-15'),
+          campoId: campoLasMeninas.id,
+        },
       ] as const).map(
         (tarea): Prisma.TareaRuralCreateManyInput => ({ ...tarea, organizacionId }),
       ),
@@ -845,10 +1061,117 @@ export class DemoService implements OnModuleInit {
           anio: 2022,
           observaciones: '32 discos hidráulica independiente.',
         },
+        {
+          usuarioId: uid,
+          nombre: 'Camioneta Toyota Hilux SRX',
+          tipo: 'CAMIONETA',
+          estado: 'OPERATIVA',
+          marca: 'Toyota',
+          modelo: 'Hilux SRX 4x4',
+          anio: 2023,
+          patente: 'AE345LM',
+          campoId: campoLasMeninas.id,
+          horasUso: 420,
+          seguroVencimiento: new Date('2026-12-01'),
+          vtvVencimiento: new Date('2026-11-18'),
+          observaciones: 'Unidad de recorrida y traslados entre campos.',
+        },
+        {
+          usuarioId: uid,
+          nombre: 'Tolva Autodescargable Ombú 14T',
+          tipo: 'TOLVA',
+          estado: 'EN_MANTENIMIENTO',
+          marca: 'Ombú',
+          modelo: 'TA 14',
+          anio: 2017,
+          campoId: campoElOmbu.id,
+          horasUso: 980,
+          observaciones: 'Cambio de rodamientos programado antes de cosecha.',
+        },
+        {
+          usuarioId: uid,
+          nombre: 'Mixer Vertical Mainero 2910',
+          tipo: 'MIXER',
+          estado: 'FUERA_DE_SERVICIO',
+          marca: 'Mainero',
+          modelo: '2910',
+          anio: 2016,
+          horasUso: 2300,
+          observaciones: 'En evaluación para reparación del sinfín.',
+        },
       ] as const).map(
         (maquinaria): Prisma.MaquinariaCreateManyInput => ({ ...maquinaria, organizacionId }),
       ),
     });
+
+    const maquinariasDemo = await this.prisma.maquinaria.findMany({
+      where: { usuarioId: uid, organizacionId },
+      select: { id: true, nombre: true },
+    });
+    const maquinariaIdPorNombre = new Map(
+      maquinariasDemo.map((maquinaria) => [maquinaria.nombre, maquinaria.id]),
+    );
+    const tractorId = maquinariaIdPorNombre.get('Tractor John Deere 5075E');
+    const tolvaId = maquinariaIdPorNombre.get('Tolva Autodescargable Ombú 14T');
+    const camionetaId = maquinariaIdPorNombre.get('Camioneta Toyota Hilux SRX');
+
+    if (tractorId && tolvaId && camionetaId) {
+      await this.prisma.mantenimientoMaquinaria.createMany({
+        data: [
+          {
+            maquinariaId: tractorId,
+            tipo: 'CAMBIO_ACEITE',
+            descripcion: 'Cambio de aceite, filtros y revisión de correas.',
+            fecha: new Date('2026-05-18'),
+            horasUso: 1500,
+            costo: 185000,
+            proximoMantenimiento: new Date('2026-11-18'),
+          },
+          {
+            maquinariaId: tolvaId,
+            tipo: 'REPARACION',
+            descripcion: 'Reemplazo de rodamientos y ajuste de descarga.',
+            fecha: new Date('2026-02-08'),
+            costo: 98500,
+            proximoMantenimiento: new Date('2026-10-01'),
+          },
+          {
+            maquinariaId: camionetaId,
+            tipo: 'REVISION_GENERAL',
+            descripcion: 'Service preventivo para recorridas de campo.',
+            fecha: new Date('2026-04-22'),
+            horasUso: 48500,
+            costo: 142000,
+          },
+        ],
+      });
+
+      await this.prisma.gastoMaquinaria.createMany({
+        data: [
+          {
+            maquinariaId: tractorId,
+            tipo: 'COMBUSTIBLE',
+            descripcion: 'Gasoil para labores de siembra y fertilización.',
+            monto: 286000,
+            fecha: new Date('2026-05-20'),
+          },
+          {
+            maquinariaId: tolvaId,
+            tipo: 'REPUESTO',
+            descripcion: 'Rodamientos y retenes para reparación de tolva.',
+            monto: 67400,
+            fecha: new Date('2026-02-06'),
+          },
+          {
+            maquinariaId: camionetaId,
+            tipo: 'SEGURO',
+            descripcion: 'Póliza anual para uso productivo.',
+            monto: 128000,
+            fecha: new Date('2026-01-05'),
+          },
+        ],
+      });
+    }
 
     // Finanzas (ingresos y egresos)
     await this.prisma.movimientoFinanciero.createMany({
@@ -1009,6 +1332,95 @@ export class DemoService implements OnModuleInit {
           fecha: new Date('2025-10-23'),
           categoria: 'INSUMO',
           campoId: campoProgreso.id,
+        },
+        {
+          usuarioId: uid,
+          tipo: 'INGRESO',
+          concepto: 'Venta trigo Lote Arboleda',
+          monto: 565000,
+          fecha: new Date('2025-12-06'),
+          categoria: 'COSECHA',
+          campoId: campoLasMeninas.id,
+          siembraId: siem7.id,
+        },
+        {
+          usuarioId: uid,
+          tipo: 'INGRESO',
+          concepto: 'Venta de lana ovina',
+          monto: 72000,
+          fecha: new Date('2025-11-14'),
+          categoria: 'VENTA_ANIMAL',
+        },
+        {
+          usuarioId: uid,
+          tipo: 'INGRESO',
+          concepto: 'Servicio de siembra a terceros',
+          monto: 145000,
+          fecha: new Date('2026-01-22'),
+          categoria: 'SERVICIO',
+          campoId: campoProgreso.id,
+        },
+        {
+          usuarioId: uid,
+          tipo: 'EGRESO',
+          concepto: 'Reparación de tolva autodescargable',
+          monto: 98500,
+          fecha: new Date('2026-02-08'),
+          categoria: 'MANTENIMIENTO',
+          campoId: campoElOmbu.id,
+        },
+        {
+          usuarioId: uid,
+          tipo: 'EGRESO',
+          concepto: 'Seguro anual camioneta Hilux',
+          monto: 128000,
+          fecha: new Date('2026-01-05'),
+          categoria: 'OTRO',
+          campoId: campoLasMeninas.id,
+        },
+        {
+          usuarioId: uid,
+          tipo: 'EGRESO',
+          concepto: 'Análisis de suelo Las Meninas',
+          monto: 46500,
+          fecha: new Date('2026-03-12'),
+          categoria: 'SERVICIO',
+          campoId: campoLasMeninas.id,
+        },
+        {
+          usuarioId: uid,
+          tipo: 'EGRESO',
+          concepto: 'Combustible recorridas de enero',
+          monto: 87500,
+          fecha: new Date('2026-01-31'),
+          categoria: 'COMBUSTIBLE',
+        },
+        {
+          usuarioId: uid,
+          tipo: 'EGRESO',
+          concepto: 'Fertilizante maíz Lote Molino',
+          monto: 115000,
+          fecha: new Date('2025-11-18'),
+          categoria: 'INSUMO',
+          campoId: campoLasMeninas.id,
+          siembraId: siem6.id,
+        },
+        {
+          usuarioId: uid,
+          tipo: 'EGRESO',
+          concepto: 'Honorarios asesor agronómico',
+          monto: 92000,
+          fecha: new Date('2026-02-01'),
+          categoria: 'SERVICIO',
+        },
+        {
+          usuarioId: uid,
+          tipo: 'EGRESO',
+          concepto: 'Mantenimiento de aguadas',
+          monto: 38500,
+          fecha: new Date('2026-03-04'),
+          categoria: 'MANTENIMIENTO',
+          campoId: campoElOmbu.id,
         },
       ] as const).map(
         (movimiento): Prisma.MovimientoFinancieroCreateManyInput => ({ ...movimiento, organizacionId }),
