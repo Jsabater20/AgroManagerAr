@@ -1,6 +1,7 @@
 // import './instrument'; // Sentry disabled temporarily for diagnostics
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import * as express from 'express';
 import { AppModule } from './app.module';
 
 process.on('uncaughtException', (err) => {
@@ -20,6 +21,7 @@ async function bootstrap() {
   console.log(`[BOOT] Environment: ${process.env.NODE_ENV || 'development'}`);
 
   const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
     cors: {
       origin: function (origin, callback) {
         // Permitir peticiones sin origin (curl, Postman, Railway health checks)
@@ -50,13 +52,21 @@ async function bootstrap() {
         callback(new Error('Not allowed by CORS'));
       },
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'X-Organization-Id',
+      ],
       credentials: true,
       preflightContinue: false,
       optionsSuccessStatus: 200,
     },
   });
   console.log('[BOOT] App created, configuring...');
+
+  app.use(express.json({ limit: '6mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -52,6 +52,42 @@ export class SiembrasService {
     });
   }
 
+  async listAvailableLotes(usuarioId: number, organizacionId: number) {
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Siembras',
+    );
+    const lotes = await this.prisma.lote.findMany({
+      where: {
+        campo: acceso.esOwner
+          ? { organizacionId }
+          : {
+              organizacionId,
+              AsignacionCampo: {
+                some: {
+                  usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+                  activo: true,
+                },
+              },
+            },
+      },
+      select: {
+        id: true,
+        nombre: true,
+        hectareas: true,
+        campo: { select: { nombre: true } },
+      },
+      orderBy: [{ campo: { nombre: 'asc' } }, { nombre: 'asc' }],
+    });
+
+    return lotes.map((lote) => ({
+      id: lote.id,
+      nombre: lote.nombre,
+      descripcion: `${lote.campo.nombre} · ${lote.hectareas} ha`,
+    }));
+  }
+
   async findOne(id: number, usuarioId: number, organizacionId: number) {
     const siembra = await this.prisma.siembra.findUnique({
       where: { id },
@@ -172,6 +208,11 @@ export class SiembrasService {
     organizacionId: number,
   ) {
     await this.findOne(siembraId, usuarioId, organizacionId);
+    await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Insumos',
+    );
     return this.prisma.aplicacionInsumo.create({
       data: {
         siembraId,

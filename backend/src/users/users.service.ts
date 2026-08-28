@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { isProtectedProAccount } from '../auth/system-accounts';
 import {
   UpdateProfileDto,
   ChangePasswordDto,
@@ -47,10 +48,13 @@ export class UsersService {
       },
     });
 
-    const organizaciones = [
-      ...orgsDelUsuario,
-      ...orgsComoMiembro.map((m) => m.organizacion),
-    ];
+    const organizaciones = Array.from(
+      new Map(
+        [...orgsDelUsuario, ...orgsComoMiembro.map((m) => m.organizacion)].map(
+          (organizacion) => [organizacion.id, organizacion],
+        ),
+      ).values(),
+    );
 
     const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
     const usuarioOrganizacionId = orgPrincipal?.id;
@@ -117,12 +121,22 @@ export class UsersService {
     targetId: number,
     dto: UpdateUserPlanDto,
   ) {
-    const admin = await this.prisma.usuario.findUnique({
-      where: { id: adminId },
-      select: { rolGlobal: true },
-    });
+    const [admin, target] = await Promise.all([
+      this.prisma.usuario.findUnique({
+        where: { id: adminId },
+        select: { rolGlobal: true },
+      }),
+      this.prisma.usuario.findUnique({
+        where: { id: targetId },
+        select: { email: true },
+      }),
+    ]);
     if (admin?.rolGlobal !== 'SUPERADMIN') {
       throw new ForbiddenException('Solo SUPERADMIN');
+    }
+    if (!target) throw new NotFoundException('Usuario no encontrado');
+    if (dto.plan === 'FREE' && isProtectedProAccount(target.email)) {
+      throw new ForbiddenException('Esta cuenta debe mantener el Plan PRO');
     }
 
     const expira =

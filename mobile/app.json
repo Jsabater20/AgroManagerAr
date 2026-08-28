@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "AgroManager AR",
+    "slug": "agromanager-ar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "agromanagerar",
+    "userInterfaceStyle": "dark",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Permití que AgroManager AR use la cámara para registrar evidencia de trabajos.",
+          "photosPermission": "Permití que AgroManager AR acceda a tus fotos para adjuntar evidencia."
+        }
+      ],
+      "expo-sqlite",
+      "@react-native-community/datetimepicker"
+    ],
+    "web": {
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

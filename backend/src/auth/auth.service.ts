@@ -182,10 +182,13 @@ export class AuthService {
       },
     });
 
-    const organizaciones = [
-      ...orgsDelUsuario,
-      ...orgsComoMiembro.map((m) => m.organizacion),
-    ];
+    const organizaciones = Array.from(
+      new Map(
+        [...orgsDelUsuario, ...orgsComoMiembro.map((m) => m.organizacion)].map(
+          (organizacion) => [organizacion.id, organizacion],
+        ),
+      ).values(),
+    );
 
     const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
     const usuarioOrganizacionId = orgPrincipal?.id ?? null;

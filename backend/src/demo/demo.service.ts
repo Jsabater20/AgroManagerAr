@@ -3,8 +3,9 @@ import { Cron } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { DEMO_EMAIL } from '../auth/system-accounts';
 
-export const DEMO_EMAIL = 'demo@agromanager.ar';
+export { DEMO_EMAIL } from '../auth/system-accounts';
 
 @Injectable()
 export class DemoService implements OnModuleInit {
@@ -27,12 +28,16 @@ export class DemoService implements OnModuleInit {
       });
       if (!demoOrg) return;
 
-      if (demoOrg.plan !== 'PRO') {
-        await this.prisma.organizacion.update({
+      await this.prisma.$transaction([
+        this.prisma.usuario.update({
+          where: { id: demo.id },
+          data: { plan: 'PRO', planExpira: new Date('2035-12-31') },
+        }),
+        this.prisma.organizacion.update({
           where: { id: demoOrg.id },
           data: { plan: 'PRO' },
-        });
-      }
+        }),
+      ]);
 
       await Promise.all([
         this.prisma.campo.updateMany({

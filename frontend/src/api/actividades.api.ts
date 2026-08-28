@@ -38,6 +38,7 @@ export interface CambiarEstadoPayload {
 
 export interface AgregarObservacionPayload {
   contenido: string;
+  fotoBase64?: string;
 }
 
 // Crear actividad

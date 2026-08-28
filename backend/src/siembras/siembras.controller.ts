@@ -35,6 +35,14 @@ export class SiembrasController {
     return this.siembrasService.findAll(req.user.id, req.organizacionId);
   }
 
+  @Get('lotes/disponibles')
+  listAvailableLotes(@Request() req: AuthRequest) {
+    return this.siembrasService.listAvailableLotes(
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.siembrasService.findOne(id, req.user.id, req.organizacionId);

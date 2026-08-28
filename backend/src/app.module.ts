@@ -27,6 +27,9 @@ import { MailerModule } from './mailer/mailer.module';
 import { AuditInterceptor } from './audit/interceptors/audit.interceptor';
 import { RecursosModule } from './recursos/recursos.module';
 import { ActividadesModule } from './actividades/actividades.module';
+import { AnaliticaModule } from './analitica/analitica.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { EvidenciasModule } from './evidencias/evidencias.module';
 
 @Module({
   imports: [
@@ -61,6 +64,9 @@ import { ActividadesModule } from './actividades/actividades.module';
     AuditModule,
     MailerModule,
     ActividadesModule,
+    AnaliticaModule,
+    NotificacionesModule,
+    EvidenciasModule,
   ],
   controllers: [AppController],
   providers: [

@@ -6,9 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlanService } from '../plan/plan.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import {
   ActividadMiembro,
   EstadoActividad,
+  Prisma,
   TipoRecursoActividad,
   ObservacionActividad,
 } from '@prisma/client';
@@ -24,6 +26,7 @@ export class ActividadesService {
   constructor(
     private prisma: PrismaService,
     private planService: PlanService,
+    private notificacionesService: NotificacionesService,
   ) {}
 
   // ─── VALIDACIONES ─────────────────────────────────────────────────────
@@ -323,6 +326,18 @@ export class ActividadesService {
       return actividad;
     });
 
+    void this.notificacionesService
+      .notificarUsuario(resultado.usuarioOrganizacion.usuario.id, {
+        titulo: 'Nuevo trabajo asignado',
+        mensaje: resultado.titulo,
+        datos: {
+          tipo: 'ACTIVIDAD_ASIGNADA',
+          organizacionId: orgId,
+          actividadId: resultado.id,
+        },
+      })
+      .catch(() => undefined);
+
     return resultado;
   }
 
@@ -338,6 +353,7 @@ export class ActividadesService {
       usuarioOrganizacionId?: number;
     },
   ): Promise<ActividadMiembro[]> {
+    const esOwner = await this.esOwnerOrganizacion(orgId, userId);
     const miembroOrg = await this.prisma.usuarioOrganizacion.findFirst({
       where: {
         usuarioId: userId,
@@ -346,20 +362,18 @@ export class ActividadesService {
       select: { id: true },
     });
 
-    if (!miembroOrg) {
+    if (!esOwner && !miembroOrg) {
       throw new ForbiddenException(
         'No eres miembro de esta organización',
       );
     }
-
-    const esOwner = await this.esOwnerOrganizacion(orgId, userId);
 
     const where: any = {
       organizacionId: orgId,
     };
 
     if (!esOwner) {
-      where.usuarioOrganizacionId = miembroOrg.id;
+      where.usuarioOrganizacionId = miembroOrg!.id;
     } else {
       if (filtros?.usuarioOrganizacionId) {
         where.usuarioOrganizacionId = filtros.usuarioOrganizacionId;
@@ -545,6 +559,18 @@ export class ActividadesService {
       return reasignada;
     });
 
+    void this.notificacionesService
+      .notificarUsuario(resultado.usuarioOrganizacion.usuario.id, {
+        titulo: 'Te reasignaron un trabajo',
+        mensaje: resultado.titulo,
+        datos: {
+          tipo: 'ACTIVIDAD_REASIGNADA',
+          organizacionId: orgId,
+          actividadId: resultado.id,
+        },
+      })
+      .catch(() => undefined);
+
     return resultado;
   }
 
@@ -661,6 +687,34 @@ export class ActividadesService {
       return actualizada;
     });
 
+    if (dto.estado === EstadoActividad.COMPLETADA && !esOwner) {
+      const organizacion = await this.prisma.organizacion.findUnique({
+        where: { id: orgId },
+        select: { propietarioId: true },
+      });
+
+      if (organizacion) {
+        const nombreMiembro = [
+          resultado.usuarioOrganizacion.usuario.nombre,
+          resultado.usuarioOrganizacion.usuario.apellido,
+        ]
+          .filter(Boolean)
+          .join(' ');
+
+        void this.notificacionesService
+          .notificarUsuario(organizacion.propietarioId, {
+            titulo: 'Trabajo completado',
+            mensaje: `${nombreMiembro} completó: ${resultado.titulo}`,
+            datos: {
+              tipo: 'ACTIVIDAD_COMPLETADA',
+              organizacionId: orgId,
+              actividadId: resultado.id,
+            },
+          })
+          .catch(() => undefined);
+      }
+    }
+
     return resultado;
   }
 
@@ -722,23 +776,80 @@ export class ActividadesService {
       );
     }
 
-    return await this.prisma.observacionActividad.create({
-      data: {
-        actividadMiembroId: actividadId,
-        autorId: userId,
-        contenido: dto.contenido,
-        estadoActividadAlMomento: actividad.estado,
-      },
-      include: {
-        autor: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
+    if (
+      dto.fotoBase64 &&
+      !/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(
+        dto.fotoBase64,
+      )
+    ) {
+      throw new BadRequestException('La foto debe ser una imagen JPEG o PNG válida');
+    }
+
+    if (dto.idempotencyKey) {
+      const existente = await this.prisma.observacionActividad.findUnique({
+        where: { idempotencyKey: dto.idempotencyKey },
+        include: {
+          autor: {
+            select: { id: true, nombre: true, apellido: true },
           },
         },
-      },
-    });
+      });
+
+      if (existente) {
+        if (
+          existente.actividadMiembroId !== actividadId ||
+          existente.autorId !== userId
+        ) {
+          throw new ForbiddenException('La clave de sincronización no es válida');
+        }
+        return existente;
+      }
+    }
+
+    try {
+      return await this.prisma.observacionActividad.create({
+        data: {
+          actividadMiembroId: actividadId,
+          autorId: userId,
+          contenido: dto.contenido,
+          fotoBase64: dto.fotoBase64 ?? null,
+          idempotencyKey: dto.idempotencyKey,
+          estadoActividadAlMomento: actividad.estado,
+        },
+        include: {
+          autor: {
+            select: {
+              id: true,
+              nombre: true,
+              apellido: true,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      if (
+        dto.idempotencyKey &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const existente = await this.prisma.observacionActividad.findUnique({
+          where: { idempotencyKey: dto.idempotencyKey },
+          include: {
+            autor: {
+              select: { id: true, nombre: true, apellido: true },
+            },
+          },
+        });
+        if (
+          existente &&
+          existente.actividadMiembroId === actividadId &&
+          existente.autorId === userId
+        ) {
+          return existente;
+        }
+      }
+      throw error;
+    }
   }
 
   async obtenerObservaciones(

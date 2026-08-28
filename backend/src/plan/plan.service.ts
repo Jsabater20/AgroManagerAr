@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
+import { isProtectedProAccount } from '../auth/system-accounts';
 
 const LIMITES_FREE = {
   campos: 1,
@@ -405,6 +406,14 @@ export class PlanService {
           .catch(() => {});
       }
     } else if (status === 'cancelled' || status === 'paused') {
+      const cuentaProtegida = await this.prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { email: true },
+      });
+      if (isProtectedProAccount(cuentaProtegida?.email)) {
+        return { ok: true };
+      }
+
       const usuario = await this.prisma.usuario.update({
         where: { id: usuarioId },
         data: { plan: 'FREE', planExpira: null },
@@ -517,8 +526,11 @@ export class PlanService {
     await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: { mpSuscripcionId: true },
+      select: { email: true, mpSuscripcionId: true },
     });
+    if (isProtectedProAccount(u?.email)) {
+      throw new ForbiddenException('Esta cuenta debe mantener el Plan PRO');
+    }
     if (u?.mpSuscripcionId) {
       const client = this.getMPClient();
       const preApproval = new PreApproval(client);

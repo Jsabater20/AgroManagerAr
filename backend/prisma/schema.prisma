@@ -38,6 +38,21 @@ model Usuario {
   membresiasOrganizacion         UsuarioOrganizacion[]
   actividadesCreadasParaMiembros ActividadMiembro[]       @relation("creadoPor")
   observacionesActividades       ObservacionActividad[]   @relation("autorObservaciones")
+  dispositivosPush               DispositivoPush[]
+  evidencias                     Evidencia[]              @relation("evidenciasCreadasPor")
+}
+
+model DispositivoPush {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int
+  expoPushToken String   @unique
+  plataforma    String
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
 }
 
 model Campo {
@@ -321,6 +336,7 @@ model Organizacion {
   tareas               TareaRural[]
   miembros             UsuarioOrganizacion[]
   actividades          ActividadMiembro[]
+  evidencias           Evidencia[]
 
   @@index([propietarioId])
 }
@@ -506,6 +522,8 @@ model ObservacionActividad {
   autorId            Int?
 
   contenido                String
+  fotoBase64               String?
+  idempotencyKey           String?        @unique
   estadoActividadAlMomento EstadoActividad
 
   createdAt DateTime @default(now())
@@ -514,6 +532,44 @@ model ObservacionActividad {
   autor     Usuario?         @relation("autorObservaciones", fields: [autorId], references: [id], onDelete: SetNull)
 
   @@index([actividadMiembroId, createdAt])
+}
+
+model Evidencia {
+  id             String           @id @default(uuid())
+  organizacionId Int
+  usuarioId      Int
+  origen         OrigenEvidencia
+  tipoRecurso    TipoRecursoEvidencia
+  recursoId      Int
+  comentario     String?
+  fechaHora      DateTime         @default(now())
+  estado         EstadoEvidencia  @default(PENDIENTE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organizacion Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario      Usuario            @relation("evidenciasCreadasPor", fields: [usuarioId], references: [id], onDelete: Restrict)
+  archivos     ArchivoEvidencia[]
+
+  @@index([organizacionId, tipoRecurso, recursoId, fechaHora])
+  @@index([usuarioId])
+  @@index([estado, createdAt])
+}
+
+model ArchivoEvidencia {
+  id           String    @id @default(uuid())
+  evidenciaId  String
+  storageKey   String    @unique
+  nombre       String
+  mimeType     String
+  tamanoBytes  Int
+  ancho        Int?
+  alto         Int?
+  createdAt    DateTime  @default(now())
+
+  evidencia Evidencia @relation(fields: [evidenciaId], references: [id], onDelete: Cascade)
+
+  @@index([evidenciaId])
 }
 
 enum Rol {
@@ -723,4 +779,28 @@ enum TipoRecursoActividad {
   MAQUINARIA
   CAMPANIA
   GENERAL
+}
+
+enum OrigenEvidencia {
+  ACTIVIDADES
+  GANADERIA
+  MAQUINARIAS
+  INSUMOS
+  CAMPOS
+  SIEMBRAS
+}
+
+enum TipoRecursoEvidencia {
+  ACTIVIDAD
+  CAMPO
+  LOTE
+  SIEMBRA
+  ANIMAL
+  MAQUINARIA
+  INSUMO
+}
+
+enum EstadoEvidencia {
+  PENDIENTE
+  CONFIRMADA
 }
