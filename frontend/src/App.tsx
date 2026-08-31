@@ -90,6 +90,7 @@ export default function App() {
             rolGlobal: profile.rolGlobal,
             usuarioOrganizacionId: activeOrgId ?? null,
             organizaciones,
+            fotoPerfilUrl: profile.fotoPerfilUrl,
           },
           token,
         );

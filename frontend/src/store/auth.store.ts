@@ -21,6 +21,7 @@ export interface Usuario {
   planExpira?: string | null;
   usuarioOrganizacionId?: number | null;
   organizaciones?: Organizacion[];
+  fotoPerfilUrl?: string | null;
 }
 
 const normalizeUsuario = (usuario: Usuario | null): Usuario | null => {

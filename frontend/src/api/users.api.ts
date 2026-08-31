@@ -18,6 +18,7 @@ export interface UserProfile {
     propietarioId: number;
   }>;
   createdAt?: string;
+  fotoPerfilUrl?: string | null;
 }
 
 export const getProfile = (): Promise<UserProfile> =>
@@ -39,6 +40,37 @@ export const changePassword = (
       passwordNueva,
     })
     .then((r) => r.data);
+
+type MimeFotoPerfil = 'image/jpeg' | 'image/png' | 'image/webp';
+
+export const subirFotoPerfil = async (archivo: File): Promise<UserProfile> => {
+  const mimeType = archivo.type as MimeFotoPerfil;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+    throw new Error('Elegí una imagen JPG, PNG o WEBP.');
+  }
+  if (archivo.size > 5 * 1024 * 1024) {
+    throw new Error('La imagen no puede superar los 5 MB.');
+  }
+
+  const carga = await api
+    .post<{ storageKey: string; uploadUrl: string }>('/users/profile/foto/subida', { mimeType })
+    .then((response) => response.data);
+  const respuesta = await fetch(carga.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': mimeType },
+    body: archivo,
+  });
+  if (!respuesta.ok) {
+    throw new Error('No pudimos subir la imagen al almacenamiento seguro.');
+  }
+
+  return api
+    .post<UserProfile>('/users/profile/foto/confirmar', { storageKey: carga.storageKey })
+    .then((response) => response.data);
+};
+
+export const eliminarFotoPerfil = (): Promise<{ ok: boolean }> =>
+  api.delete<{ ok: boolean }>('/users/profile/foto').then((response) => response.data);
 
 export const getAllUsers = (): Promise<UserProfile[]> =>
   api.get<UserProfile[]>('/users/admin/all').then((r) => r.data);

@@ -27,6 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { organizacionesApi } from '../../api/organizaciones.api';
 import { empresasApi } from '../../api/empresas.api';
+import { ProfileAvatar } from '../profile/ProfileAvatar';
 import { useAuthStore } from '../../store/auth.store';
 
 interface NavItem {
@@ -101,10 +102,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     logout();
     navigate('/login');
   };
-
-  const initials = [usuario?.nombre?.[0] ?? '', usuario?.apellido?.[0] ?? '']
-    .join('')
-    .toUpperCase() || '?';
 
   const memberSubitems = [
     { label: 'Invitar miembros', to: `/org/${currentOrgId}/miembros/invitar` },
@@ -225,9 +222,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="flex items-center justify-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-            {initials}
-          </div>
+          <ProfileAvatar
+            nombre={usuario?.nombre}
+            apellido={usuario?.apellido}
+            fotoUrl={usuario?.fotoPerfilUrl}
+            size="sm"
+            className="border-green-200"
+          />
           <p className="text-sm font-medium text-white">
             {usuario?.nombre} {usuario?.apellido}
           </p>

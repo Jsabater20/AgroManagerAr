@@ -17,6 +17,7 @@ export interface MiembroOrganizacion {
     nombre: string;
     apellido: string;
   };
+  fotoPerfilUrl?: string | null;
   roles: string[];
   activo: boolean;
   campos: Array<{ id: number; nombre: string }>;
@@ -44,6 +45,7 @@ export interface MiembroPanelDto {
   id: number;
   nombre: string;
   apellido: string;
+  fotoPerfilUrl?: string | null;
   email: string;
   rol: string;
   activo: boolean;
