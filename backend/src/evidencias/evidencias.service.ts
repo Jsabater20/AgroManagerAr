@@ -12,7 +12,7 @@ import {
   ArchivoEvidenciaDto,
   PrepararEvidenciaDto,
 } from './dto/preparar-evidencia.dto';
-import { R2StorageService } from './r2-storage.service';
+import { R2StorageService } from '../storage/r2-storage.service';
 
 const PARES_RECURSO_VALIDOS: Record<
   OrigenEvidencia,

@@ -18,6 +18,8 @@ import {
   ChangePasswordDto,
   UpdateUserPlanDto,
   UpdateUserRolDto,
+  PrepararFotoPerfilDto,
+  ConfirmarFotoPerfilDto,
 } from './dto/users.dto';
 
 interface AuthRequest {
@@ -39,6 +41,27 @@ export class UsersController {
   @Patch('profile')
   updateProfile(@Request() req: AuthRequest, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(req.user.id, dto);
+  }
+
+  @Post('profile/foto/subida')
+  prepararFotoPerfil(
+    @Request() req: AuthRequest,
+    @Body() dto: PrepararFotoPerfilDto,
+  ) {
+    return this.usersService.prepararFotoPerfil(req.user.id, dto);
+  }
+
+  @Post('profile/foto/confirmar')
+  confirmarFotoPerfil(
+    @Request() req: AuthRequest,
+    @Body() dto: ConfirmarFotoPerfilDto,
+  ) {
+    return this.usersService.confirmarFotoPerfil(req.user.id, dto);
+  }
+
+  @Delete('profile/foto')
+  eliminarFotoPerfil(@Request() req: AuthRequest) {
+    return this.usersService.eliminarFotoPerfil(req.user.id);
   }
 
   @Patch('profile/password')

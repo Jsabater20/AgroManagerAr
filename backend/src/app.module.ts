@@ -30,6 +30,7 @@ import { ActividadesModule } from './actividades/actividades.module';
 import { AnaliticaModule } from './analitica/analitica.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EvidenciasModule } from './evidencias/evidencias.module';
+import { EmpresasModule } from './empresas/empresas.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { EvidenciasModule } from './evidencias/evidencias.module';
     AnaliticaModule,
     NotificacionesModule,
     EvidenciasModule,
+    EmpresasModule,
   ],
   controllers: [AppController],
   providers: [

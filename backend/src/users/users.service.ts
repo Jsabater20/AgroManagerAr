@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -7,16 +8,22 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { isProtectedProAccount } from '../auth/system-accounts';
+import { R2StorageService } from '../storage/r2-storage.service';
 import {
   UpdateProfileDto,
   ChangePasswordDto,
   UpdateUserPlanDto,
   UpdateUserRolDto,
+  PrepararFotoPerfilDto,
+  ConfirmarFotoPerfilDto,
 } from './dto/users.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private r2StorageService: R2StorageService,
+  ) {}
 
   async getProfile(usuarioId: number) {
     const u = await this.prisma.usuario.findUnique({
@@ -31,6 +38,7 @@ export class UsersService {
         plan: true,
         planExpira: true,
         createdAt: true,
+        fotoPerfilStorageKey: true,
       },
     });
     if (!u) throw new NotFoundException('Usuario no encontrado');
@@ -61,6 +69,8 @@ export class UsersService {
 
     return {
       ...u,
+      fotoPerfilStorageKey: undefined,
+      fotoPerfilUrl: await this.obtenerFotoPerfilUrl(u.fotoPerfilStorageKey),
       organizaciones,
       usuarioOrganizacionId,
     };
@@ -73,6 +83,82 @@ export class UsersService {
       select: { id: true, email: true, nombre: true, apellido: true, rol: true, plan: true },
     });
     return u;
+  }
+
+  async prepararFotoPerfil(
+    usuarioId: number,
+    dto: PrepararFotoPerfilDto,
+  ) {
+    this.r2StorageService.verificarConfiguracion();
+    const storageKey = this.r2StorageService.crearStorageKeyPerfil(
+      usuarioId,
+      dto.mimeType,
+    );
+
+    return {
+      storageKey,
+      uploadUrl: await this.r2StorageService.crearUrlDeSubida(
+        storageKey,
+        dto.mimeType,
+      ),
+    };
+  }
+
+  async confirmarFotoPerfil(
+    usuarioId: number,
+    dto: ConfirmarFotoPerfilDto,
+  ) {
+    const prefijoPermitido = `usuarios/${usuarioId}/perfil/`;
+    if (!dto.storageKey.startsWith(prefijoPermitido)) {
+      throw new BadRequestException('La foto no pertenece al perfil actual');
+    }
+
+    const metadata = await this.r2StorageService.verificarArchivo(dto.storageKey);
+    if (
+      !['image/jpeg', 'image/png', 'image/webp'].includes(metadata.mimeType ?? '') ||
+      metadata.tamanoBytes < 1 ||
+      metadata.tamanoBytes > 5 * 1024 * 1024
+    ) {
+      throw new BadRequestException('La foto de perfil debe ser una imagen de hasta 5 MB');
+    }
+
+    const usuarioActual = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { fotoPerfilStorageKey: true },
+    });
+    if (!usuarioActual) throw new NotFoundException('Usuario no encontrado');
+
+    await this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { fotoPerfilStorageKey: dto.storageKey },
+    });
+
+    if (
+      usuarioActual.fotoPerfilStorageKey &&
+      usuarioActual.fotoPerfilStorageKey !== dto.storageKey
+    ) {
+      await this.r2StorageService
+        .eliminarArchivos([usuarioActual.fotoPerfilStorageKey])
+        .catch(() => undefined);
+    }
+
+    return this.getProfile(usuarioId);
+  }
+
+  async eliminarFotoPerfil(usuarioId: number) {
+    const usuario = await this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { fotoPerfilStorageKey: null },
+      select: { fotoPerfilStorageKey: true },
+    });
+
+    if (usuario.fotoPerfilStorageKey) {
+      await this.r2StorageService
+        .eliminarArchivos([usuario.fotoPerfilStorageKey])
+        .catch(() => undefined);
+    }
+
+    return { ok: true };
   }
 
   async changePassword(usuarioId: number, dto: ChangePasswordDto) {
@@ -265,5 +351,15 @@ export class UsersService {
     await this.prisma.campania.deleteMany({ where: { usuarioId: uid } });
 
     return { ok: true };
+  }
+
+  private async obtenerFotoPerfilUrl(storageKey?: string | null) {
+    if (!storageKey) return null;
+
+    try {
+      return await this.r2StorageService.crearUrlDeLectura(storageKey);
+    } catch {
+      return null;
+    }
   }
 }

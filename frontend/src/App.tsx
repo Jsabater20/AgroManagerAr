@@ -47,6 +47,14 @@ import InvitarMiembrosPage from './pages/miembros/InvitarMiembrosPage';
 import AdministracionPersonalPage from './pages/miembros/AdministracionPersonalPage';
 import AsignarTrabajoPage from './pages/miembros/AsignarTrabajoPage';
 import MiembrosTrabajosPage from './pages/miembros/MiembrosTrabajosPage';
+import EmpresasPage from './pages/empresas/EmpresasPage';
+import EmpresaDashboardPage from './pages/empresas/EmpresaDashboardPage';
+import EmpresaMiembrosPage from './pages/empresas/EmpresaMiembrosPage';
+import EmpresaOperacionPage from './pages/empresas/EmpresaOperacionPage';
+import EmpresaFinanzasPage from './pages/empresas/EmpresaFinanzasPage';
+import EmpresaRentabilidadPage from './pages/empresas/EmpresaRentabilidadPage';
+import EmpresaAuditoriaPage from './pages/empresas/EmpresaAuditoriaPage';
+import EmpresaExportacionesPage from './pages/empresas/EmpresaExportacionesPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -144,6 +152,16 @@ export default function App() {
               <Route path="/org/:orgId/auditoria" element={<AuditoriaPage />} />
               <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
               <Route path="/org/:orgId/roles" element={<RolesPage />} />
+              <Route path="/empresas" element={<EmpresasPage />} />
+              <Route path="/empresas/:empresaId/dashboard" element={<EmpresaDashboardPage />} />
+              <Route path="/empresas/:empresaId/miembros" element={<EmpresaMiembrosPage />} />
+              <Route path="/empresas/:empresaId/actividades" element={<EmpresaOperacionPage seccion="actividades" />} />
+              <Route path="/empresas/:empresaId/maquinarias" element={<EmpresaOperacionPage seccion="maquinarias" />} />
+              <Route path="/empresas/:empresaId/ganaderia" element={<EmpresaOperacionPage seccion="ganaderia" />} />
+              <Route path="/empresas/:empresaId/finanzas" element={<EmpresaFinanzasPage />} />
+              <Route path="/empresas/:empresaId/rentabilidad" element={<EmpresaRentabilidadPage />} />
+              <Route path="/empresas/:empresaId/auditoria" element={<EmpresaAuditoriaPage />} />
+              <Route path="/empresas/:empresaId/exportaciones" element={<EmpresaExportacionesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
             </Route>
 

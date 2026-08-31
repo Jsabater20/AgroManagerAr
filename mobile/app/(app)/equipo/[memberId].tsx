@@ -12,6 +12,7 @@ import {
 } from '@/api/equipo.api';
 import { getApiErrorMessage } from '@/api/errors';
 import { useAuthStore } from '@/store/auth.store';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 
 const ROLES: Array<{ value: RolPanelMiembro; label: string }> = [
   { value: 'OPERARIO', label: 'Operario' },
@@ -83,11 +84,18 @@ export default function MiembroDetalleScreen() {
 
       <View className="mt-5 rounded-2xl bg-emerald-800 p-5">
         <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-white">
-              {member.nombre} {member.apellido}
-            </Text>
-            <Text className="mt-1 text-sm text-emerald-100">{member.email}</Text>
+          <View className="flex-1 flex-row items-center gap-3">
+            <ProfileAvatar
+              apellido={member.apellido}
+              fotoUrl={member.fotoPerfilUrl}
+              nombre={member.nombre}
+            />
+            <View className="flex-1">
+              <Text className="text-2xl font-bold text-white">
+                {member.nombre} {member.apellido}
+              </Text>
+              <Text className="mt-1 text-sm text-emerald-100">{member.email}</Text>
+            </View>
           </View>
           <Text className={`rounded-full px-2 py-1 text-xs font-semibold ${member.activo ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-200 text-slate-700'}`}>
             {member.activo ? 'ACTIVO' : 'INACTIVO'}

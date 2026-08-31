@@ -7,6 +7,7 @@ export class MiembroResponseDto {
     nombre: string;
     apellido: string;
   };
+  fotoPerfilUrl?: string | null;
   roles!: string[];
   activo!: boolean;
   campos!: Array<{ id: number; nombre: string }>;

@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { EvidenciasController } from './evidencias.controller';
 import { EvidenciasService } from './evidencias.service';
-import { R2StorageService } from './r2-storage.service';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  imports: [OrganizationsModule],
+  imports: [OrganizationsModule, StorageModule],
   controllers: [EvidenciasController],
-  providers: [EvidenciasService, R2StorageService],
+  providers: [EvidenciasService],
 })
 export class EvidenciasModule {}

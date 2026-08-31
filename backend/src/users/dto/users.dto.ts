@@ -1,4 +1,4 @@
-import { IsString, MinLength, IsOptional, IsIn } from 'class-validator';
+import { IsString, MinLength, IsOptional, IsIn, MaxLength } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -20,6 +20,17 @@ export class ChangePasswordDto {
   @IsString()
   @MinLength(8)
   passwordNueva!: string;
+}
+
+export class PrepararFotoPerfilDto {
+  @IsIn(['image/jpeg', 'image/png', 'image/webp'])
+  mimeType!: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
+export class ConfirmarFotoPerfilDto {
+  @IsString()
+  @MaxLength(300)
+  storageKey!: string;
 }
 
 export class UpdateUserPlanDto {

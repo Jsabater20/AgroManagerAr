@@ -32,6 +32,7 @@ export interface Usuario {
   email: string;
   nombre: string;
   apellido: string;
+  fotoPerfilUrl?: string | null;
   rol?: string;
   rolGlobal?: string;
   plan?: Plan;

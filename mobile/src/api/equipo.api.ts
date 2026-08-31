@@ -12,6 +12,7 @@ export interface MiembroEquipo {
   id: number;
   nombre: string;
   apellido: string;
+  fotoPerfilUrl?: string | null;
   email: string;
   rol: string;
   activo: boolean;

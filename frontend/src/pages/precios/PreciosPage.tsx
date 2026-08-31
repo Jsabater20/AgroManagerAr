@@ -237,22 +237,47 @@ export default function PreciosPage() {
             ))}
           </div>
         </div>
+
+        <div className="rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white md:col-span-2">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+            <div>
+              <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-emerald-950">PARA GRUPOS AGROPECUARIOS</span>
+              <h2 className="mt-4 text-2xl font-bold">Plan Empresa</h2>
+              <p className="mt-2 max-w-2xl text-emerald-100">Para empresas agropecuarias y grupos con múltiples establecimientos.</p>
+              <p className="mt-4 text-3xl font-bold">Desde $69.990 <span className="text-base font-normal text-emerald-200">/ mes</span></p>
+              <p className="mt-1 text-sm text-emerald-200">Incluye hasta 3 establecimientos. Cotización personalizada para ampliar la operación.</p>
+            </div>
+            <a
+              href="mailto:agromanagerarcontacto@gmail.com?subject=Consulta%20Plan%20Empresa"
+              className="shrink-0 rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+            >
+              Solicitar cotización
+            </a>
+          </div>
+          <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            {['Todo Pro incluido', 'Dashboard consolidado', 'Personal y permisos avanzados', 'Reportes empresariales'].map((beneficio) => (
+              <span key={beneficio} className="flex items-center gap-2 text-emerald-100"><Check size={16} className="text-emerald-300" />{beneficio}</span>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Feature comparison table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-700">
+        <div className="grid grid-cols-4 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-700">
           <div className="px-6 py-3">Funcionalidad</div>
           <div className="px-4 py-3 text-center">Free</div>
           <div className="px-4 py-3 text-center text-green-700">Pro</div>
+          <div className="px-4 py-3 text-center text-emerald-800">Empresa</div>
         </div>
         {features.map((f, i) => (
           <div
             key={f.label}
-            className={`grid grid-cols-3 text-sm border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}
+            className={`grid grid-cols-4 text-sm border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}
           >
             <div className="px-6 py-3 text-gray-700 font-medium">{f.label}</div>
             <div className="px-4 py-3 text-center"><FeatureCell value={f.free} /></div>
+            <div className="px-4 py-3 text-center"><FeatureCell value={f.pro} /></div>
             <div className="px-4 py-3 text-center"><FeatureCell value={f.pro} /></div>
           </div>
         ))}

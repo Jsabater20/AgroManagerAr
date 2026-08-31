@@ -18,6 +18,7 @@ import { RecursoAsignableDto } from './dto/recurso-asignable.dto';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
 import { MailerService } from '../mailer/mailer.service';
 import { PlanService } from '../plan/plan.service';
+import { R2StorageService } from '../storage/r2-storage.service';
 
 const MODULOS_DISPONIBLES = [
   'Dashboard',
@@ -41,6 +42,7 @@ export class OrganizationsService {
     private prisma: PrismaService,
     private mailerService: MailerService,
     private planService: PlanService,
+    private r2StorageService: R2StorageService,
   ) {}
 
   private invitationUrl(token: string): string {
@@ -122,6 +124,7 @@ export class OrganizationsService {
             email: true,
             nombre: true,
             apellido: true,
+            fotoPerfilStorageKey: true,
           },
         },
         AsignacionCampo: {
@@ -134,11 +137,12 @@ export class OrganizationsService {
       },
     });
 
-    return miembros.map((m) => ({
+    return Promise.all(miembros.map(async (m) => ({
       id: m.id,
       usuarioId: m.usuarioId,
       nombre: m.usuario.nombre,
       apellido: m.usuario.apellido,
+      fotoPerfilUrl: await this.obtenerFotoPerfilUrl(m.usuario.fotoPerfilStorageKey),
       email: m.usuario.email,
       rol: m.roles,
       activo: m.activo,
@@ -150,7 +154,7 @@ export class OrganizationsService {
         nombre: ac.Campo.nombre,
       })),
       modulos: m.VisibilidadModulo,
-    }));
+    })));
   }
 
   // ─── PANEL DEL OWNER ───────────────────────────────────────────────────────
@@ -170,6 +174,7 @@ export class OrganizationsService {
             email: true,
             nombre: true,
             apellido: true,
+            fotoPerfilStorageKey: true,
           },
         },
         AsignacionCampo: {
@@ -223,6 +228,7 @@ export class OrganizationsService {
     return {
       id: miembro.id,
       usuarioId: miembro.usuarioId,
+      fotoPerfilUrl: await this.obtenerFotoPerfilUrl(miembro.usuario.fotoPerfilStorageKey),
       usuario: miembro.usuario,
       roles: miembro.roles ? [miembro.roles] : [],
       activo: miembro.activo,
@@ -250,6 +256,7 @@ export class OrganizationsService {
             nombre: true,
             apellido: true,
             email: true,
+            fotoPerfilStorageKey: true,
           },
         },
         AsignacionCampo: {
@@ -289,6 +296,7 @@ export class OrganizationsService {
         id: m.id,
         nombre: m.usuario.nombre,
         apellido: m.usuario.apellido,
+        fotoPerfilUrl: await this.obtenerFotoPerfilUrl(m.usuario.fotoPerfilStorageKey),
         email: m.usuario.email,
         rol: m.roles,
         activo: m.activo,
@@ -780,6 +788,16 @@ export class OrganizationsService {
     });
 
     return { success: true, message: 'Invitación cancelada' };
+  }
+
+  private async obtenerFotoPerfilUrl(storageKey?: string | null) {
+    if (!storageKey) return null;
+
+    try {
+      return await this.r2StorageService.crearUrlDeLectura(storageKey);
+    } catch {
+      return null;
+    }
   }
 
   // ─── MIEMBROS (MÉTODOS HEREDADOS) ─────────────────────────────────────────

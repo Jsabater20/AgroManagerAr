@@ -18,6 +18,7 @@ import {
 } from '@/api/equipo.api';
 import { getApiErrorMessage } from '@/api/errors';
 import { AccessRestricted } from '@/components/AccessRestricted';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { useAuthStore } from '@/store/auth.store';
 
 const roleLabel: Record<string, string> = {
@@ -170,11 +171,19 @@ export default function EquipoScreen() {
                 }
               >
                 <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="text-lg font-bold text-slate-900">
-                      {member.nombre} {member.apellido}
-                    </Text>
-                    <Text className="mt-1 text-sm text-slate-500">{member.email}</Text>
+                  <View className="flex-1 flex-row items-center gap-3">
+                    <ProfileAvatar
+                      apellido={member.apellido}
+                      fotoUrl={member.fotoPerfilUrl}
+                      nombre={member.nombre}
+                      size="md"
+                    />
+                    <View className="flex-1">
+                      <Text className="text-lg font-bold text-slate-900">
+                        {member.nombre} {member.apellido}
+                      </Text>
+                      <Text className="mt-1 text-sm text-slate-500">{member.email}</Text>
+                    </View>
                   </View>
                   <Text
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${

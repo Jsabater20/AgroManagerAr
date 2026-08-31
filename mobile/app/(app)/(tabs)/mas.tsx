@@ -242,6 +242,16 @@ export default function MasScreen() {
       <View className="mt-3 overflow-hidden rounded-2xl bg-white">
         <Pressable
           className="flex-row items-center justify-between px-5 py-4"
+          onPress={() => router.push('/(app)/perfil' as Href)}
+        >
+          <View>
+            <Text className="font-medium text-slate-800">Mi perfil</Text>
+            <Text className="mt-1 text-sm text-slate-500">Foto, datos y cuenta</Text>
+          </View>
+          <Text className="text-lg text-slate-400">›</Text>
+        </Pressable>
+        <Pressable
+          className="flex-row items-center justify-between border-t border-slate-100 px-5 py-4"
           onPress={() => router.push('/(app)/notificaciones' as Href)}
         >
           <View>

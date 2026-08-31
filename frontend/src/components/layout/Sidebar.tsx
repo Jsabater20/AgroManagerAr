@@ -17,6 +17,7 @@ import {
   Wrench,
   Settings,
   Users,
+  Building2,
   Shield,
   ChevronDown,
 } from 'lucide-react';
@@ -25,6 +26,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { organizacionesApi } from '../../api/organizaciones.api';
+import { empresasApi } from '../../api/empresas.api';
 import { useAuthStore } from '../../store/auth.store';
 
 interface NavItem {
@@ -61,8 +63,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const [isMembersOpen, setIsMembersOpen] = useState(true);
 
-  const currentOrgId = orgId || '1';
+  const currentOrgId = orgId || '';
   const currentOrgIdNumber = Number(currentOrgId);
+  const hasOrganizationContext = currentOrgIdNumber > 0;
   const isSuperAdmin = !isLoading && usuario?.rolGlobal === 'SUPERADMIN';
   const isOwner = usuario?.organizaciones?.some(
     (organizacion) =>
@@ -73,7 +76,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const miembroActualQuery = useQuery({
     queryKey: ['miembro-actual', currentOrgIdNumber],
     queryFn: () => organizacionesApi.obtenerMiembroActual(currentOrgIdNumber),
-    enabled: !isLoading && !!usuario && currentOrgIdNumber > 0 && !canManageMembers,
+    enabled: !isLoading && !!usuario && hasOrganizationContext && !canManageMembers,
     retry: false,
   });
 
@@ -82,9 +85,17 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       .filter((modulo) => modulo.activo)
       .map((modulo) => modulo.moduloNombre),
   );
-  const visibleNavItems = canManageMembers
+  const visibleNavItems = !hasOrganizationContext
+    ? []
+    : canManageMembers
     ? navItems
     : navItems.filter((item) => item.modulo !== null && modulosHabilitados.has(item.modulo));
+  const empresasQuery = useQuery({
+    queryKey: ['empresas-mias'],
+    queryFn: empresasApi.listarMias,
+    enabled: !isLoading && !!usuario,
+    retry: false,
+  });
 
   const handleLogout = () => {
     logout();
@@ -129,6 +140,20 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </div>
 
       <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
+        {empresasQuery.data?.length ? (
+          <NavLink
+            to="/empresas"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isActive ? 'bg-white/15 text-white ring-1 ring-white/10' : 'text-green-300 hover:bg-white/10 hover:text-white'
+              }`
+            }
+          >
+            <Building2 size={18} className="shrink-0" />
+            <span>Empresas</span>
+          </NavLink>
+        ) : null}
         {visibleNavItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={label}
@@ -147,7 +172,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </NavLink>
         ))}
 
-        {canManageMembers && (
+        {hasOrganizationContext && canManageMembers && (
           <div className="pt-1">
             <button
               type="button"
