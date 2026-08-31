@@ -128,7 +128,9 @@ export class R2StorageService {
   }
 
   private obtenerBucket(): string {
-    const bucket = this.configService.get<string>('R2_BUCKET_NAME');
+    const bucket =
+      this.configService.get<string>('R2_BUCKET_NAME') ??
+      this.configService.get<string>('R2_BUCKET');
     if (!bucket) {
       throw new ServiceUnavailableException('El bucket de imágenes no está configurado');
     }
