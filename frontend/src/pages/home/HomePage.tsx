@@ -13,6 +13,8 @@ import {
   TrendingUp,
   CheckCircle2,
   ChevronRight,
+  UsersRound,
+  Camera,
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
@@ -26,6 +28,7 @@ const FREE_FEATURES = [
   'Tareas rurales',
   '1 miembro adicional + hasta 3 trabajos activos',
   'Asigná recursos y trabajos con fechas y estados',
+  'Fotos de perfil y evidencia visual',
   'Clima actual',
   'Dashboard básico',
 ];
@@ -33,6 +36,7 @@ const PRO_FEATURES = [
   'Campos, lotes y animales ilimitados',
   'Miembros, recursos y trabajos ilimitados',
   'Permisos, horarios e historial completo del equipo',
+  'Evidencias y observaciones completas de actividades',
   'Campañas agrícolas',
   'AgroBot IA',
   'Analytics avanzados + rentabilidad',
@@ -83,6 +87,22 @@ const FEATURES = [
     desc: 'Planificá y analizá cada campaña. Costos, rendimientos y rentabilidad por lote, cultivo y establecimiento.',
     gradient: 'from-amber-500 to-orange-500',
     pill: 'bg-amber-50 text-amber-700',
+  },
+  {
+    icon: UsersRound,
+    badge: 'Equipo',
+    title: 'Tu equipo conectado',
+    desc: 'Invitá colaboradores, asigná campos y trabajos, definí permisos y seguí cada actividad desde un solo lugar.',
+    gradient: 'from-emerald-500 to-teal-600',
+    pill: 'bg-emerald-50 text-emerald-700',
+  },
+  {
+    icon: Camera,
+    badge: 'Evidencia',
+    title: 'Seguimiento con fotos',
+    desc: 'Documentá tareas, animales, maquinarias, cultivos y lotes con imágenes y observaciones de cada jornada.',
+    gradient: 'from-rose-500 to-orange-500',
+    pill: 'bg-rose-50 text-rose-700',
   },
 ];
 
@@ -328,8 +348,8 @@ export default function HomePage() {
             </h1>
 
             <p className="text-gray-400 text-lg md:text-xl max-w-xl leading-relaxed">
-              El ERP agropecuario que une IA, mapas, trazabilidad y finanzas en un
-              solo lugar. Hecho en Argentina, para el campo argentino.
+              Campos, equipo, tareas, evidencias y finanzas en un solo lugar.
+              Hecho en Argentina, para decidir mejor todos los días.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
@@ -376,7 +396,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-5 gap-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, badge, title, desc, gradient, pill }) => (
               <div
                 key={title}
@@ -477,7 +497,7 @@ export default function HomePage() {
                 $0{' '}
                 <span className="text-base font-normal text-gray-400">/ mes</span>
               </p>
-              <p className="text-sm text-gray-400 mb-6">Para empezar a gestionar tu campo</p>
+              <p className="text-sm text-gray-400 mb-6">Para probar tu campo, equipo y tareas en una misma plataforma</p>
               <ul className="space-y-3 mb-7">
                 {FREE_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-gray-600">

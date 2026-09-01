@@ -9,7 +9,15 @@ import { getProfile } from '../../api/users.api';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 
-const features = [
+type ValorFeature = boolean | string;
+type Feature = {
+  label: string;
+  free: ValorFeature;
+  pro: ValorFeature;
+  empresa?: ValorFeature;
+};
+
+const features: Feature[] = [
   { label: 'Campos',                          free: '1 campo',     pro: 'Ilimitados' },
   { label: 'Lotes por campo',                 free: 'Hasta 3',     pro: 'Ilimitados' },
   { label: 'Siembras',                        free: 'Hasta 10',    pro: 'Ilimitadas' },
@@ -37,6 +45,12 @@ const features = [
   { label: 'Reportes avanzados',              free: false,         pro: true },
   { label: 'Soporte prioritario',             free: false,         pro: true },
   { label: 'Acceso anticipado a novedades',   free: false,         pro: true },
+  { label: 'Fotos de perfil del equipo',      free: true,          pro: true },
+  { label: 'Evidencias fotograficas',         free: true,          pro: true },
+  { label: 'Observaciones de actividades',    free: 'Basicas',     pro: 'Completas' },
+  { label: 'Multiples organizaciones',        free: false,         pro: false, empresa: 'Incluido' },
+  { label: 'Dashboard multi-establecimiento', free: false,         pro: false, empresa: 'Incluido' },
+  { label: 'Auditoria y exportaciones consolidadas', free: false,  pro: false, empresa: 'Incluido' },
 ];
 
 function FeatureCell({ value }: { value: boolean | string }) {
@@ -89,6 +103,8 @@ export default function PreciosPage() {
             rolGlobal: freshUser.rolGlobal,
             usuarioOrganizacionId: freshUser.usuarioOrganizacionId,
             organizaciones: freshUser.organizaciones,
+            fotoPerfilUrl: freshUser.fotoPerfilUrl,
+            fotoPerfilEncuadre: freshUser.fotoPerfilEncuadre,
           }, token))
           .catch(() => {
             if (usuario && token) setAuth(usuario, token);
@@ -102,6 +118,7 @@ export default function PreciosPage() {
 
   const isPro = planInfo?.plan === 'PRO';
   const canManageSubscription = currentOrg?.propietarioId === usuario?.id;
+  const canStartCheckout = !token || canManageSubscription;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -138,9 +155,9 @@ export default function PreciosPage() {
             {!isPro && <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">Tu plan</span>}
           </div>
           <p className="text-3xl font-bold text-gray-900 mb-1">$0 <span className="text-base font-normal text-gray-500">/ mes</span></p>
-          <p className="text-sm text-gray-500 mb-6">Para empezar a gestionar tu campo</p>
+          <p className="text-sm text-gray-500 mb-6">Para probar el flujo completo de tu campo y equipo</p>
           <div className="space-y-2.5">
-            {features.slice(0, 9).map((f) => (
+            {features.filter((feature) => feature.free !== false).slice(0, 10).map((f) => (
               <div key={f.label} className="flex items-center gap-2.5 text-sm text-gray-700">
                 {typeof f.free === 'boolean'
                   ? <Check size={16} className="text-green-500 shrink-0" />
@@ -196,7 +213,7 @@ export default function PreciosPage() {
             <p className="text-xs text-green-700 font-medium mb-5">✓ 14 días gratis — sin cargo hasta que termine la prueba</p>
           )}
 
-          {!isPro && canManageSubscription ? (
+          {!isPro && canStartCheckout ? (
             <button
               onClick={() => {
                 if (!token) { navigate('/login'); return; }
@@ -229,7 +246,7 @@ export default function PreciosPage() {
           )}
 
           <div className="space-y-2.5">
-            {features.map((f) => (
+            {features.filter((feature) => feature.pro !== false).slice(0, 14).map((f) => (
               <div key={f.label} className="flex items-center gap-2.5 text-sm text-gray-700">
                 <Check size={16} className="text-green-500 shrink-0" />
                 <span>{f.label}: <span className="text-gray-500">{typeof f.pro === 'boolean' ? 'Incluido' : f.pro}</span></span>
@@ -255,7 +272,7 @@ export default function PreciosPage() {
             </a>
           </div>
           <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            {['Todo Pro incluido', 'Dashboard consolidado', 'Personal y permisos avanzados', 'Reportes empresariales'].map((beneficio) => (
+            {['Todo Pro incluido', 'Dashboard consolidado', 'Personal y permisos avanzados', 'Auditoria y exportaciones'].map((beneficio) => (
               <span key={beneficio} className="flex items-center gap-2 text-emerald-100"><Check size={16} className="text-emerald-300" />{beneficio}</span>
             ))}
           </div>
@@ -264,6 +281,8 @@ export default function PreciosPage() {
 
       {/* Feature comparison table */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+        <div className="min-w-[720px]">
         <div className="grid grid-cols-4 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-700">
           <div className="px-6 py-3">Funcionalidad</div>
           <div className="px-4 py-3 text-center">Free</div>
@@ -277,10 +296,12 @@ export default function PreciosPage() {
           >
             <div className="px-6 py-3 text-gray-700 font-medium">{f.label}</div>
             <div className="px-4 py-3 text-center"><FeatureCell value={f.free} /></div>
-            <div className="px-4 py-3 text-center"><FeatureCell value={f.pro} /></div>
+            <div className="px-4 py-3 text-center"><FeatureCell value={f.empresa ?? f.pro} /></div>
             <div className="px-4 py-3 text-center"><FeatureCell value={f.pro} /></div>
           </div>
         ))}
+        </div>
+        </div>
       </div>
 
       {/* Back button */}
