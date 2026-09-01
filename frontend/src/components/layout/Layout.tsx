@@ -9,6 +9,7 @@ import OnboardingWizard, { useOnboarding } from './OnboardingWizard';
 import { useThemeStore } from '../../store/theme.store';
 import AiChat from '../ui/AiChat';
 import DemoBanner from '../ui/DemoBanner';
+import PageBackButton from './PageBackButton';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -78,6 +79,7 @@ export default function Layout() {
 
       {/* Contenido centrado */}
       <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '2rem 24px' }}>
+        <PageBackButton />
         <Outlet />
       </main>
 
