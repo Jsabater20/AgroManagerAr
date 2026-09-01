@@ -13,6 +13,7 @@ import {
   PrepararEvidenciaDto,
 } from './dto/preparar-evidencia.dto';
 import { R2StorageService } from '../storage/r2-storage.service';
+import { PlanService } from '../plan/plan.service';
 
 const PARES_RECURSO_VALIDOS: Record<
   OrigenEvidencia,
@@ -32,6 +33,7 @@ export class EvidenciasService {
     private readonly prisma: PrismaService,
     private readonly memberAccessService: MemberAccessService,
     private readonly r2StorageService: R2StorageService,
+    private readonly planService: PlanService,
   ) {}
 
   async prepararCarga(
@@ -39,6 +41,7 @@ export class EvidenciasService {
     usuarioId: number,
     dto: PrepararEvidenciaDto,
   ) {
+    await this.validarPlanPro(organizacionId);
     await this.validarAccesoAlRecurso(
       organizacionId,
       usuarioId,
@@ -103,6 +106,7 @@ export class EvidenciasService {
     evidenciaId: string,
     usuarioId: number,
   ) {
+    await this.validarPlanPro(organizacionId);
     const evidencia = await this.obtenerEvidenciaParaGestionar(
       organizacionId,
       evidenciaId,
@@ -128,6 +132,7 @@ export class EvidenciasService {
     tipoRecurso: TipoRecursoEvidencia,
     recursoId: number,
   ) {
+    await this.validarPlanPro(organizacionId);
     const evidenciaDeReferencia = await this.prisma.evidencia.findFirst({
       where: {
         organizacionId,
@@ -191,6 +196,7 @@ export class EvidenciasService {
     archivoId: string,
     usuarioId: number,
   ) {
+    await this.validarPlanPro(organizacionId);
     const evidencia = await this.obtenerEvidenciaConAcceso(
       organizacionId,
       evidenciaId,
@@ -213,6 +219,7 @@ export class EvidenciasService {
     evidenciaId: string,
     usuarioId: number,
   ) {
+    await this.validarPlanPro(organizacionId);
     const evidencia = await this.obtenerEvidenciaParaGestionar(
       organizacionId,
       evidenciaId,
@@ -250,6 +257,13 @@ export class EvidenciasService {
     );
 
     return evidencia;
+  }
+
+  private validarPlanPro(organizacionId: number): Promise<void> {
+    return this.planService.checkProAccess(
+      organizacionId,
+      'Las evidencias fotográficas',
+    );
   }
 
   private async obtenerEvidenciaParaGestionar(

@@ -46,7 +46,7 @@ const features: Feature[] = [
   { label: 'Soporte prioritario',             free: false,         pro: true },
   { label: 'Acceso anticipado a novedades',   free: false,         pro: true },
   { label: 'Fotos de perfil del equipo',      free: true,          pro: true },
-  { label: 'Evidencias fotograficas',         free: true,          pro: true },
+  { label: 'Evidencias fotograficas',         free: false,         pro: true },
   { label: 'Observaciones de actividades',    free: 'Basicas',     pro: 'Completas' },
   { label: 'Multiples organizaciones',        free: false,         pro: false, empresa: 'Incluido' },
   { label: 'Dashboard multi-establecimiento', free: false,         pro: false, empresa: 'Incluido' },

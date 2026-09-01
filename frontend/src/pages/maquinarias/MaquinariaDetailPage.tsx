@@ -24,6 +24,7 @@ import type {
   TipoMaquinaria,
   TipoMantenimiento,
 } from '../../api/types';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -422,7 +423,8 @@ export default function MaquinariaDetailPage() {
                   </span>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
+                <EvidenceAction organizacionId={Number(orgId)} origen="MAQUINARIAS" tipoRecurso="MAQUINARIA" recursoId={maqId} titulo={`Evidencia de ${maq.nombre}`} compacto />
                 <button
                   onClick={startEdit}
                   className="flex items-center gap-1 border border-gray-300 text-gray-600 hover:text-green-600 hover:border-green-300 px-3 py-1.5 rounded-lg text-sm transition-colors"

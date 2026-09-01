@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 import { listActividades } from '../../api/actividades.api';
 import { ownerAdminApi } from '../../api/owner-admin.api';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
 type MiembroPanel = {
   id: number;
@@ -125,7 +126,7 @@ export default function MiembrosTrabajosPage() {
                           <p className="font-medium text-gray-900">{trabajo.titulo}</p>
                           <p className="mt-0.5 text-xs text-gray-500">{trabajo.recursoTipo}{trabajo.recursoId ? ` #${trabajo.recursoId}` : ''} · {trabajo.estado}</p>
                         </div>
-                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">{trabajo.prioridad}</span>
+                        <div className="flex items-center gap-2"><EvidenceAction organizacionId={orgIdNum} origen="ACTIVIDADES" tipoRecurso="ACTIVIDAD" recursoId={trabajo.id} titulo={`Evidencia de ${trabajo.titulo}`} compacto /><span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">{trabajo.prioridad}</span></div>
                       </div>
                       <p className="mt-2 text-xs text-gray-500">{formatDate(trabajo.fechaInicio)} → {formatDate(trabajo.fechaEstimadaFin)}{trabajo.horarioInicio ? ` · ${trabajo.horarioInicio}` : ''}{trabajo.horarioFin ? ` - ${trabajo.horarioFin}` : ''}</p>
                     </div>

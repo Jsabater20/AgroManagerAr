@@ -28,7 +28,7 @@ const FREE_FEATURES = [
   'Tareas rurales',
   '1 miembro adicional + hasta 3 trabajos activos',
   'Asigná recursos y trabajos con fechas y estados',
-  'Fotos de perfil y evidencia visual',
+  'Fotos de perfil para tu equipo',
   'Clima actual',
   'Dashboard básico',
 ];

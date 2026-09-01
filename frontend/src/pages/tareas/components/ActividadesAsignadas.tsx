@@ -3,6 +3,7 @@ import { CheckCircle2, Clock3, Loader2, PauseCircle, PlayCircle } from 'lucide-r
 import toast from 'react-hot-toast';
 
 import { cambiarEstadoActividad, listActividades } from '../../../api/actividades.api';
+import { EvidenceAction } from '../../../components/evidencias/EvidenceAction';
 
 interface ActividadAsignada {
   id: number;
@@ -104,6 +105,7 @@ export function ActividadesAsignadas({ organizacionId }: { organizacionId: numbe
 
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
                 <span className="text-xs font-semibold text-gray-700">{actividad.estado.replace('_', ' ')}</span>
+                <EvidenceAction organizacionId={organizacionId} origen="ACTIVIDADES" tipoRecurso="ACTIVIDAD" recursoId={actividad.id} titulo={`Evidencia de ${actividad.titulo}`} compacto />
                 {siguiente && (
                   <button
                     type="button"

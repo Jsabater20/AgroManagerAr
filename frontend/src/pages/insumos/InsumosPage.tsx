@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import { FlaskConical, Plus, Loader2, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 import toast from 'react-hot-toast';
 import { insumosApi } from '../../api/insumos.api';
 import type { CreateInsumoDto, TipoInsumo } from '../../api/types';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
 const emptyForm: CreateInsumoDto = { nombre: '', tipo: 'FERTILIZANTE', unidad: '', descripcion: '' };
 
@@ -23,6 +25,8 @@ function tipoLabel(tipo: TipoInsumo) {
 }
 
 export default function InsumosPage() {
+  const { orgId } = useParams<{ orgId: string }>();
+  const organizacionId = Number(orgId);
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<CreateInsumoDto>(emptyForm);
@@ -127,6 +131,7 @@ export default function InsumosPage() {
                     <td className="px-5 py-3.5 text-gray-600">{insumo.unidad}</td>
                     <td className="px-5 py-3.5 text-gray-500">{insumo.descripcion || '—'}</td>
                     <td className="px-5 py-3.5 text-right">
+                      <EvidenceAction organizacionId={organizacionId} origen="INSUMOS" tipoRecurso="INSUMO" recursoId={insumo.id} titulo={`Evidencia de ${insumo.nombre}`} compacto />
                       <button
                         onClick={() => setDeleteId(insumo.id)}
                         className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded"
