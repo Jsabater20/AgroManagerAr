@@ -388,7 +388,7 @@ export default function OrganizationMembersPage() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex flex-1 items-center gap-3">
-                    <ProfileAvatar nombre={miembro.usuario.nombre} apellido={miembro.usuario.apellido} fotoUrl={miembro.fotoPerfilUrl} size="md" />
+                    <ProfileAvatar nombre={miembro.usuario.nombre} apellido={miembro.usuario.apellido} fotoUrl={miembro.fotoPerfilUrl} encuadre={miembro.fotoPerfilEncuadre} size="md" />
                     <div>
                     <p className="font-medium text-gray-900 dark:text-white">
                       {miembro.usuario.nombre} {miembro.usuario.apellido}

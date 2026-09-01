@@ -20,6 +20,7 @@ import {
   UpdateUserRolDto,
   PrepararFotoPerfilDto,
   ConfirmarFotoPerfilDto,
+  ActualizarEncuadreFotoPerfilDto,
 } from './dto/users.dto';
 
 interface AuthRequest {
@@ -57,6 +58,14 @@ export class UsersController {
     @Body() dto: ConfirmarFotoPerfilDto,
   ) {
     return this.usersService.confirmarFotoPerfil(req.user.id, dto);
+  }
+
+  @Patch('profile/foto/encuadre')
+  actualizarEncuadreFotoPerfil(
+    @Request() req: AuthRequest,
+    @Body() dto: ActualizarEncuadreFotoPerfilDto,
+  ) {
+    return this.usersService.actualizarEncuadreFotoPerfil(req.user.id, dto);
   }
 
   @Delete('profile/foto')

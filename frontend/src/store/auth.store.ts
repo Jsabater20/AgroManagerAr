@@ -22,6 +22,11 @@ export interface Usuario {
   usuarioOrganizacionId?: number | null;
   organizaciones?: Organizacion[];
   fotoPerfilUrl?: string | null;
+  fotoPerfilEncuadre?: {
+    posicionX: number;
+    posicionY: number;
+    escala: number;
+  };
 }
 
 const normalizeUsuario = (usuario: Usuario | null): Usuario | null => {

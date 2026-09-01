@@ -1,4 +1,14 @@
-import { IsString, MinLength, IsOptional, IsIn, MaxLength } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -31,6 +41,26 @@ export class ConfirmarFotoPerfilDto {
   @IsString()
   @MaxLength(300)
   storageKey!: string;
+}
+
+export class ActualizarEncuadreFotoPerfilDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  posicionX?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  posicionY?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(2)
+  escala?: number;
 }
 
 export class UpdateUserPlanDto {

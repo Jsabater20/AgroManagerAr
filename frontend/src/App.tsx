@@ -91,6 +91,7 @@ export default function App() {
             usuarioOrganizacionId: activeOrgId ?? null,
             organizaciones,
             fotoPerfilUrl: profile.fotoPerfilUrl,
+            fotoPerfilEncuadre: profile.fotoPerfilEncuadre,
           },
           token,
         );
@@ -164,9 +165,8 @@ export default function App() {
               <Route path="/empresas/:empresaId/auditoria" element={<EmpresaAuditoriaPage />} />
               <Route path="/empresas/:empresaId/exportaciones" element={<EmpresaExportacionesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Route>
-
-            <Route path="/admin" element={<AdminPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

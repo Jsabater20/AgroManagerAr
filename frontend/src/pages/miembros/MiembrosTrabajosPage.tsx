@@ -11,6 +11,11 @@ type MiembroPanel = {
   nombre: string;
   apellido: string;
   fotoPerfilUrl?: string | null;
+  fotoPerfilEncuadre?: {
+    posicionX: number;
+    posicionY: number;
+    escala: number;
+  };
   email: string;
   rol: string;
   activo: boolean;
@@ -90,7 +95,7 @@ export default function MiembrosTrabajosPage() {
               <article key={miembro.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <ProfileAvatar nombre={miembro.nombre} apellido={miembro.apellido} fotoUrl={miembro.fotoPerfilUrl} size="md" />
+                    <ProfileAvatar nombre={miembro.nombre} apellido={miembro.apellido} fotoUrl={miembro.fotoPerfilUrl} encuadre={miembro.fotoPerfilEncuadre} size="md" />
                     <div className="min-w-0">
                     <h2 className="font-semibold text-gray-900">{miembro.nombre} {miembro.apellido}</h2>
                     <p className="text-sm text-gray-500">{miembro.email} · {miembro.rol}</p>

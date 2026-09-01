@@ -19,6 +19,13 @@ export interface UserProfile {
   }>;
   createdAt?: string;
   fotoPerfilUrl?: string | null;
+  fotoPerfilEncuadre?: FotoPerfilEncuadre;
+}
+
+export interface FotoPerfilEncuadre {
+  posicionX: number;
+  posicionY: number;
+  escala: number;
 }
 
 export const getProfile = (): Promise<UserProfile> =>
@@ -78,6 +85,13 @@ export const subirFotoPerfil = async (archivo: File): Promise<UserProfile> => {
 
 export const eliminarFotoPerfil = (): Promise<{ ok: boolean }> =>
   api.delete<{ ok: boolean }>('/users/profile/foto').then((response) => response.data);
+
+export const actualizarEncuadreFotoPerfil = (
+  encuadre: FotoPerfilEncuadre,
+): Promise<UserProfile> =>
+  api
+    .patch<UserProfile>('/users/profile/foto/encuadre', encuadre)
+    .then((response) => response.data);
 
 export const getAllUsers = (): Promise<UserProfile[]> =>
   api.get<UserProfile[]>('/users/admin/all').then((r) => r.data);

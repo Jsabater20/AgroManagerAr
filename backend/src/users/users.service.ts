@@ -16,6 +16,7 @@ import {
   UpdateUserRolDto,
   PrepararFotoPerfilDto,
   ConfirmarFotoPerfilDto,
+  ActualizarEncuadreFotoPerfilDto,
 } from './dto/users.dto';
 
 @Injectable()
@@ -39,6 +40,9 @@ export class UsersService {
         planExpira: true,
         createdAt: true,
         fotoPerfilStorageKey: true,
+        fotoPerfilPosicionX: true,
+        fotoPerfilPosicionY: true,
+        fotoPerfilEscala: true,
       },
     });
     if (!u) throw new NotFoundException('Usuario no encontrado');
@@ -71,6 +75,11 @@ export class UsersService {
       ...u,
       fotoPerfilStorageKey: undefined,
       fotoPerfilUrl: await this.obtenerFotoPerfilUrl(u.fotoPerfilStorageKey),
+      fotoPerfilEncuadre: {
+        posicionX: u.fotoPerfilPosicionX,
+        posicionY: u.fotoPerfilPosicionY,
+        escala: u.fotoPerfilEscala,
+      },
       organizaciones,
       usuarioOrganizacionId,
     };
@@ -130,7 +139,12 @@ export class UsersService {
 
     await this.prisma.usuario.update({
       where: { id: usuarioId },
-      data: { fotoPerfilStorageKey: dto.storageKey },
+      data: {
+        fotoPerfilStorageKey: dto.storageKey,
+        fotoPerfilPosicionX: 50,
+        fotoPerfilPosicionY: 50,
+        fotoPerfilEscala: 1,
+      },
     });
 
     if (
@@ -145,10 +159,40 @@ export class UsersService {
     return this.getProfile(usuarioId);
   }
 
+  async actualizarEncuadreFotoPerfil(
+    usuarioId: number,
+    dto: ActualizarEncuadreFotoPerfilDto,
+  ) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { fotoPerfilStorageKey: true },
+    });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    if (!usuario.fotoPerfilStorageKey) {
+      throw new BadRequestException('Primero tenés que cargar una foto de perfil');
+    }
+
+    await this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: {
+        fotoPerfilPosicionX: dto.posicionX ?? 50,
+        fotoPerfilPosicionY: dto.posicionY ?? 50,
+        fotoPerfilEscala: dto.escala ?? 1,
+      },
+    });
+
+    return this.getProfile(usuarioId);
+  }
+
   async eliminarFotoPerfil(usuarioId: number) {
     const usuario = await this.prisma.usuario.update({
       where: { id: usuarioId },
-      data: { fotoPerfilStorageKey: null },
+      data: {
+        fotoPerfilStorageKey: null,
+        fotoPerfilPosicionX: 50,
+        fotoPerfilPosicionY: 50,
+        fotoPerfilEscala: 1,
+      },
       select: { fotoPerfilStorageKey: true },
     });
 

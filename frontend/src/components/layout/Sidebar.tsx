@@ -60,11 +60,11 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { orgId } = useParams<{ orgId: string }>();
-  const { usuario, logout, isPro, isLoading } = useAuthStore();
+  const { usuario, logout, isPro, isLoading, currentOrg } = useAuthStore();
   const navigate = useNavigate();
   const [isMembersOpen, setIsMembersOpen] = useState(true);
 
-  const currentOrgId = orgId || '';
+  const currentOrgId = orgId || String(currentOrg()?.id ?? '');
   const currentOrgIdNumber = Number(currentOrgId);
   const hasOrganizationContext = currentOrgIdNumber > 0;
   const isSuperAdmin = !isLoading && usuario?.rolGlobal === 'SUPERADMIN';
@@ -226,6 +226,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             nombre={usuario?.nombre}
             apellido={usuario?.apellido}
             fotoUrl={usuario?.fotoPerfilUrl}
+            encuadre={usuario?.fotoPerfilEncuadre}
             size="sm"
             className="border-green-200"
           />

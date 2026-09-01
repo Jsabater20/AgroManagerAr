@@ -25,6 +25,9 @@ model Usuario {
   emailVerifToken  String?
   apellido         String    @default("")
   fotoPerfilStorageKey String?
+  fotoPerfilPosicionX  Int       @default(50)
+  fotoPerfilPosicionY  Int       @default(50)
+  fotoPerfilEscala     Float     @default(1)
   trialUsado       Boolean   @default(false)
 
   animales                       Animal[]
