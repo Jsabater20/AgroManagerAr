@@ -55,11 +55,18 @@ export const subirFotoPerfil = async (archivo: File): Promise<UserProfile> => {
   const carga = await api
     .post<{ storageKey: string; uploadUrl: string }>('/users/profile/foto/subida', { mimeType })
     .then((response) => response.data);
-  const respuesta = await fetch(carga.uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': mimeType },
-    body: archivo,
-  });
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(carga.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': mimeType },
+      body: archivo,
+    });
+  } catch {
+    throw new Error(
+      'No se pudo conectar con el bucket de imágenes. Verificá la política CORS del bucket activo.',
+    );
+  }
   if (!respuesta.ok) {
     throw new Error('No pudimos subir la imagen al almacenamiento seguro.');
   }
