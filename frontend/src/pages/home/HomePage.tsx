@@ -593,7 +593,7 @@ export default function HomePage() {
             Probá AgroManager gratis
             <br />
             <span className="text-transparent bg-clip-text bg-linear-to-r from-green-400 to-emerald-300">
-              durante 14 días
+              durante 30 dias
             </span>
           </h2>
           <p className="text-gray-400 text-lg mb-8 leading-relaxed">
@@ -619,7 +619,7 @@ export default function HomePage() {
 
           <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-500">
             {[
-              '14 días gratis',
+              '30 dias gratis',
               'Sin tarjeta de crédito',
               'Cancelá cuando quieras',
               '100% argentino',
