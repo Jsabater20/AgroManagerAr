@@ -210,7 +210,7 @@ export default function PreciosPage() {
 
           <p className="text-sm text-gray-500 mb-1">Gestión completa sin límites</p>
           {(!token || !planInfo?.trialUsado) && (
-            <p className="text-xs text-green-700 font-medium mb-5">✓ 14 días gratis — sin cargo hasta que termine la prueba</p>
+            <p className="text-xs text-green-700 font-medium mb-5">✓ 30 días gratis — sin cargo hasta que termine la prueba</p>
           )}
 
           {!isPro && canStartCheckout ? (

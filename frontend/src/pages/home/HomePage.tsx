@@ -534,7 +534,7 @@ export default function HomePage() {
                 <span className="text-base font-normal text-gray-400">ARS / mes</span>
               </p>
               <p className="text-sm text-green-700 font-medium mb-6">
-                ✓ 14 días de prueba gratis
+                ✓ 30 días de prueba gratis
               </p>
               <ul className="space-y-3 mb-7">
                 <li className="flex items-start gap-2.5 text-sm text-gray-700 font-medium">
@@ -593,7 +593,7 @@ export default function HomePage() {
             Probá AgroManager gratis
             <br />
             <span className="text-transparent bg-clip-text bg-linear-to-r from-green-400 to-emerald-300">
-              durante 30 dias
+              durante 30 días
             </span>
           </h2>
           <p className="text-gray-400 text-lg mb-8 leading-relaxed">
