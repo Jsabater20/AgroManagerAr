@@ -224,22 +224,30 @@ export class DemoService implements OnModuleInit {
       this.prisma.tipoCultivo.findFirst({ where: { nombre: 'Trigo' } }),
       this.prisma.tipoCultivo.findFirst({ where: { nombre: 'Girasol' } }),
     ]);
+    const insumosDemo = [
+      { nombre: 'Glifosato 48%', tipo: 'HERBICIDA', unidad: 'litros', descripcion: 'Herbicida sistémico' },
+      { nombre: 'Urea Granulada', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '46% N' },
+      { nombre: 'Fosfato Diamónico', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '18-46-0' },
+      { nombre: 'Semilla Soja NK7059', tipo: 'SEMILLA', unidad: 'kg', descripcion: 'Grupo VII, tolerante a sequía' },
+      { nombre: 'Semilla Maíz DK7210', tipo: 'SEMILLA', unidad: 'kg', descripcion: 'Híbrido simple, alto rendimiento' },
+      { nombre: 'Mancozeb 80%', tipo: 'FUNGICIDA', unidad: 'kg', descripcion: 'Fungicida preventivo' },
+      { nombre: 'Cipermetrina 25%', tipo: 'INSECTICIDA', unidad: 'litros', descripcion: 'Insecticida piretroide' },
+      { nombre: 'Nitrato de Amonio', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '34.5% N' },
+    ] as const;
+
     const [glifosato, urea, fda, semSoja, semMaiz, mancozeb, cipermetrina, nitrato] =
-      await Promise.all([
-        this.prisma.insumo.findFirst({ where: { nombre: 'Glifosato 48%' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Urea Granulada' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Fosfato Diamónico' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Semilla Soja NK7059' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Semilla Maíz DK7210' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Mancozeb 80%' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Cipermetrina 25%' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Nitrato de Amonio' } }),
-      ]);
+      await Promise.all(
+        insumosDemo.map(async (insumo) => {
+          const existente = await this.prisma.insumo.findFirst({
+            where: { nombre: insumo.nombre, organizacionId },
+          });
+          return existente ?? this.prisma.insumo.create({
+            data: { ...insumo, organizacionId },
+          });
+        }),
+      );
 
     if (!soja || !maiz || !trigo || !girasol) return;
-    if (!glifosato || !urea || !fda || !semSoja || !semMaiz || !mancozeb || !cipermetrina || !nitrato)
-      return;
-
     // ─── Campos y Lotes ──────────────────────────────────────────────────────
     const campoEsperanza = await this.prisma.campo.create({
       data: {

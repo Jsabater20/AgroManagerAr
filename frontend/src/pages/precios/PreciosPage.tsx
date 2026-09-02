@@ -33,10 +33,10 @@ const features: Feature[] = [
   { label: 'Dashboard básico',                free: true,          pro: true },
   { label: 'Finanzas básicas',                free: true,          pro: true },
   { label: 'Animales registrados',            free: 'Hasta 20',    pro: 'Ilimitados' },
-  { label: 'Historial de animales',           free: 'Básico',      pro: 'Completo' },
-  { label: 'Mapa de campos',                  free: 'Básico',      pro: 'Avanzado' },
+  { label: 'Historial de animales',           free: true,          pro: true },
+  { label: 'Mapa de campos',                  free: true,          pro: true },
   { label: 'Clima actual',                    free: true,          pro: true },
-  { label: 'Alertas climáticas',              free: false,         pro: true },
+  { label: 'Alertas climáticas',              free: true,          pro: true },
   { label: 'AgroBot IA',                      free: false,         pro: true },
   { label: 'Campañas agrícolas',              free: false,         pro: true },
   { label: 'Analytics avanzados',             free: false,         pro: true },
@@ -47,7 +47,7 @@ const features: Feature[] = [
   { label: 'Acceso anticipado a novedades',   free: false,         pro: true },
   { label: 'Fotos de perfil del equipo',      free: true,          pro: true },
   { label: 'Evidencias fotograficas',         free: false,         pro: true },
-  { label: 'Observaciones de actividades',    free: 'Basicas',     pro: 'Completas' },
+  { label: 'Observaciones de actividades',    free: true,          pro: true },
   { label: 'Multiples organizaciones',        free: false,         pro: false, empresa: 'Incluido' },
   { label: 'Dashboard multi-establecimiento', free: false,         pro: false, empresa: 'Incluido' },
   { label: 'Auditoria y exportaciones consolidadas', free: false,  pro: false, empresa: 'Incluido' },
@@ -73,9 +73,9 @@ export default function PreciosPage() {
   const [tipo, setTipo] = useState<'mensual' | 'anual'>('mensual');
 
   const { data: planInfo, refetch } = useQuery({
-    queryKey: ['plan'],
+    queryKey: ['plan', activeOrgId],
     queryFn: getPlanInfo,
-    enabled: !!token,
+    enabled: !!token && !!activeOrgId,
   });
 
   const checkoutMutation = useMutation({

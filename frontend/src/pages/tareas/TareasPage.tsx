@@ -10,6 +10,7 @@ import { tareasApi } from '../../api/tareas.api';
 import { camposApi } from '../../api/campos.api';
 import { ActividadesOwner } from './components/ActividadesOwner/ActividadesOwner';
 import { ActividadesAsignadas } from './components/ActividadesAsignadas';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 import { useAuthStore } from '../../store/auth.store';
 import type {
   TareaRural, CreateTareaDto,
@@ -331,6 +332,14 @@ export default function TareasPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1 justify-end">
+                          <EvidenceAction
+                            organizacionId={orgIdNum}
+                            origen="ACTIVIDADES"
+                            tipoRecurso="TAREA"
+                            recursoId={t.id}
+                            titulo={`Evidencia de ${t.titulo}`}
+                            compacto
+                          />
                           <button onClick={() => openEdit(t)}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                             <Pencil size={14} />

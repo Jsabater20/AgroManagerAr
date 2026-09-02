@@ -213,6 +213,13 @@ export class SiembrasService {
       organizacionId,
       'Insumos',
     );
+    const insumo = await this.prisma.insumo.findFirst({
+      where: { id: dto.insumoId, organizacionId },
+      select: { id: true },
+    });
+    if (!insumo) {
+      throw new NotFoundException('Insumo no encontrado');
+    }
     return this.prisma.aplicacionInsumo.create({
       data: {
         siembraId,

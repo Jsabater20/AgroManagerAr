@@ -8,27 +8,27 @@ datasource db {
 }
 
 model Usuario {
-  id               Int       @id @default(autoincrement())
-  email            String    @unique
-  nombre           String
-  password         String
-  rol              Rol       @default(OPERADOR)
-  rolGlobal        String    @default("USER")
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  resetToken       String?
-  resetTokenExpiry DateTime?
-  mpSuscripcionId  String?
-  plan             PlanTipo  @default(FREE)
-  planExpira       DateTime?
-  emailVerificado  Boolean   @default(false)
-  emailVerifToken  String?
-  apellido         String    @default("")
+  id                   Int       @id @default(autoincrement())
+  email                String    @unique
+  nombre               String
+  password             String
+  rol                  Rol       @default(OPERADOR)
+  rolGlobal            String    @default("USER")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  resetToken           String?
+  resetTokenExpiry     DateTime?
+  mpSuscripcionId      String?
+  plan                 PlanTipo  @default(FREE)
+  planExpira           DateTime?
+  emailVerificado      Boolean   @default(false)
+  emailVerifToken      String?
+  apellido             String    @default("")
   fotoPerfilStorageKey String?
   fotoPerfilPosicionX  Int       @default(50)
   fotoPerfilPosicionY  Int       @default(50)
   fotoPerfilEscala     Float     @default(1)
-  trialUsado       Boolean   @default(false)
+  trialUsado           Boolean   @default(false)
 
   animales                       Animal[]
   auditoriasLogs                 AuditoriaLog[]           @relation("auditoriaLogs")
@@ -136,14 +136,18 @@ model Cosecha {
 }
 
 model Insumo {
-  id           Int                @id @default(autoincrement())
-  nombre       String
-  tipo         TipoInsumo
-  unidad       String
-  descripcion  String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  aplicaciones AplicacionInsumo[]
+  organizacionId Int?
+  id             Int                @id @default(autoincrement())
+  nombre         String
+  tipo           TipoInsumo
+  unidad         String
+  descripcion    String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  aplicaciones   AplicacionInsumo[]
+  organizacion   Organizacion?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([organizacionId])
 }
 
 model AplicacionInsumo {
@@ -322,28 +326,29 @@ model RegistroPeso {
 }
 
 model Organizacion {
-  id                   Int                      @id @default(autoincrement())
-  nombre               String
-  email                String                   @unique
-  plan                 PlanTipo                 @default(FREE)
-  propietarioId        Int
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
-  animales             Animal[]
-  asignacionesRecursos AsignacionRecurso[]
-  auditoriasLogs       AuditoriaLog[]           @relation("auditoriaLogs")
-  campanias            Campania[]
-  campos               Campo[]
-  invitaciones         InvitacionOrganizacion[]
-  maquinarias          Maquinaria[]
-  movimientos          MovimientoFinanciero[]
-  propietario          Usuario                  @relation("organizacion_owner", fields: [propietarioId], references: [id])
-  rolesPersonalizados  RolPersonalizado[]
-  tareas               TareaRural[]
-  miembros             UsuarioOrganizacion[]
-  actividades          ActividadMiembro[]
-  evidencias           Evidencia[]
-  vinculacionEmpresa   EmpresaOrganizacion?
+  id                    Int                          @id @default(autoincrement())
+  nombre                String
+  email                 String                       @unique
+  plan                  PlanTipo                     @default(FREE)
+  propietarioId         Int
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  animales              Animal[]
+  asignacionesRecursos  AsignacionRecurso[]
+  auditoriasLogs        AuditoriaLog[]               @relation("auditoriaLogs")
+  campanias             Campania[]
+  campos                Campo[]
+  invitaciones          InvitacionOrganizacion[]
+  maquinarias           Maquinaria[]
+  movimientos           MovimientoFinanciero[]
+  insumos               Insumo[]
+  propietario           Usuario                      @relation("organizacion_owner", fields: [propietarioId], references: [id])
+  rolesPersonalizados   RolPersonalizado[]
+  tareas                TareaRural[]
+  miembros              UsuarioOrganizacion[]
+  actividades           ActividadMiembro[]
+  evidencias            Evidencia[]
+  vinculacionEmpresa    EmpresaOrganizacion?
   autorizacionesEmpresa UsuarioEmpresaOrganizacion[]
 
   @@index([propietarioId])
@@ -531,7 +536,7 @@ model ObservacionActividad {
 
   contenido                String
   fotoBase64               String?
-  idempotencyKey           String?        @unique
+  idempotencyKey           String?         @unique
   estadoActividadAlMomento EstadoActividad
 
   createdAt DateTime @default(now())
@@ -543,16 +548,16 @@ model ObservacionActividad {
 }
 
 model Empresa {
-  id                       Int                    @id @default(autoincrement())
-  nombre                   String
-  activo                   Boolean                @default(true)
-  limiteEstablecimientos   Int                    @default(3)
-  propietarioId            Int
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
-  propietario              Usuario                @relation("empresa_owner", fields: [propietarioId], references: [id], onDelete: Restrict)
-  organizaciones           EmpresaOrganizacion[]
-  miembros                 UsuarioEmpresa[]
+  id                     Int                   @id @default(autoincrement())
+  nombre                 String
+  activo                 Boolean               @default(true)
+  limiteEstablecimientos Int                   @default(3)
+  propietarioId          Int
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  propietario            Usuario               @relation("empresa_owner", fields: [propietarioId], references: [id], onDelete: Restrict)
+  organizaciones         EmpresaOrganizacion[]
+  miembros               UsuarioEmpresa[]
 
   @@index([propietarioId])
   @@index([activo])
@@ -571,16 +576,16 @@ model EmpresaOrganizacion {
 }
 
 model UsuarioEmpresa {
-  id                        Int                              @id @default(autoincrement())
+  id                        Int                          @id @default(autoincrement())
   empresaId                 Int
   usuarioId                 Int
   rol                       RolEmpresa
-  activo                    Boolean                          @default(true)
-  accesoTodasOrganizaciones Boolean                          @default(false)
-  createdAt                 DateTime                         @default(now())
-  updatedAt                 DateTime                         @updatedAt
-  empresa                   Empresa                          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  usuario                   Usuario                          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  activo                    Boolean                      @default(true)
+  accesoTodasOrganizaciones Boolean                      @default(false)
+  createdAt                 DateTime                     @default(now())
+  updatedAt                 DateTime                     @updatedAt
+  empresa                   Empresa                      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  usuario                   Usuario                      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   organizacionesAutorizadas UsuarioEmpresaOrganizacion[]
 
   @@unique([empresaId, usuarioId])
@@ -601,17 +606,17 @@ model UsuarioEmpresaOrganizacion {
 }
 
 model Evidencia {
-  id             String           @id @default(uuid())
+  id             String               @id @default(uuid())
   organizacionId Int
   usuarioId      Int
   origen         OrigenEvidencia
   tipoRecurso    TipoRecursoEvidencia
   recursoId      Int
   comentario     String?
-  fechaHora      DateTime         @default(now())
-  estado         EstadoEvidencia  @default(PENDIENTE)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  fechaHora      DateTime             @default(now())
+  estado         EstadoEvidencia      @default(PENDIENTE)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   organizacion Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   usuario      Usuario            @relation("evidenciasCreadasPor", fields: [usuarioId], references: [id], onDelete: Restrict)
@@ -623,15 +628,15 @@ model Evidencia {
 }
 
 model ArchivoEvidencia {
-  id           String    @id @default(uuid())
-  evidenciaId  String
-  storageKey   String    @unique
-  nombre       String
-  mimeType     String
-  tamanoBytes  Int
-  ancho        Int?
-  alto         Int?
-  createdAt    DateTime  @default(now())
+  id          String   @id @default(uuid())
+  evidenciaId String
+  storageKey  String   @unique
+  nombre      String
+  mimeType    String
+  tamanoBytes Int
+  ancho       Int?
+  alto        Int?
+  createdAt   DateTime @default(now())
 
   evidencia Evidencia @relation(fields: [evidenciaId], references: [id], onDelete: Cascade)
 
@@ -867,6 +872,7 @@ enum OrigenEvidencia {
 
 enum TipoRecursoEvidencia {
   ACTIVIDAD
+  TAREA
   CAMPO
   LOTE
   SIEMBRA

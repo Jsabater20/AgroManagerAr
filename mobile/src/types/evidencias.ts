@@ -8,6 +8,7 @@ export type OrigenEvidencia =
 
 export type TipoRecursoEvidencia =
   | 'ACTIVIDAD'
+  | 'TAREA'
   | 'CAMPO'
   | 'LOTE'
   | 'SIEMBRA'

@@ -776,13 +776,10 @@ export class ActividadesService {
       );
     }
 
-    if (
-      dto.fotoBase64 &&
-      !/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(
-        dto.fotoBase64,
-      )
-    ) {
-      throw new BadRequestException('La foto debe ser una imagen JPEG o PNG válida');
+    if (dto.fotoBase64) {
+      throw new BadRequestException(
+        'Las imágenes deben adjuntarse mediante evidencias fotográficas.',
+      );
     }
 
     if (dto.idempotencyKey) {
@@ -812,7 +809,7 @@ export class ActividadesService {
           actividadMiembroId: actividadId,
           autorId: userId,
           contenido: dto.contenido,
-          fotoBase64: dto.fotoBase64 ?? null,
+          fotoBase64: null,
           idempotencyKey: dto.idempotencyKey,
           estadoActividadAlMomento: actividad.estado,
         },

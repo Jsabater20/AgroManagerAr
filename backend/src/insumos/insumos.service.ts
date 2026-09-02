@@ -12,12 +12,17 @@ export class InsumosService {
 
   async findAll(usuarioId: number, organizacionId: number) {
     await this.requireInsumosAccess(usuarioId, organizacionId);
-    return this.prisma.insumo.findMany({ orderBy: { nombre: 'asc' } });
+    return this.prisma.insumo.findMany({
+      where: { organizacionId },
+      orderBy: { nombre: 'asc' },
+    });
   }
 
   async findOne(id: number, usuarioId: number, organizacionId: number) {
     await this.requireInsumosAccess(usuarioId, organizacionId);
-    const insumo = await this.prisma.insumo.findUnique({ where: { id } });
+    const insumo = await this.prisma.insumo.findFirst({
+      where: { id, organizacionId },
+    });
     if (!insumo) throw new NotFoundException('Insumo no encontrado');
     return insumo;
   }
@@ -28,7 +33,9 @@ export class InsumosService {
     organizacionId: number,
   ) {
     await this.requireInsumosAccess(usuarioId, organizacionId);
-    return this.prisma.insumo.create({ data: dto });
+    return this.prisma.insumo.create({
+      data: { ...dto, organizacionId },
+    });
   }
 
   async update(

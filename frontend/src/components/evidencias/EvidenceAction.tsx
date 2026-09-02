@@ -153,7 +153,7 @@ function EvidenceDialog({
 
   const puedeEliminar = (usuarioId: number) => {
     const orgActual = usuario?.organizaciones?.find((organizacion) => organizacion.id === organizacionId);
-    return usuario?.id === usuarioId || orgActual?.propietarioId === usuario?.id || usuario?.rolGlobal === 'SUPERADMIN';
+    return usuario?.id === usuarioId || orgActual?.propietarioId === usuario?.id;
   };
 
   return (

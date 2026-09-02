@@ -19,7 +19,7 @@ const PARES_RECURSO_VALIDOS: Record<
   OrigenEvidencia,
   TipoRecursoEvidencia[]
 > = {
-  ACTIVIDADES: [TipoRecursoEvidencia.ACTIVIDAD],
+  ACTIVIDADES: [TipoRecursoEvidencia.ACTIVIDAD, TipoRecursoEvidencia.TAREA],
   GANADERIA: [TipoRecursoEvidencia.ANIMAL],
   MAQUINARIAS: [TipoRecursoEvidencia.MAQUINARIA],
   INSUMOS: [TipoRecursoEvidencia.INSUMO],
@@ -329,6 +329,9 @@ export class EvidenciasService {
       case TipoRecursoEvidencia.ACTIVIDAD:
         await this.validarAccesoActividad(organizacionId, usuarioId, recursoId);
         return;
+      case TipoRecursoEvidencia.TAREA:
+        await this.validarTarea(organizacionId, usuarioId, recursoId);
+        return;
       case TipoRecursoEvidencia.CAMPO:
         await this.validarCampo(organizacionId, usuarioId, recursoId);
         return;
@@ -410,6 +413,23 @@ export class EvidenciasService {
     await this.memberAccessService.requireCampo(usuarioId, organizacionId, campoId);
   }
 
+  private async validarTarea(
+    organizacionId: number,
+    usuarioId: number,
+    tareaId: number,
+  ): Promise<void> {
+    const tarea = await this.prisma.tareaRural.findFirst({
+      where: { id: tareaId, organizacionId },
+      select: { id: true },
+    });
+
+    if (!tarea) {
+      throw new NotFoundException('Tarea no encontrada');
+    }
+
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Tareas');
+  }
+
   private async validarLote(
     organizacionId: number,
     usuarioId: number,
@@ -474,8 +494,8 @@ export class EvidenciasService {
     usuarioId: number,
     insumoId: number,
   ): Promise<void> {
-    const insumo = await this.prisma.insumo.findUnique({
-      where: { id: insumoId },
+    const insumo = await this.prisma.insumo.findFirst({
+      where: { id: insumoId, organizacionId },
       select: { id: true },
     });
 
