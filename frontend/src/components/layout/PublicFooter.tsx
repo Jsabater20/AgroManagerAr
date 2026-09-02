@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Sprout } from 'lucide-react';
+import { WhatsAppButton } from '../ui/WhatsAppButton';
 
 export default function PublicFooter() {
   return (
     <footer className="border-t border-gray-100 bg-gray-50 py-10 px-4">
+      <WhatsAppButton />
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
