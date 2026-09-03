@@ -29,8 +29,6 @@ const PRECIOS = {
   },
 };
 
-const TRIAL_DIAS = 30;
-
 @Injectable()
 export class PlanService {
   private frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
@@ -59,13 +57,11 @@ export class PlanService {
         precio: PRECIOS.mensual.monto,
         label: 'Pro Mensual',
         descuento: PRECIOS.mensual.descuento,
-        trialDias: TRIAL_DIAS,
       },
       anual: {
         precio: PRECIOS.anual.monto,
         label: 'Pro Anual',
         descuento: PRECIOS.anual.descuento,
-        trialDias: TRIAL_DIAS,
       },
     };
   }
@@ -306,10 +302,6 @@ export class PlanService {
   ) {
     await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const p = PRECIOS[tipo];
-    const u = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
-      select: { trialUsado: true },
-    });
     const client = this.getMPClient();
     const preApproval = new PreApproval(client);
     const autoRecurring: Record<string, unknown> = {
@@ -318,9 +310,6 @@ export class PlanService {
       transaction_amount: p.monto,
       currency_id: 'ARS',
     };
-    if (!u?.trialUsado) {
-      autoRecurring.free_trial = { frequency: TRIAL_DIAS, frequency_type: 'days' };
-    }
     const result = await preApproval.create({
       body: {
         reason: p.label,

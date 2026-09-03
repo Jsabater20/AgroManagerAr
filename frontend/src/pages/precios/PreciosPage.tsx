@@ -9,6 +9,7 @@ import { getProfile } from '../../api/users.api';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 import { WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
+import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
 
 type ValorFeature = boolean | string;
 type Feature = {
@@ -212,9 +213,7 @@ export default function PreciosPage() {
           )}
 
           <p className="text-sm text-gray-500 mb-1">Gestión completa sin límites</p>
-          {(!token || !planInfo?.trialUsado) && (
-            <p className="text-xs text-green-700 font-medium mb-5">✓ 30 días gratis — sin cargo hasta que termine la prueba</p>
-          )}
+          <p className="text-xs text-green-700 font-medium mb-5">Activación inmediata al confirmar la suscripción</p>
 
           {!isPro && canStartCheckout ? (
             <button
@@ -264,15 +263,23 @@ export default function PreciosPage() {
               <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-emerald-950">PARA GRUPOS AGROPECUARIOS</span>
               <h2 className="mt-4 text-2xl font-bold">Plan Empresa</h2>
               <p className="mt-2 max-w-2xl text-emerald-100">Para empresas agropecuarias y grupos con múltiples establecimientos.</p>
-              <p className="mt-4 text-3xl font-bold">Desde $69.990 <span className="text-base font-normal text-emerald-200">/ mes</span></p>
-              <p className="mt-1 text-sm text-emerald-200">Incluye hasta 3 establecimientos. Cotización personalizada para ampliar la operación.</p>
+              <p className="mt-4 text-3xl font-bold">$69.990 <span className="text-base font-normal text-emerald-200">/ mes</span></p>
+              <p className="mt-1 text-sm text-emerald-200">Plan estándar para hasta 3 establecimientos. Desde el cuarto, cotización personalizada.</p>
             </div>
             <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:flex-col">
+              <a
+                href={EMPRESA_STANDARD_PAYMENT_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="order-2 rounded-xl bg-emerald-400 px-5 py-3 text-center text-sm font-bold text-emerald-950 transition hover:bg-emerald-300"
+              >
+                2. Pagar plan hasta 3
+              </a>
               <Link
                 to="/register"
-                className="rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+                className="order-1 rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
               >
-                Registrar mi empresa
+                1. Registrar mi empresa
               </Link>
               <a
                 href={WHATSAPP_BUSINESS_URL}

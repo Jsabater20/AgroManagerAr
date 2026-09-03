@@ -213,7 +213,7 @@ export default function ContactoPage() {
             <div className="bg-green-50 rounded-2xl p-6 border border-green-100">
               <p className="text-sm font-semibold text-green-800 mb-1">¿Sos nuevo?</p>
               <p className="text-sm text-green-700 mb-3">
-                Probá AgroManager AR gratis sin necesidad de tarjeta de crédito.
+                Creá una cuenta Free o conocé la Demo Empresa sin necesidad de tarjeta de crédito.
               </p>
               <a
                 href="/register"

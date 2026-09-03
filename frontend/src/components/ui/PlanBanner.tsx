@@ -77,7 +77,7 @@ export function UpgradeBanner() {
       <div className="flex items-center gap-2 text-sm">
         <Zap size={16} className="shrink-0" />
         <span>
-          <strong>Probá Pro gratis 14 días</strong> — Desbloqueá IA AgroBot, campañas, reportes y más.
+          <strong>Pasate a Pro</strong> — Desbloqueá IA AgroBot, campañas, reportes y más.
         </span>
       </div>
       <div className="flex items-center gap-2 shrink-0">

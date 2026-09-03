@@ -17,11 +17,11 @@ import {
   Camera,
   Building2,
   BarChart3,
-  Mail,
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
+import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
 import TeamSection from '../../components/marketing/TeamSection';
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
@@ -362,7 +362,7 @@ export default function HomePage() {
                 to="/register"
                 className="bg-green-500 hover:bg-green-400 text-white font-bold px-7 py-3.5 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-green-900/40 w-full sm:w-auto justify-center text-base"
               >
-                Probar gratis
+                Crear cuenta gratis
                 <ArrowRight size={18} />
               </Link>
               <Link
@@ -528,21 +528,30 @@ export default function HomePage() {
             </div>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link
+                to="/demo/empresa"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300"
+              >
+                <Building2 size={19} />
+                Ver Demo Empresa
+              </Link>
+              <a
+                href={EMPRESA_STANDARD_PAYMENT_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300"
+              >
+                <Building2 size={19} />
+                Contratar hasta 3
+              </a>
               <a
                 href={WHATSAPP_BUSINESS_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 font-semibold text-white transition hover:bg-[#1fbd5a]"
-              >
-                <WhatsAppIcon size={19} />
-                Consultar por WhatsApp
-              </a>
-              <a
-                href="mailto:agromanagerarcontacto@gmail.com?subject=Consulta%20plan%20Empresas"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold text-white transition hover:border-emerald-300/60 hover:bg-white/15"
               >
-                <Mail size={18} />
-                Pedir cotización
+                <WhatsAppIcon size={19} />
+                Más de 3: cotizar
               </a>
             </div>
           </div>
@@ -614,7 +623,7 @@ export default function HomePage() {
                 $0{' '}
                 <span className="text-base font-normal text-gray-400">/ mes</span>
               </p>
-              <p className="text-sm text-gray-400 mb-6">Para probar tu campo, equipo y tareas en una misma plataforma</p>
+              <p className="text-sm text-gray-400 mb-6">Para empezar a ordenar tu campo, equipo y tareas en una misma plataforma</p>
               <ul className="space-y-3 mb-7">
                 {FREE_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-gray-600">
@@ -650,9 +659,7 @@ export default function HomePage() {
                 $13.990{' '}
                 <span className="text-base font-normal text-gray-400">ARS / mes</span>
               </p>
-              <p className="text-sm text-green-700 font-medium mb-6">
-                ✓ 30 días de prueba gratis
-              </p>
+              <p className="text-sm text-green-700 font-medium mb-6">Plan Pro completo para una gestión sin límites</p>
               <ul className="space-y-3 mb-7">
                 <li className="flex items-start gap-2.5 text-sm text-gray-700 font-medium">
                   <CheckCircle2 size={16} className="text-green-600 mt-0.5 shrink-0" />
@@ -704,18 +711,17 @@ export default function HomePage() {
         <div className="relative max-w-2xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 text-green-400 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest mb-6">
             <Sprout size={12} />
-            Sin riesgo
+            Conocé AgroManager
           </div>
           <h2 className="text-3xl md:text-4xl font-black mb-4 leading-tight">
-            Probá AgroManager gratis
+            Empezá a ordenar tu operación
             <br />
             <span className="text-transparent bg-clip-text bg-linear-to-r from-green-400 to-emerald-300">
-              durante 30 días
+              desde el primer día
             </span>
           </h2>
           <p className="text-gray-400 text-lg mb-8 leading-relaxed">
-            Accedé a todas las funciones Pro sin costo. Sin tarjeta de crédito.
-            Cancelá cuando quieras. Tu campo, tus reglas.
+            Creá una cuenta Free para empezar o recorré la Demo Empresa y conocé cómo se gestiona una operación con varios establecimientos.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
@@ -723,22 +729,22 @@ export default function HomePage() {
               to="/register"
               className="bg-green-500 hover:bg-green-400 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-lg shadow-green-900/40 flex items-center gap-2 w-full sm:w-auto justify-center text-base"
             >
-              Empezar prueba gratuita
+              Crear cuenta gratis
               <ArrowRight size={18} />
             </Link>
             <Link
-              to="/contacto"
+              to="/demo/empresa"
               className="border border-white/20 hover:border-white/40 text-white font-semibold px-8 py-4 rounded-xl transition-all text-base hover:bg-white/5 w-full sm:w-auto text-center"
             >
-              Hablar con el equipo
+              Ver Demo Empresa
             </Link>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-500">
             {[
-              '30 dias gratis',
+              'Plan Free incluido',
+              'Demo Empresa guiada',
               'Sin tarjeta de crédito',
-              'Cancelá cuando quieras',
               '100% argentino',
             ].map((item) => (
               <span key={item} className="flex items-center gap-1.5">

@@ -57,6 +57,8 @@ import EmpresaRentabilidadPage from './pages/empresas/EmpresaRentabilidadPage';
 import EmpresaAuditoriaPage from './pages/empresas/EmpresaAuditoriaPage';
 import EmpresaExportacionesPage from './pages/empresas/EmpresaExportacionesPage';
 import EmpresaEstadoPage from './pages/empresas/EmpresaEstadoPage';
+import DemoEmpresaEntryPage from './pages/empresas/DemoEmpresaEntryPage';
+import DemoEmpresaWelcomePage from './pages/empresas/DemoEmpresaWelcomePage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -122,6 +124,7 @@ export default function App() {
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/demo/empresa" element={<DemoEmpresaEntryPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/aceptar-invitacion" element={<AceptarInvitacionPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -159,6 +162,7 @@ export default function App() {
               <Route path="/org/:orgId/permisos-temporales" element={<PermisosTemporalesPage />} />
               <Route path="/org/:orgId/roles" element={<RolesPage />} />
               <Route path="/empresas" element={<EmpresasPage />} />
+              <Route path="/demo/empresa/recorrido" element={<DemoEmpresaWelcomePage />} />
               <Route path="/empresas/:empresaId/dashboard" element={<EmpresaDashboardPage />} />
               <Route path="/empresas/:empresaId/miembros" element={<EmpresaMiembrosPage />} />
               <Route path="/empresas/:empresaId/actividades" element={<EmpresaOperacionPage seccion="actividades" />} />
