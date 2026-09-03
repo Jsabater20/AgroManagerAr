@@ -15,9 +15,14 @@ import {
   ChevronRight,
   UsersRound,
   Camera,
+  Building2,
+  BarChart3,
+  Mail,
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
+import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
+import TeamSection from '../../components/marketing/TeamSection';
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -424,6 +429,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <TeamSection />
+
       {/* ── SCREENSHOTS ──────────────────────────────────────────── */}
       <section className="py-24 px-4 bg-gray-950 text-white">
         <div className="max-w-5xl mx-auto">
@@ -475,6 +482,116 @@ export default function HomePage() {
       </section>
 
       {/* ── PRICING ──────────────────────────────────────────────── */}
+      <section className="bg-emerald-50 px-4 py-24">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-700">
+              Para empresas agropecuarias
+            </p>
+            <h2 className="max-w-xl text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
+              Si gestionás varios establecimientos, mirá todo desde un solo lugar.
+            </h2>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-gray-600">
+              Empresas reúne la información de tus campos sin mezclar sus datos. Así podés
+              seguir trabajos, maquinarias, producción y finanzas con una visión clara de todo
+              el negocio.
+            </p>
+
+            <div className="mt-8 space-y-4">
+              {[
+                {
+                  icon: Building2,
+                  title: 'Todos tus establecimientos, ordenados',
+                  description: 'Conservan su información propia y se agrupan bajo una misma empresa.',
+                },
+                {
+                  icon: UsersRound,
+                  title: 'Cada persona ve solo lo que necesita',
+                  description: 'Asigná equipos y permisos según el establecimiento donde trabajan.',
+                },
+                {
+                  icon: BarChart3,
+                  title: 'Una visión completa para decidir mejor',
+                  description: 'Consultá actividad, finanzas y resultados de forma consolidada.',
+                },
+              ].map(({ icon: Icon, title, description }) => (
+                <div key={title} className="flex gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm">
+                    <Icon size={19} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{title}</h3>
+                    <p className="mt-0.5 text-sm leading-relaxed text-gray-600">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <a
+                href={WHATSAPP_BUSINESS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 font-semibold text-white transition hover:bg-[#1fbd5a]"
+              >
+                <WhatsAppIcon size={19} />
+                Consultar por WhatsApp
+              </a>
+              <a
+                href="mailto:agromanagerarcontacto@gmail.com?subject=Consulta%20plan%20Empresas"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-5 py-3 font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+              >
+                <Mail size={18} />
+                Pedir cotización
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-3xl bg-gray-950 p-5 shadow-xl shadow-emerald-900/10 sm:p-7">
+            <div className="flex items-center justify-between border-b border-white/10 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white">
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <p className="font-semibold text-white">Empresa Los Álamos</p>
+                  <p className="text-xs text-gray-400">Resumen de establecimientos</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300">
+                Empresas
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {[
+                ['La Esperanza', '3 trabajos activos · Maquinaria operativa'],
+                ['Las Meninas', '2 siembras en curso · Equipo asignado'],
+                ['El Ombú', 'Finanzas actualizadas · Sin alertas'],
+              ].map(([nombre, detalle]) => (
+                <div key={nombre} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <p className="font-medium text-white">{nombre}</p>
+                  <p className="mt-1 text-xs text-gray-400">{detalle}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {[
+                ['3', 'Establecimientos'],
+                ['5', 'Trabajos activos'],
+                ['1', 'Vista consolidada'],
+              ].map(([valor, etiqueta]) => (
+                <div key={etiqueta} className="rounded-xl bg-emerald-500/10 p-3 text-center">
+                  <p className="text-xl font-bold text-emerald-300">{valor}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-emerald-100/70">{etiqueta}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-24 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
