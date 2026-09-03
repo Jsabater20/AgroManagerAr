@@ -482,16 +482,16 @@ export default function HomePage() {
       </section>
 
       {/* ── PRICING ──────────────────────────────────────────────── */}
-      <section className="bg-emerald-50 px-4 py-24">
+      <section className="bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-900 px-4 py-24">
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-700">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-300">
               Para empresas agropecuarias
             </p>
-            <h2 className="max-w-xl text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
+            <h2 className="max-w-xl text-3xl font-bold leading-tight text-white md:text-4xl">
               Si gestionás varios establecimientos, mirá todo desde un solo lugar.
             </h2>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-gray-600">
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-200">
               Empresas reúne la información de tus campos sin mezclar sus datos. Así podés
               seguir trabajos, maquinarias, producción y finanzas con una visión clara de todo
               el negocio.
@@ -516,12 +516,12 @@ export default function HomePage() {
                 },
               ].map(({ icon: Icon, title, description }) => (
                 <div key={title} className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-300/20">
                     <Icon size={19} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{title}</h3>
-                    <p className="mt-0.5 text-sm leading-relaxed text-gray-600">{description}</p>
+                    <h3 className="font-semibold text-white">{title}</h3>
+                    <p className="mt-0.5 text-sm leading-relaxed text-slate-300">{description}</p>
                   </div>
                 </div>
               ))}
@@ -539,7 +539,7 @@ export default function HomePage() {
               </a>
               <a
                 href="mailto:agromanagerarcontacto@gmail.com?subject=Consulta%20plan%20Empresas"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-5 py-3 font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold text-white transition hover:border-emerald-300/60 hover:bg-white/15"
               >
                 <Mail size={18} />
                 Pedir cotización
@@ -547,7 +547,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="rounded-3xl bg-gray-950 p-5 shadow-xl shadow-emerald-900/10 sm:p-7">
+          <div className="rounded-3xl border border-white/10 bg-black/30 p-5 shadow-2xl shadow-black/30 sm:p-7">
             <div className="flex items-center justify-between border-b border-white/10 pb-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white">
@@ -555,7 +555,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <p className="font-semibold text-white">Empresa Los Álamos</p>
-                  <p className="text-xs text-gray-400">Resumen de establecimientos</p>
+                  <p className="text-xs text-slate-400">Resumen de establecimientos</p>
                 </div>
               </div>
               <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300">
@@ -571,7 +571,7 @@ export default function HomePage() {
               ].map(([nombre, detalle]) => (
                 <div key={nombre} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <p className="font-medium text-white">{nombre}</p>
-                  <p className="mt-1 text-xs text-gray-400">{detalle}</p>
+                  <p className="mt-1 text-xs text-slate-400">{detalle}</p>
                 </div>
               ))}
             </div>
