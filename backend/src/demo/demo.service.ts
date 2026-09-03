@@ -1525,7 +1525,7 @@ export class DemoService implements OnModuleInit {
       { nombre: 'Establecimiento Los Álamos', email: 'los-alamos.demoempresa@agromanager.ar' },
       { nombre: 'Campo El Horizonte', email: 'el-horizonte.demoempresa@agromanager.ar' },
     ];
-    const organizaciones = [];
+    const organizaciones: Array<{ id: number; nombre: string }> = [];
     for (const establecimiento of establecimientosBase) {
       const existente = await this.prisma.organizacion.findUnique({
         where: { email: establecimiento.email },
@@ -1775,7 +1775,8 @@ export class DemoService implements OnModuleInit {
       valor.setDate(valor.getDate() + dias);
       return valor;
     };
-    const actividades = organizaciones.flatMap((organizacion, indice) => {
+    const actividades: Prisma.ActividadMiembroCreateManyInput[] = organizaciones.flatMap(
+      (organizacion, indice): Prisma.ActividadMiembroCreateManyInput[] => {
       const campo = campos.find((item) => item.organizacionId === organizacion.id);
       const miembro = miembros.find(
         (item) =>
@@ -1831,7 +1832,8 @@ export class DemoService implements OnModuleInit {
           activo: true,
         },
       ];
-    });
+      },
+    );
     if (actividades.length) {
       await this.prisma.actividadMiembro.createMany({ data: actividades });
     }
