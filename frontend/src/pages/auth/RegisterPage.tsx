@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Sprout, Eye, EyeOff, Check, X, Leaf, Mail, ArrowLeft } from 'lucide-react';
+import {
+  Sprout,
+  Eye,
+  EyeOff,
+  Check,
+  X,
+  Leaf,
+  Mail,
+  ArrowLeft,
+  Building2,
+  MapPinned,
+} from 'lucide-react';
 import { api } from '../../api/client';
 import toast from 'react-hot-toast';
 
@@ -16,7 +27,15 @@ export default function RegisterPage() {
   const invitationToken = searchParams.get('token');
   const emailFromInvitation = searchParams.get('email');
 
-  const [form, setForm] = useState({ nombre: '', apellido: '', email: emailFromInvitation || '', password: '', invitationToken: invitationToken || '' });
+  const [form, setForm] = useState({
+    nombre: '',
+    apellido: '',
+    email: emailFromInvitation || '',
+    password: '',
+    nombreEmpresa: '',
+    invitationToken: invitationToken || '',
+  });
+  const [tipoRegistro, setTipoRegistro] = useState<'DUENO_CAMPO' | 'EMPRESA'>('DUENO_CAMPO');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -40,8 +59,21 @@ export default function RegisterPage() {
     try {
       // Si hay invitationToken, incluirlo en el body
       const payload = invitationToken
-        ? { ...form, invitationToken }
-        : { nombre: form.nombre, apellido: form.apellido, email: form.email, password: form.password };
+        ? {
+            nombre: form.nombre,
+            apellido: form.apellido,
+            email: form.email,
+            password: form.password,
+            invitationToken,
+          }
+        : {
+            nombre: form.nombre,
+            apellido: form.apellido,
+            email: form.email,
+            password: form.password,
+            tipoRegistro,
+            ...(tipoRegistro === 'EMPRESA' ? { nombreEmpresa: form.nombreEmpresa } : {}),
+          };
 
       await api.post('/auth/register', payload);
       setRegistered(true);
@@ -70,6 +102,11 @@ export default function RegisterPage() {
           <p className="text-gray-500 text-sm mb-8">
             Hacé clic en el enlace para activar tu cuenta. Revisá también la carpeta de spam si no lo ves.
           </p>
+          {tipoRegistro === 'EMPRESA' && (
+            <p className="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
+              Tu empresa quedó pendiente de activación. Te contactaremos para definir los establecimientos incluidos.
+            </p>
+          )}
           <Link
             to="/login"
             className="block w-full bg-green-700 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-colors"
@@ -157,6 +194,59 @@ export default function RegisterPage() {
           <p className="text-gray-500 text-sm mb-8">Completá los datos para comenzar</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {!invitationToken && (
+              <fieldset>
+                <legend className="mb-2 text-sm font-medium text-gray-700">¿Cómo querés registrarte?</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTipoRegistro('DUENO_CAMPO')}
+                    className={
+                      'rounded-xl border p-3 text-left transition ' +
+                      (tipoRegistro === 'DUENO_CAMPO'
+                        ? 'border-green-600 bg-green-50 ring-1 ring-green-600'
+                        : 'border-gray-200 bg-white hover:border-green-300')
+                    }
+                  >
+                    <MapPinned size={19} className={tipoRegistro === 'DUENO_CAMPO' ? 'text-green-700' : 'text-gray-400'} />
+                    <span className="mt-2 block text-sm font-semibold text-gray-900">Dueño de campo</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-gray-500">Para gestionar un establecimiento.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoRegistro('EMPRESA')}
+                    className={
+                      'rounded-xl border p-3 text-left transition ' +
+                      (tipoRegistro === 'EMPRESA'
+                        ? 'border-green-600 bg-green-50 ring-1 ring-green-600'
+                        : 'border-gray-200 bg-white hover:border-green-300')
+                    }
+                  >
+                    <Building2 size={19} className={tipoRegistro === 'EMPRESA' ? 'text-green-700' : 'text-gray-400'} />
+                    <span className="mt-2 block text-sm font-semibold text-gray-900">Empresa</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-gray-500">Para varios establecimientos.</span>
+                  </button>
+                </div>
+              </fieldset>
+            )}
+
+            {tipoRegistro === 'EMPRESA' && !invitationToken && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre de la empresa</label>
+                <input
+                  type="text"
+                  required
+                  minLength={3}
+                  maxLength={120}
+                  value={form.nombreEmpresa}
+                  onChange={(e) => setForm({ ...form, nombreEmpresa: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-colors shadow-sm"
+                  placeholder="Ej. Estancias del Sur"
+                />
+                <p className="mt-1.5 text-xs text-gray-500">La activaremos luego de definir tu cotización.</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>

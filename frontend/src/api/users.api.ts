@@ -17,6 +17,13 @@ export interface UserProfile {
     plan?: 'FREE' | 'PRO';
     propietarioId: number;
   }>;
+  empresas?: Array<{
+    id: number;
+    nombre: string;
+    estadoComercial: 'PENDIENTE' | 'ACTIVA' | 'SUSPENDIDA' | 'VENCIDA';
+    limiteEstablecimientos: number;
+    propietarioId: number;
+  }>;
   createdAt?: string;
   fotoPerfilUrl?: string | null;
   fotoPerfilEncuadre?: FotoPerfilEncuadre;

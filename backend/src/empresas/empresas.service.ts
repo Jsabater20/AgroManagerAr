@@ -4,11 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Especie, EstadoActividad, EstadoMaquinaria, RolEmpresa } from '@prisma/client';
+import {
+  Especie,
+  EstadoActividad,
+  EstadoEmpresa,
+  EstadoMaquinaria,
+  RolEmpresa,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmpresaAccessService } from './empresa-access.service';
 import {
+  ActualizarComercialEmpresaDto,
   ActualizarMiembroEmpresaDto,
+  CrearEstablecimientoEmpresaDto,
   CrearEmpresaDto,
   CrearMiembroEmpresaDto,
   VincularOrganizacionDto,
@@ -58,6 +66,233 @@ export class EmpresasService {
     });
   }
 
+  async listarParaAdmin(superAdminId: number) {
+    await this.requerirSuperAdmin(superAdminId);
+
+    const empresas = await this.prisma.empresa.findMany({
+      include: {
+        propietario: {
+          select: { id: true, nombre: true, apellido: true, email: true },
+        },
+        organizaciones: {
+          include: {
+            organizacion: { select: { id: true, nombre: true, plan: true } },
+          },
+        },
+        _count: { select: { miembros: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+
+    return empresas.map((empresa) => ({
+      id: empresa.id,
+      nombre: empresa.nombre,
+      activo: empresa.activo,
+      estadoComercial: empresa.estadoComercial,
+      limiteEstablecimientos: empresa.limiteEstablecimientos,
+      fechaInicioComercial: empresa.fechaInicioComercial,
+      fechaVencimiento: empresa.fechaVencimiento,
+      observacionesComerciales: empresa.observacionesComerciales,
+      createdAt: empresa.createdAt,
+      updatedAt: empresa.updatedAt,
+      propietario: empresa.propietario,
+      establecimientos: empresa.organizaciones.map((vinculo) => vinculo.organizacion),
+      miembros: empresa._count.miembros,
+    }));
+  }
+
+  async actualizarComercial(
+    superAdminId: number,
+    empresaId: number,
+    dto: ActualizarComercialEmpresaDto,
+  ) {
+    await this.requerirSuperAdmin(superAdminId);
+
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: {
+        id: true,
+        estadoComercial: true,
+        fechaInicioComercial: true,
+        fechaVencimiento: true,
+      },
+    });
+    if (!empresa) throw new NotFoundException('Empresa no encontrada');
+
+    if (dto.limiteEstablecimientos !== undefined) {
+      const establecimientosActuales = await this.prisma.empresaOrganizacion.count({
+        where: { empresaId: empresa.id },
+      });
+      if (dto.limiteEstablecimientos < establecimientosActuales) {
+        throw new BadRequestException(
+          'El límite no puede ser menor a los establecimientos ya vinculados',
+        );
+      }
+    }
+
+    const estadoComercial = dto.estadoComercial ?? empresa.estadoComercial;
+    const fechaInicioComercial =
+      dto.fechaInicioComercial !== undefined
+        ? new Date(dto.fechaInicioComercial)
+        : estadoComercial === EstadoEmpresa.ACTIVA &&
+            empresa.estadoComercial !== EstadoEmpresa.ACTIVA &&
+            !empresa.fechaInicioComercial
+          ? new Date()
+          : undefined;
+    const fechaVencimiento =
+      dto.fechaVencimiento !== undefined ? new Date(dto.fechaVencimiento) : undefined;
+    const inicioParaValidar = fechaInicioComercial ?? empresa.fechaInicioComercial;
+    const vencimientoParaValidar = fechaVencimiento ?? empresa.fechaVencimiento;
+
+    if (
+      inicioParaValidar &&
+      vencimientoParaValidar &&
+      vencimientoParaValidar < inicioParaValidar
+    ) {
+      throw new BadRequestException('La fecha de vencimiento debe ser posterior al inicio');
+    }
+
+    return this.prisma.empresa.update({
+      where: { id: empresa.id },
+      data: {
+        estadoComercial: dto.estadoComercial,
+        limiteEstablecimientos: dto.limiteEstablecimientos,
+        fechaInicioComercial,
+        fechaVencimiento,
+        observacionesComerciales: dto.observacionesComerciales,
+      },
+      select: {
+        id: true,
+        nombre: true,
+        estadoComercial: true,
+        limiteEstablecimientos: true,
+        fechaInicioComercial: true,
+        fechaVencimiento: true,
+        observacionesComerciales: true,
+      },
+    });
+  }
+
+  async listarOrganizacionesDisponiblesAdmin(superAdminId: number, empresaId: number) {
+    await this.requerirSuperAdmin(superAdminId);
+
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { propietarioId: true },
+    });
+    if (!empresa) throw new NotFoundException('Empresa no encontrada');
+
+    return this.prisma.organizacion.findMany({
+      where: {
+        propietarioId: empresa.propietarioId,
+        vinculacionEmpresa: null,
+      },
+      select: { id: true, nombre: true, email: true, plan: true },
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  async vincularOrganizacionAdmin(
+    superAdminId: number,
+    empresaId: number,
+    dto: VincularOrganizacionDto,
+  ) {
+    await this.requerirSuperAdmin(superAdminId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const empresa = await tx.empresa.findUnique({
+        where: { id: empresaId },
+        include: { organizaciones: { select: { id: true } } },
+      });
+      if (!empresa) throw new NotFoundException('Empresa no encontrada');
+      this.validarEmpresaActivaParaEstablecimientos(empresa);
+
+      const organizacion = await tx.organizacion.findUnique({
+        where: { id: dto.organizacionId },
+        select: {
+          id: true,
+          propietarioId: true,
+          vinculacionEmpresa: { select: { empresaId: true } },
+        },
+      });
+      if (!organizacion) throw new NotFoundException('Establecimiento no encontrado');
+      if (organizacion.propietarioId !== empresa.propietarioId) {
+        throw new ForbiddenException('El establecimiento no pertenece al responsable de esta empresa');
+      }
+      if (organizacion.vinculacionEmpresa) {
+        throw new BadRequestException('Este establecimiento ya pertenece a una empresa');
+      }
+      this.validarCupoEstablecimientos(empresa);
+
+      await tx.organizacion.update({
+        where: { id: organizacion.id },
+        data: { plan: 'PRO' },
+      });
+      return tx.empresaOrganizacion.create({
+        data: { empresaId: empresa.id, organizacionId: organizacion.id },
+      });
+    });
+  }
+
+  async crearEstablecimientoAdmin(
+    superAdminId: number,
+    empresaId: number,
+    dto: CrearEstablecimientoEmpresaDto,
+  ) {
+    await this.requerirSuperAdmin(superAdminId);
+
+    const nombre = dto.nombre.trim();
+    const email = dto.email.trim().toLowerCase();
+    const existeEmail = await this.prisma.organizacion.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (existeEmail) {
+      throw new BadRequestException('Ya existe un establecimiento con ese email');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const empresa = await tx.empresa.findUnique({
+        where: { id: empresaId },
+        include: { organizaciones: { select: { id: true } } },
+      });
+      if (!empresa) throw new NotFoundException('Empresa no encontrada');
+      this.validarEmpresaActivaParaEstablecimientos(empresa);
+      this.validarCupoEstablecimientos(empresa);
+
+      const organizacion = await tx.organizacion.create({
+        data: {
+          nombre,
+          email,
+          plan: 'PRO',
+          propietarioId: empresa.propietarioId,
+        },
+      });
+      await tx.empresaOrganizacion.create({
+        data: { empresaId: empresa.id, organizacionId: organizacion.id },
+      });
+
+      return organizacion;
+    });
+  }
+
+  async desvincularOrganizacionAdmin(
+    superAdminId: number,
+    empresaId: number,
+    organizacionId: number,
+  ) {
+    await this.requerirSuperAdmin(superAdminId);
+
+    const vinculo = await this.prisma.empresaOrganizacion.findFirst({
+      where: { empresaId, organizacionId },
+      select: { id: true },
+    });
+    if (!vinculo) throw new NotFoundException('Establecimiento no vinculado a la empresa');
+
+    await this.prisma.empresaOrganizacion.delete({ where: { id: vinculo.id } });
+    return { ok: true };
+  }
+
   async listarMisEmpresas(usuarioId: number) {
     const empresas = await this.prisma.empresa.findMany({
       where: {
@@ -95,6 +330,9 @@ export class EmpresasService {
           ? empresa.organizaciones.length
           : membresia?.organizacionesAutorizadas.length ?? 0,
         limiteEstablecimientos: empresa.limiteEstablecimientos,
+        estadoComercial: empresa.estadoComercial,
+        fechaInicioComercial: empresa.fechaInicioComercial,
+        fechaVencimiento: empresa.fechaVencimiento,
         rol: empresa.propietarioId === usuarioId ? RolEmpresa.OWNER : membresia?.rol,
         accesoTodasOrganizaciones: accesoTodas,
       };
@@ -107,7 +345,10 @@ export class EmpresasService {
       id: acceso.empresa.id,
       nombre: acceso.empresa.nombre,
       activo: acceso.empresa.activo,
+      estadoComercial: acceso.empresa.estadoComercial,
       limiteEstablecimientos: acceso.empresa.limiteEstablecimientos,
+      fechaInicioComercial: acceso.empresa.fechaInicioComercial,
+      fechaVencimiento: acceso.empresa.fechaVencimiento,
       rol: acceso.esPropietario ? RolEmpresa.OWNER : acceso.membresia?.rol,
       puedeGestionar: acceso.puedeGestionar,
       establecimientosAutorizados: acceso.organizacionesIds.length,
@@ -179,6 +420,10 @@ export class EmpresasService {
         id: acceso.empresa.id,
         nombre: acceso.empresa.nombre,
         establecimientos: organizacionIds.length,
+        limiteEstablecimientos: acceso.empresa.limiteEstablecimientos,
+        estadoComercial: acceso.empresa.estadoComercial,
+        fechaInicioComercial: acceso.empresa.fechaInicioComercial,
+        fechaVencimiento: acceso.empresa.fechaVencimiento,
       },
       resumen: {
         superficieHa: campos._sum.hectareas ?? 0,
@@ -785,6 +1030,26 @@ export class EmpresasService {
     });
     if (usuario?.rolGlobal !== 'SUPERADMIN') {
       throw new ForbiddenException('Solo SUPERADMIN puede dar de alta una empresa');
+    }
+  }
+
+  private validarEmpresaActivaParaEstablecimientos(empresa: {
+    activo: boolean;
+    estadoComercial: EstadoEmpresa;
+  }) {
+    if (!empresa.activo || empresa.estadoComercial !== EstadoEmpresa.ACTIVA) {
+      throw new BadRequestException(
+        'La empresa debe estar activa antes de habilitar establecimientos',
+      );
+    }
+  }
+
+  private validarCupoEstablecimientos(empresa: {
+    organizaciones: { id: number }[];
+    limiteEstablecimientos: number;
+  }) {
+    if (empresa.organizaciones.length >= empresa.limiteEstablecimientos) {
+      throw new BadRequestException('Alcanzaste el límite de establecimientos de esta empresa');
     }
   }
 

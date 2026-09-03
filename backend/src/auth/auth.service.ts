@@ -8,7 +8,12 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { Resend } from 'resend';
-import { InvitacionOrganizacion, Organizacion } from '@prisma/client';
+import {
+  EstadoEmpresa,
+  InvitacionOrganizacion,
+  Organizacion,
+  RolEmpresa,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   RegisterDto,
@@ -70,6 +75,18 @@ export class AuthService {
       invitacion = foundInvitacion;
     }
 
+    const esRegistroEmpresa = dto.tipoRegistro === 'EMPRESA';
+    if (invitacion && esRegistroEmpresa) {
+      throw new BadRequestException(
+        'Las cuentas invitadas deben registrarse desde la invitación recibida.',
+      );
+    }
+
+    const nombreEmpresa = dto.nombreEmpresa?.trim();
+    if (esRegistroEmpresa && !nombreEmpresa) {
+      throw new BadRequestException('El nombre de la empresa es obligatorio');
+    }
+
     const hash = await bcrypt.hash(dto.password, 10);
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto
@@ -107,6 +124,25 @@ export class AuthService {
           usuarioId: usuario.id,
         },
       });
+    } else if (esRegistroEmpresa) {
+      await this.prisma.$transaction(async (tx) => {
+        const empresa = await tx.empresa.create({
+          data: {
+            nombre: nombreEmpresa!,
+            propietarioId: usuario.id,
+            estadoComercial: EstadoEmpresa.PENDIENTE,
+          },
+        });
+
+        await tx.usuarioEmpresa.create({
+          data: {
+            empresaId: empresa.id,
+            usuarioId: usuario.id,
+            rol: RolEmpresa.OWNER,
+            accesoTodasOrganizaciones: true,
+          },
+        });
+      });
     } else {
       await this.prisma.organizacion.create({
         data: {
@@ -137,6 +173,7 @@ export class AuthService {
     return {
       message:
         'Registrado. Revisá tu email para verificar tu cuenta antes de ingresar.',
+      tipoRegistro: esRegistroEmpresa ? 'EMPRESA' : 'DUENO_CAMPO',
     };
   }
 
@@ -190,6 +227,24 @@ export class AuthService {
       ).values(),
     );
 
+    const empresas = await this.prisma.empresa.findMany({
+      where: {
+        activo: true,
+        OR: [
+          { propietarioId: usuario.id },
+          { miembros: { some: { usuarioId: usuario.id, activo: true } } },
+        ],
+      },
+      select: {
+        id: true,
+        nombre: true,
+        estadoComercial: true,
+        limiteEstablecimientos: true,
+        propietarioId: true,
+      },
+      orderBy: { nombre: 'asc' },
+    });
+
     const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
     const usuarioOrganizacionId = orgPrincipal?.id ?? null;
     const token = this.generarToken(
@@ -204,6 +259,7 @@ export class AuthService {
       usuario: {
         ...usuarioSinPassword,
         organizaciones,
+        empresas,
         usuarioOrganizacionId,
       },
       token,

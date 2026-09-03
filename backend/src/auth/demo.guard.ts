@@ -4,8 +4,8 @@ import {
   ExecutionContext,
   ForbiddenException,
 } from '@nestjs/common';
+import { isDemoAccount } from './system-accounts';
 
-const DEMO_EMAIL = 'demo@agromanager.ar';
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // Rutas globales que el demo no puede modificar (tablas sin usuarioId)
@@ -25,7 +25,7 @@ export class DemoGuard implements CanActivate {
     const isBlockedPath = DEMO_BLOCKED_PATHS.some((p) => req.path.startsWith(p));
 
     if (
-      req.user.email === DEMO_EMAIL &&
+      isDemoAccount(req.user.email) &&
       WRITE_METHODS.has(req.method) &&
       isBlockedPath
     ) {

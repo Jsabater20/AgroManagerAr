@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Check, X, Zap, Sprout, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Check, X, Zap, Sprout, AlertCircle, MessageCircle } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth.store';
@@ -8,6 +8,7 @@ import { getPlanInfo, cancelarSuscripcion, crearCheckout } from '../../api/plan.
 import { getProfile } from '../../api/users.api';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
+import { WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 
 type ValorFeature = boolean | string;
 type Feature = {
@@ -49,6 +50,8 @@ const features: Feature[] = [
   { label: 'Evidencias fotograficas',         free: false,         pro: true },
   { label: 'Observaciones de actividades',    free: true,          pro: true },
   { label: 'Multiples organizaciones',        free: false,         pro: false, empresa: 'Incluido' },
+  { label: 'Establecimientos incluidos',      free: false,         pro: false, empresa: 'Hasta 3' },
+  { label: 'Ampliación de establecimientos',  free: false,         pro: false, empresa: 'Cotización personalizada' },
   { label: 'Dashboard multi-establecimiento', free: false,         pro: false, empresa: 'Incluido' },
   { label: 'Auditoria y exportaciones consolidadas', free: false,  pro: false, empresa: 'Incluido' },
 ];
@@ -264,12 +267,23 @@ export default function PreciosPage() {
               <p className="mt-4 text-3xl font-bold">Desde $69.990 <span className="text-base font-normal text-emerald-200">/ mes</span></p>
               <p className="mt-1 text-sm text-emerald-200">Incluye hasta 3 establecimientos. Cotización personalizada para ampliar la operación.</p>
             </div>
-            <a
-              href="mailto:agromanagerarcontacto@gmail.com?subject=Consulta%20Plan%20Empresa"
-              className="shrink-0 rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
-            >
-              Solicitar cotización
-            </a>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:flex-col">
+              <Link
+                to="/register"
+                className="rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+              >
+                Registrar mi empresa
+              </Link>
+              <a
+                href={WHATSAPP_BUSINESS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300/40 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                <MessageCircle size={16} />
+                Más de 3: cotizar
+              </a>
+            </div>
           </div>
           <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {['Todo Pro incluido', 'Dashboard consolidado', 'Personal y permisos avanzados', 'Auditoria y exportaciones'].map((beneficio) => (
@@ -296,8 +310,8 @@ export default function PreciosPage() {
           >
             <div className="px-6 py-3 text-gray-700 font-medium">{f.label}</div>
             <div className="px-4 py-3 text-center"><FeatureCell value={f.free} /></div>
-            <div className="px-4 py-3 text-center"><FeatureCell value={f.empresa ?? f.pro} /></div>
             <div className="px-4 py-3 text-center"><FeatureCell value={f.pro} /></div>
+            <div className="px-4 py-3 text-center"><FeatureCell value={f.empresa ?? f.pro} /></div>
           </div>
         ))}
         </div>

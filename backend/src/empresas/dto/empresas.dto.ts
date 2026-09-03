@@ -2,6 +2,8 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDateString,
+  IsEmail,
   IsEnum,
   IsInt,
   IsOptional,
@@ -11,7 +13,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { RolEmpresa } from '@prisma/client';
+import { EstadoEmpresa, RolEmpresa } from '@prisma/client';
 
 export class CrearEmpresaDto {
   @IsString()
@@ -30,10 +32,46 @@ export class CrearEmpresaDto {
   limiteEstablecimientos?: number;
 }
 
+export class ActualizarComercialEmpresaDto {
+  @IsOptional()
+  @IsEnum(EstadoEmpresa)
+  estadoComercial?: EstadoEmpresa;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limiteEstablecimientos?: number;
+
+  @IsOptional()
+  @IsDateString()
+  fechaInicioComercial?: string;
+
+  @IsOptional()
+  @IsDateString()
+  fechaVencimiento?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  observacionesComerciales?: string | null;
+}
+
 export class VincularOrganizacionDto {
   @IsInt()
   @Min(1)
   organizacionId!: number;
+}
+
+export class CrearEstablecimientoEmpresaDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(120)
+  nombre!: string;
+
+  @IsEmail()
+  @MaxLength(160)
+  email!: string;
 }
 
 export class CrearMiembroEmpresaDto {

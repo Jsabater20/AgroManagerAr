@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, MapPinned } from 'lucide-react';
+import { Building2, CalendarDays, ChevronRight, MapPinned } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { empresasApi } from '../../api/empresas.api';
@@ -56,6 +56,15 @@ export default function EmpresasPage() {
                 <MapPinned size={16} className="text-emerald-600" />
                 {empresa.establecimientos} de {empresa.limiteEstablecimientos} establecimientos
               </div>
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-bold text-emerald-800">
+                  {empresa.estadoComercial === 'ACTIVA' ? 'Plan Empresa activo' : empresa.estadoComercial}
+                </span>
+                <span className="inline-flex items-center gap-1 text-slate-500">
+                  <CalendarDays size={13} />
+                  {empresa.fechaVencimiento ? 'Vence ' + fechaVisible(empresa.fechaVencimiento) : 'Sin vencimiento definido'}
+                </span>
+              </div>
             </Link>
           ))}
         </div>
@@ -66,4 +75,9 @@ export default function EmpresasPage() {
 
 function PageState({ message }: { message: string }) {
   return <div className="p-10 text-center text-slate-600">{message}</div>;
+}
+
+function fechaVisible(fecha: string) {
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-');
+  return dia + '/' + mes + '/' + anio;
 }

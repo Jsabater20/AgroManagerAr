@@ -38,6 +38,7 @@ import ClimaPage from './pages/clima/ClimaPage';
 import PreciosPage from './pages/precios/PreciosPage';
 import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
+import AdminEmpresasPage from './pages/admin/AdminEmpresasPage';
 import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
@@ -55,6 +56,7 @@ import EmpresaFinanzasPage from './pages/empresas/EmpresaFinanzasPage';
 import EmpresaRentabilidadPage from './pages/empresas/EmpresaRentabilidadPage';
 import EmpresaAuditoriaPage from './pages/empresas/EmpresaAuditoriaPage';
 import EmpresaExportacionesPage from './pages/empresas/EmpresaExportacionesPage';
+import EmpresaEstadoPage from './pages/empresas/EmpresaEstadoPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -90,6 +92,7 @@ export default function App() {
             rolGlobal: profile.rolGlobal,
             usuarioOrganizacionId: activeOrgId ?? null,
             organizaciones,
+            empresas: profile.empresas,
             fotoPerfilUrl: profile.fotoPerfilUrl,
             fotoPerfilEncuadre: profile.fotoPerfilEncuadre,
           },
@@ -129,6 +132,7 @@ export default function App() {
           <Route path="/privacidad" element={<PrivacyPage />} />
 
           <Route element={<PrivateRoute />}>
+            <Route path="/empresa/estado" element={<EmpresaEstadoPage />} />
             <Route element={<Layout />}>
               <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
               <Route path="/org/:orgId/campos" element={<CamposPage />} />
@@ -166,6 +170,7 @@ export default function App() {
               <Route path="/empresas/:empresaId/exportaciones" element={<EmpresaExportacionesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
             </Route>
           </Route>
 

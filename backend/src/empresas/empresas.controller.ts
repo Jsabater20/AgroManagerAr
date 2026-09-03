@@ -15,7 +15,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EmpresasService } from './empresas.service';
 import {
   ActualizarMiembroEmpresaDto,
+  ActualizarComercialEmpresaDto,
   CrearEmpresaDto,
+  CrearEstablecimientoEmpresaDto,
   CrearMiembroEmpresaDto,
   VincularOrganizacionDto,
 } from './dto/empresas.dto';
@@ -37,6 +39,59 @@ export class EmpresasController {
   @Get('mias')
   listarMias(@Request() req: AuthRequest) {
     return this.empresasService.listarMisEmpresas(req.user.id);
+  }
+
+  @Get('admin/todas')
+  listarParaAdmin(@Request() req: AuthRequest) {
+    return this.empresasService.listarParaAdmin(req.user.id);
+  }
+
+  @Patch('admin/:empresaId/comercial')
+  actualizarComercial(
+    @Request() req: AuthRequest,
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Body() dto: ActualizarComercialEmpresaDto,
+  ) {
+    return this.empresasService.actualizarComercial(req.user.id, empresaId, dto);
+  }
+
+  @Get('admin/:empresaId/organizaciones-disponibles')
+  listarOrganizacionesDisponibles(
+    @Request() req: AuthRequest,
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    return this.empresasService.listarOrganizacionesDisponiblesAdmin(req.user.id, empresaId);
+  }
+
+  @Post('admin/:empresaId/organizaciones')
+  vincularOrganizacionAdmin(
+    @Request() req: AuthRequest,
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Body() dto: VincularOrganizacionDto,
+  ) {
+    return this.empresasService.vincularOrganizacionAdmin(req.user.id, empresaId, dto);
+  }
+
+  @Post('admin/:empresaId/establecimientos')
+  crearEstablecimientoAdmin(
+    @Request() req: AuthRequest,
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Body() dto: CrearEstablecimientoEmpresaDto,
+  ) {
+    return this.empresasService.crearEstablecimientoAdmin(req.user.id, empresaId, dto);
+  }
+
+  @Delete('admin/:empresaId/organizaciones/:organizacionId')
+  desvincularOrganizacionAdmin(
+    @Request() req: AuthRequest,
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Param('organizacionId', ParseIntPipe) organizacionId: number,
+  ) {
+    return this.empresasService.desvincularOrganizacionAdmin(
+      req.user.id,
+      empresaId,
+      organizacionId,
+    );
   }
 
   @Get(':empresaId')

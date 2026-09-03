@@ -5,8 +5,68 @@ export interface EmpresaResumen {
   nombre: string;
   establecimientos: number;
   limiteEstablecimientos: number;
+  estadoComercial: 'PENDIENTE' | 'ACTIVA' | 'SUSPENDIDA' | 'VENCIDA';
+  fechaInicioComercial: string | null;
+  fechaVencimiento: string | null;
   rol: string;
   accesoTodasOrganizaciones: boolean;
+}
+
+export type EstadoComercialEmpresa = 'PENDIENTE' | 'ACTIVA' | 'SUSPENDIDA' | 'VENCIDA';
+
+export interface EmpresaAdmin {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  estadoComercial: EstadoComercialEmpresa;
+  limiteEstablecimientos: number;
+  fechaInicioComercial: string | null;
+  fechaVencimiento: string | null;
+  observacionesComerciales: string | null;
+  createdAt: string;
+  updatedAt: string;
+  propietario: {
+    id: number;
+    nombre: string;
+    apellido: string;
+    email: string;
+  };
+  establecimientos: Array<{
+    id: number;
+    nombre: string;
+    plan: 'FREE' | 'PRO';
+  }>;
+  miembros: number;
+}
+
+export interface ActualizarComercialEmpresaDto {
+  estadoComercial?: EstadoComercialEmpresa;
+  limiteEstablecimientos?: number;
+  fechaInicioComercial?: string;
+  fechaVencimiento?: string;
+  observacionesComerciales?: string | null;
+}
+
+export interface EmpresaComercialActualizada {
+  id: number;
+  nombre: string;
+  estadoComercial: EstadoComercialEmpresa;
+  limiteEstablecimientos: number;
+  fechaInicioComercial: string | null;
+  fechaVencimiento: string | null;
+  observacionesComerciales: string | null;
+}
+
+export interface EstablecimientoDisponibleEmpresa {
+  id: number;
+  nombre: string;
+  email: string;
+  plan: 'FREE' | 'PRO';
+}
+
+export interface CrearEstablecimientoEmpresaDto {
+  nombre: string;
+  email: string;
 }
 
 export interface EstablecimientoEmpresa {
@@ -18,7 +78,15 @@ export interface EstablecimientoEmpresa {
 }
 
 export interface DashboardEmpresa {
-  empresa: { id: number; nombre: string; establecimientos: number };
+  empresa: {
+    id: number;
+    nombre: string;
+    establecimientos: number;
+    limiteEstablecimientos: number;
+    estadoComercial: EstadoComercialEmpresa;
+    fechaInicioComercial: string | null;
+    fechaVencimiento: string | null;
+  };
   resumen: {
     superficieHa: number;
     campos: number;
@@ -175,6 +243,17 @@ export interface FiltrosAuditoriaEmpresa {
 
 export const empresasApi = {
   listarMias: () => api.get<EmpresaResumen[]>('/empresas/mias').then((response) => response.data),
+  listarParaAdmin: () => api.get<EmpresaAdmin[]>('/empresas/admin/todas').then((response) => response.data),
+  actualizarComercial: (empresaId: number, dto: ActualizarComercialEmpresaDto) =>
+    api.patch<EmpresaComercialActualizada>('/empresas/admin/' + empresaId + '/comercial', dto).then((response) => response.data),
+  listarOrganizacionesDisponiblesAdmin: (empresaId: number) =>
+    api.get<EstablecimientoDisponibleEmpresa[]>('/empresas/admin/' + empresaId + '/organizaciones-disponibles').then((response) => response.data),
+  vincularOrganizacionAdmin: (empresaId: number, organizacionId: number) =>
+    api.post('/empresas/admin/' + empresaId + '/organizaciones', { organizacionId }).then((response) => response.data),
+  crearEstablecimientoAdmin: (empresaId: number, dto: CrearEstablecimientoEmpresaDto) =>
+    api.post('/empresas/admin/' + empresaId + '/establecimientos', dto).then((response) => response.data),
+  desvincularOrganizacionAdmin: (empresaId: number, organizacionId: number) =>
+    api.delete('/empresas/admin/' + empresaId + '/organizaciones/' + organizacionId).then((response) => response.data),
   obtenerDashboard: (empresaId: number) =>
     api.get<DashboardEmpresa>(`/empresas/${empresaId}/dashboard`).then((response) => response.data),
   obtenerOrganizaciones: (empresaId: number) =>

@@ -6,8 +6,8 @@ import {
   deleteUser,
 } from '../../api/users.api';
 import { useAuthStore } from '../../store/auth.store';
-import { Navigate } from 'react-router-dom';
-import { Trash2, AlertCircle, Lock } from 'lucide-react';
+import { Link, Navigate } from 'react-router-dom';
+import { Trash2, AlertCircle, Building2, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────
@@ -92,9 +92,18 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-gray-900">Panel de administración</h1>
           <p className="text-sm text-gray-500 mt-1">Gestión global de usuarios y planes</p>
         </div>
-        <span className="text-sm bg-green-50 text-green-700 px-3 py-1 rounded-lg font-medium">
-          {users.length} usuarios
-        </span>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin/empresas"
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+          >
+            <Building2 size={16} />
+            Empresas
+          </Link>
+          <span className="text-sm bg-green-50 text-green-700 px-3 py-1 rounded-lg font-medium">
+            {users.length} usuarios
+          </span>
+        </div>
       </div>
 
       {msg && (

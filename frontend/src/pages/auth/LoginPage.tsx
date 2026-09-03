@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sprout, Eye, EyeOff, Map, Wheat, PawPrint, ClipboardList, ArrowLeft } from 'lucide-react';
+import { Sprout, Eye, EyeOff, Map, Wheat, PawPrint, ClipboardList, ArrowLeft, Building2 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuthStore } from '../../store/auth.store';
 import toast from 'react-hot-toast';
 
 const REMEMBER_KEY = 'agromanager_remembered_email';
+const DEMO_EMPRESA_EMAIL = 'demoempresa@agromanager.ar';
 
 const FEATURES = [
   { icon: Map, label: 'Campos & Lotes', desc: 'Gestión de tu establecimiento' },
@@ -40,6 +41,9 @@ export default function LoginPage() {
       const resolvedOrgId =
         data.usuario?.usuarioOrganizacionId ??
         (organizaciones.length === 1 ? organizaciones[0]?.id : null);
+      const empresaSinEstablecimientos = (data.usuario?.empresas?.length ?? 0) > 0;
+      const empresaDemo =
+        data.usuario?.email === DEMO_EMPRESA_EMAIL ? data.usuario?.empresas?.[0] : null;
 
       setAuth(
         {
@@ -50,7 +54,15 @@ export default function LoginPage() {
         data.token,
       );
 
-      navigate(resolvedOrgId ? `/org/${resolvedOrgId}/dashboard` : '/');
+      navigate(
+        empresaDemo?.id
+          ? '/empresas/' + empresaDemo.id + '/dashboard'
+          : resolvedOrgId
+          ? '/org/' + resolvedOrgId + '/dashboard'
+          : empresaSinEstablecimientos
+            ? '/empresa/estado'
+            : '/',
+      );
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || 'Email o contraseña incorrectos');
@@ -201,6 +213,14 @@ export default function LoginPage() {
               className="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold py-2 rounded-lg transition-colors"
             >
               Usar cuenta demo
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm({ email: DEMO_EMPRESA_EMAIL, password: 'DemoEmpresa1234' })}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold py-2 rounded-lg transition-colors"
+            >
+              <Building2 size={14} />
+              Usar demo empresa
             </button>
           </div>
         </div>

@@ -548,19 +548,25 @@ model ObservacionActividad {
 }
 
 model Empresa {
-  id                     Int                   @id @default(autoincrement())
-  nombre                 String
-  activo                 Boolean               @default(true)
-  limiteEstablecimientos Int                   @default(3)
-  propietarioId          Int
-  createdAt              DateTime              @default(now())
-  updatedAt              DateTime              @updatedAt
-  propietario            Usuario               @relation("empresa_owner", fields: [propietarioId], references: [id], onDelete: Restrict)
-  organizaciones         EmpresaOrganizacion[]
-  miembros               UsuarioEmpresa[]
+  id                       Int                   @id @default(autoincrement())
+  nombre                   String
+  activo                   Boolean               @default(true)
+  estadoComercial          EstadoEmpresa         @default(ACTIVA)
+  limiteEstablecimientos   Int                   @default(3)
+  fechaInicioComercial     DateTime?
+  fechaVencimiento         DateTime?
+  observacionesComerciales String?
+  propietarioId            Int
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  propietario              Usuario               @relation("empresa_owner", fields: [propietarioId], references: [id], onDelete: Restrict)
+  organizaciones           EmpresaOrganizacion[]
+  miembros                 UsuarioEmpresa[]
 
   @@index([propietarioId])
   @@index([activo])
+  @@index([estadoComercial])
+  @@index([fechaVencimiento])
 }
 
 model EmpresaOrganizacion {
@@ -660,6 +666,13 @@ enum RolEmpresa {
   GERENTE_ESTABLECIMIENTO
   SUPERVISOR
   RESPONSABLE_FINANCIERO
+}
+
+enum EstadoEmpresa {
+  PENDIENTE
+  ACTIVA
+  SUSPENDIDA
+  VENCIDA
 }
 
 enum EstadoSiembra {

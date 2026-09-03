@@ -9,10 +9,13 @@ import {
   BarChart3,
   Download,
   ShieldCheck,
+  CalendarDays,
+  MessageCircle,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { empresasApi } from '../../api/empresas.api';
+import { WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 
 export default function EmpresaDashboardPage() {
   const { empresaId } = useParams<{ empresaId: string }>();
@@ -37,6 +40,16 @@ export default function EmpresaDashboardPage() {
 
   const dashboard = dashboardQuery.data;
   const establecimientos = organizacionesQuery.data ?? [];
+  const cupoDisponible = Math.max(
+    dashboard.empresa.limiteEstablecimientos - dashboard.empresa.establecimientos,
+    0,
+  );
+  const usoEstablecimientos = dashboard.empresa.limiteEstablecimientos
+    ? Math.min(
+        (dashboard.empresa.establecimientos / dashboard.empresa.limiteEstablecimientos) * 100,
+        100,
+      )
+    : 0;
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6">
       <div className="rounded-3xl bg-gradient-to-r from-emerald-900 to-emerald-700 p-7 text-white shadow-lg">
@@ -44,11 +57,59 @@ export default function EmpresaDashboardPage() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-emerald-200">Dashboard empresarial</p>
             <h1 className="mt-2 text-3xl font-bold">{dashboard.empresa.nombre}</h1>
-            <p className="mt-2 text-emerald-100">{dashboard.empresa.establecimientos} establecimientos autorizados</p>
+            <p className="mt-2 text-emerald-100">
+              {dashboard.empresa.establecimientos} de {dashboard.empresa.limiteEstablecimientos} establecimientos habilitados
+            </p>
           </div>
           <Building2 size={34} className="text-emerald-200" />
         </div>
       </div>
+
+      <section className="grid gap-4 lg:grid-cols-[1.3fr_.7fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Plan Empresa</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {cupoDisponible
+                  ? 'Te quedan ' + cupoDisponible + ' establecimientos disponibles.'
+                  : 'Usaste todos los establecimientos incluidos en tu plan.'}
+              </p>
+            </div>
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">
+              Activa
+            </span>
+          </div>
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-emerald-600" style={{ width: usoEstablecimientos + '%' }} />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span>{dashboard.empresa.establecimientos} utilizados de {dashboard.empresa.limiteEstablecimientos}</span>
+            <span className="inline-flex items-center gap-1">
+              <CalendarDays size={13} />
+              {dashboard.empresa.fechaVencimiento
+                ? 'Vence ' + fechaVisible(dashboard.empresa.fechaVencimiento)
+                : 'Vigencia sin vencimiento definido'}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-emerald-950 p-5 text-white">
+          <p className="text-sm font-semibold text-emerald-200">¿Necesitás ampliar tu empresa?</p>
+          <p className="mt-2 text-sm leading-relaxed text-emerald-100/85">
+            Consultanos para sumar establecimientos o revisar tu cotización.
+          </p>
+          <a
+            href={WHATSAPP_BUSINESS_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-emerald-300 transition hover:text-white"
+          >
+            <MessageCircle size={16} />
+            Hablar por WhatsApp
+          </a>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-lg font-bold text-slate-900">Resumen operativo</h2>
@@ -131,4 +192,9 @@ function PageState({ message }: { message: string }) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(value);
+}
+
+function fechaVisible(fecha: string) {
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-');
+  return dia + '/' + mes + '/' + anio;
 }

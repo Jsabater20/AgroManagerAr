@@ -68,6 +68,24 @@ export class UsersService {
       ).values(),
     );
 
+    const empresas = await this.prisma.empresa.findMany({
+      where: {
+        activo: true,
+        OR: [
+          { propietarioId: usuarioId },
+          { miembros: { some: { usuarioId, activo: true } } },
+        ],
+      },
+      select: {
+        id: true,
+        nombre: true,
+        estadoComercial: true,
+        limiteEstablecimientos: true,
+        propietarioId: true,
+      },
+      orderBy: { nombre: 'asc' },
+    });
+
     const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
     const usuarioOrganizacionId = orgPrincipal?.id;
 
@@ -81,6 +99,7 @@ export class UsersService {
         escala: u.fotoPerfilEscala,
       },
       organizaciones,
+      empresas,
       usuarioOrganizacionId,
     };
   }

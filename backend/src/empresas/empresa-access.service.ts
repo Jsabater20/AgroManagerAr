@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { RolEmpresa } from '@prisma/client';
+import { EstadoEmpresa, RolEmpresa } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const ROLES_GESTION_EMPRESA = new Set<RolEmpresa>([
@@ -41,6 +41,9 @@ export class EmpresaAccessService {
 
     if (!empresa?.activo) {
       throw new NotFoundException('Empresa no encontrada o inactiva');
+    }
+    if (empresa.estadoComercial !== EstadoEmpresa.ACTIVA) {
+      throw new ForbiddenException('La empresa todavía no está habilitada para operar');
     }
 
     const esPropietario = empresa.propietarioId === usuarioId;

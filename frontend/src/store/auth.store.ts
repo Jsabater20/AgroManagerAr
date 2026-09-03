@@ -10,6 +10,14 @@ export interface Organizacion {
   propietarioId: number;
 }
 
+export interface EmpresaSesion {
+  id: number;
+  nombre: string;
+  estadoComercial: 'PENDIENTE' | 'ACTIVA' | 'SUSPENDIDA' | 'VENCIDA';
+  limiteEstablecimientos: number;
+  propietarioId: number;
+}
+
 export interface Usuario {
   id: number;
   email: string;
@@ -21,6 +29,7 @@ export interface Usuario {
   planExpira?: string | null;
   usuarioOrganizacionId?: number | null;
   organizaciones?: Organizacion[];
+  empresas?: EmpresaSesion[];
   fotoPerfilUrl?: string | null;
   fotoPerfilEncuadre?: {
     posicionX: number;
