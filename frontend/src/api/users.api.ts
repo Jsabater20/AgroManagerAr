@@ -9,6 +9,8 @@ export interface UserProfile {
   rolGlobal?: string;
   plan?: 'FREE' | 'PRO';
   planExpira?: string | null;
+  codigoReferido?: string;
+  referidosValidados?: number;
   usuarioOrganizacionId?: number | null;
   organizaciones?: Array<{
     id: number;

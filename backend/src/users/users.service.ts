@@ -39,6 +39,7 @@ export class UsersService {
         rolGlobal: true,
         plan: true,
         planExpira: true,
+        codigoReferido: true,
         createdAt: true,
         fotoPerfilStorageKey: true,
         fotoPerfilPosicionX: true,
@@ -286,6 +287,10 @@ export class UsersService {
         rolGlobal: true,
         plan: true,
         createdAt: true,
+        referidosComoReferente: {
+          where: { validadoEn: { not: null } },
+          select: { id: true },
+        },
         organizacionesQueEsDueno: {
           select: {
             id: true,
@@ -330,8 +335,9 @@ export class UsersService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return usuarios.map(({ organizacionesQueEsDueno, membresiasOrganizacion, ...usuario }) => ({
+    return usuarios.map(({ organizacionesQueEsDueno, membresiasOrganizacion, referidosComoReferente, ...usuario }) => ({
       ...usuario,
+      referidosValidados: referidosComoReferente.length,
       vinculosOrganizacion: [
         ...organizacionesQueEsDueno.map((organizacion) => ({
           tipo: 'OWNER' as const,

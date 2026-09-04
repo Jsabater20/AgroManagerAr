@@ -31,6 +31,7 @@ import { AnaliticaModule } from './analitica/analitica.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EvidenciasModule } from './evidencias/evidencias.module';
 import { EmpresasModule } from './empresas/empresas.module';
+import { ReferidosModule } from './referidos/referidos.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { EmpresasModule } from './empresas/empresas.module';
     NotificacionesModule,
     EvidenciasModule,
     EmpresasModule,
+    ReferidosModule,
   ],
   controllers: [AppController],
   providers: [

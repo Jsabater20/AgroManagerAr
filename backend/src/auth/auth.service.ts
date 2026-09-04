@@ -15,6 +15,8 @@ import {
   RolEmpresa,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReferidosService } from '../referidos/referidos.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import {
   RegisterDto,
   LoginDto,
@@ -34,6 +36,8 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private referidosService: ReferidosService,
+    private notificacionesService: NotificacionesService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -43,6 +47,10 @@ export class AuthService {
     if (existe) {
       throw new ConflictException('Ya existe un usuario con ese email');
     }
+
+    const referente = dto.codigoReferido
+      ? await this.referidosService.buscarReferentePorCodigo(dto.codigoReferido)
+      : null;
 
     let invitacion:
       | (InvitacionOrganizacion & { organizacion: Organizacion })
@@ -106,6 +114,10 @@ export class AuthService {
       select: { id: true, email: true, nombre: true, apellido: true },
     });
 
+    if (referente) {
+      await this.referidosService.registrarReferido(referente.id, usuario.id);
+    }
+
     if (invitacion) {
       await this.prisma.usuarioOrganizacion.create({
         data: {
@@ -153,6 +165,11 @@ export class AuthService {
         },
       });
     }
+
+    await this.notificacionesService.notificarNuevoRegistro(
+      usuario.id,
+      esRegistroEmpresa ? 'EMPRESA' : 'DUENO_CAMPO',
+    );
 
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;
     if (this.resend) {
@@ -280,6 +297,7 @@ export class AuthService {
       where: { id: usuario.id },
       data: { emailVerificado: true, emailVerifToken: null },
     });
+    await this.referidosService.marcarEmailVerificado(usuario.id);
     return {
       message: 'Email verificado correctamente. Ya podés iniciar sesión.',
     };

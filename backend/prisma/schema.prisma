@@ -29,6 +29,7 @@ model Usuario {
   fotoPerfilPosicionY  Int       @default(50)
   fotoPerfilEscala     Float     @default(1)
   trialUsado           Boolean   @default(false)
+  codigoReferido       String    @unique @default(cuid())
 
   animales                       Animal[]
   auditoriasLogs                 AuditoriaLog[]           @relation("auditoriaLogs")
@@ -47,6 +48,42 @@ model Usuario {
   dispositivosPush               DispositivoPush[]
   evidencias                     Evidencia[]              @relation("evidenciasCreadasPor")
   beneficiosProOtorgados         BeneficioProOrganizacion[] @relation("beneficiosProOtorgados")
+  referidosComoReferente         Referido[]                @relation("referenteReferido")
+  referidoRecibido               Referido?                 @relation("referidoReferido")
+  notificaciones                 Notificacion[]
+}
+
+model Referido {
+  id                    Int       @id @default(autoincrement())
+  referenteId           Int
+  referidoId            Int       @unique
+  registradoEn          DateTime  @default(now())
+  emailVerificadoEn     DateTime?
+  primerCampoCreadoEn   DateTime?
+  validadoEn            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  referente Usuario @relation("referenteReferido", fields: [referenteId], references: [id], onDelete: Restrict)
+  referido  Usuario @relation("referidoReferido", fields: [referidoId], references: [id], onDelete: Cascade)
+
+  @@index([referenteId, validadoEn])
+}
+
+model Notificacion {
+  id          String    @id @default(cuid())
+  usuarioId   Int
+  tipo        String
+  titulo      String
+  mensaje     String
+  enlace      String?
+  dedupeKey   String?   @unique
+  leidaEn     DateTime?
+  createdAt   DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, leidaEn, createdAt])
 }
 
 model DispositivoPush {

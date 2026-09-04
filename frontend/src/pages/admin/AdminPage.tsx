@@ -166,7 +166,7 @@ export default function AdminPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
-          <table className="min-w-[1280px] w-full text-sm">
+          <table className="min-w-[1380px] w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-700 text-xs uppercase tracking-wider">
@@ -183,6 +183,9 @@ export default function AdminPage() {
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700 text-xs uppercase tracking-wider">
                   Plan
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-700 text-xs uppercase tracking-wider">
+                  Referidos
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700 text-xs uppercase tracking-wider">
                   Rol
@@ -247,6 +250,9 @@ export default function AdminPage() {
                         {u.plan || 'FREE'}
                         {isDemoUser && <Lock size={12} className="inline ml-1" />}
                       </button>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-semibold text-emerald-700">
+                      {u.referidosValidados ?? 0} válidos
                     </td>
                     <td className="px-4 py-3">
                       <span

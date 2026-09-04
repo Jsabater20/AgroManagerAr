@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [searchParams] = useSearchParams();
   const invitationToken = searchParams.get('token');
   const emailFromInvitation = searchParams.get('email');
+  const codigoReferidoUrl = searchParams.get('ref')?.trim() || '';
 
   const [form, setForm] = useState({
     nombre: '',
@@ -34,6 +35,7 @@ export default function RegisterPage() {
     password: '',
     nombreEmpresa: '',
     invitationToken: invitationToken || '',
+    codigoReferido: codigoReferidoUrl,
   });
   const [tipoRegistro, setTipoRegistro] = useState<'DUENO_CAMPO' | 'EMPRESA'>('DUENO_CAMPO');
   const [showPassword, setShowPassword] = useState(false);
@@ -73,6 +75,7 @@ export default function RegisterPage() {
             password: form.password,
             tipoRegistro,
             ...(tipoRegistro === 'EMPRESA' ? { nombreEmpresa: form.nombreEmpresa } : {}),
+            ...(form.codigoReferido.trim() ? { codigoReferido: form.codigoReferido.trim() } : {}),
           };
 
       await api.post('/auth/register', payload);
@@ -293,6 +296,21 @@ export default function RegisterPage() {
                 </p>
               )}
             </div>
+
+            {!invitationToken && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Código de referido <span className="font-normal text-gray-400">(opcional)</span></label>
+                <input
+                  type="text"
+                  value={form.codigoReferido}
+                  onChange={(e) => setForm({ ...form, codigoReferido: e.target.value })}
+                  maxLength={80}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-colors shadow-sm"
+                  placeholder="Pegá el código que te compartieron"
+                />
+                {codigoReferidoUrl && <p className="mt-1.5 text-xs text-green-700">Aplicamos el código de referido de tu enlace.</p>}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>

@@ -9,6 +9,8 @@ import {
   Trash2,
   Upload,
   UserRound,
+  Copy,
+  UsersRound,
   X,
 } from 'lucide-react';
 import {
@@ -20,6 +22,7 @@ import {
   type FotoPerfilEncuadre,
   updateProfile,
 } from '../../api/users.api';
+import { getResumenReferidos } from '../../api/referidos.api';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
 import { useAuthStore } from '../../store/auth.store';
 
@@ -37,6 +40,7 @@ export default function PerfilPage() {
   const token = useAuthStore((state) => state.token);
   const currentOrg = useAuthStore((state) => state.currentOrg());
   const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile });
+  const referidosQuery = useQuery({ queryKey: ['referidos-resumen'], queryFn: getResumenReferidos });
   const perfil = profileQuery.data ?? usuario;
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [ajustandoFoto, setAjustandoFoto] = useState(false);
@@ -145,6 +149,13 @@ export default function PerfilPage() {
     setAjustandoFoto(true);
   };
 
+  const copiarEnlaceReferido = async () => {
+    const codigo = referidosQuery.data?.codigo;
+    if (!codigo) return;
+    await navigator.clipboard.writeText(`${window.location.origin}/register?ref=${encodeURIComponent(codigo)}`);
+    setMensaje({ tipo: 'ok', texto: 'Enlace de referido copiado.' });
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-700 p-6 text-white shadow-xl sm:p-8">
@@ -218,6 +229,23 @@ export default function PerfilPage() {
           </dl>
         </section>
       </div>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+          <div className="flex gap-3">
+            <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"><UsersRound size={20} /></div>
+            <div>
+              <h2 className="font-bold text-gray-900 dark:text-white">Invitá amigos</h2>
+              <p className="mt-1 max-w-xl text-sm leading-6 text-gray-500 dark:text-gray-400">Un referido cuenta como válido cuando se registra con tu enlace, verifica su email y crea su primer campo.</p>
+            </div>
+          </div>
+          <button type="button" onClick={copiarEnlaceReferido} disabled={!referidosQuery.data?.codigo} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"><Copy size={16} />Copiar enlace</button>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Referidos validados</p><p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-300">{referidosQuery.data?.validos ?? 0}</p></div>
+          <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">En proceso</p><p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{referidosQuery.data?.pendientes ?? 0}</p></div>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center justify-between gap-4">

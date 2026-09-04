@@ -38,6 +38,12 @@ export class RegisterDto {
   invitationToken?: string;
 
   @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(80)
+  codigoReferido?: string;
+
+  @IsOptional()
   @IsIn(['DUENO_CAMPO', 'EMPRESA'])
   tipoRegistro?: 'DUENO_CAMPO' | 'EMPRESA';
 
