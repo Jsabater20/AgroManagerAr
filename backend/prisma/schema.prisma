@@ -46,6 +46,7 @@ model Usuario {
   observacionesActividades       ObservacionActividad[]   @relation("autorObservaciones")
   dispositivosPush               DispositivoPush[]
   evidencias                     Evidencia[]              @relation("evidenciasCreadasPor")
+  beneficiosProOtorgados         BeneficioProOrganizacion[] @relation("beneficiosProOtorgados")
 }
 
 model DispositivoPush {
@@ -348,10 +349,30 @@ model Organizacion {
   miembros              UsuarioOrganizacion[]
   actividades           ActividadMiembro[]
   evidencias            Evidencia[]
+  beneficiosPro         BeneficioProOrganizacion[]
   vinculacionEmpresa    EmpresaOrganizacion?
   autorizacionesEmpresa UsuarioEmpresaOrganizacion[]
 
   @@index([propietarioId])
+}
+
+model BeneficioProOrganizacion {
+  id             Int          @id @default(autoincrement())
+  organizacionId Int
+  otorgadoPorId  Int
+  motivo         String?
+  fechaInicio    DateTime     @default(now())
+  fechaFin       DateTime
+  activo         Boolean      @default(true)
+  revocadoEn     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  otorgadoPor  Usuario      @relation("beneficiosProOtorgados", fields: [otorgadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([organizacionId, activo, fechaFin])
+  @@index([otorgadoPorId])
 }
 
 model UsuarioOrganizacion {

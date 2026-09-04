@@ -127,7 +127,8 @@ export default function PerfilPage() {
       setMensaje({ tipo: 'error', texto: errorMessage(error, 'No pudimos cambiar la contraseña.') }),
   });
 
-  const plan = currentOrg?.plan ?? perfil?.plan ?? 'FREE';
+  const plan = currentOrg?.planEfectivo ?? currentOrg?.plan ?? perfil?.plan ?? 'FREE';
+  const beneficioPro = currentOrg?.beneficioPro;
   const nombreCompleto = [perfil?.nombre, perfil?.apellido].filter(Boolean).join(' ') || 'Usuario';
   const fotoOcupada = subirFoto.isPending || borrarFoto.isPending;
   const contrasenasCoinciden = !passwordConfirmacion || passwordNueva === passwordConfirmacion;
@@ -161,7 +162,7 @@ export default function PerfilPage() {
             <h1 className="mt-2 truncate text-3xl font-bold">{nombreCompleto}</h1>
             <p className="mt-1 truncate text-sm text-emerald-100">{perfil?.email}</p>
             <div className="mt-4 inline-flex rounded-full bg-white/15 px-3 py-1 text-sm font-semibold">
-              {plan === 'PRO' ? 'Plan Pro' : 'Plan Free'}
+              {beneficioPro ? 'Pro temporal' : plan === 'PRO' ? 'Plan Pro' : 'Plan Free'}
             </div>
           </div>
         </div>
@@ -213,7 +214,7 @@ export default function PerfilPage() {
             <InfoRow label="Email" value={perfil?.email ?? '-'} />
             <InfoRow label="Rol" value={perfil?.rol ?? 'Miembro'} />
             <InfoRow label="Miembro desde" value={profileQuery.data?.createdAt ? new Intl.DateTimeFormat('es-AR').format(new Date(profileQuery.data.createdAt)) : '-'} />
-            <InfoRow label="Plan actual" value={plan === 'PRO' ? 'Pro' : 'Free'} />
+            <InfoRow label="Plan actual" value={beneficioPro ? `Pro temporal hasta ${new Intl.DateTimeFormat('es-AR').format(new Date(beneficioPro.fechaFin))}` : plan === 'PRO' ? 'Pro' : 'Free'} />
           </dl>
         </section>
       </div>

@@ -15,7 +15,15 @@ export interface UserProfile {
     nombre: string;
     email?: string;
     plan?: 'FREE' | 'PRO';
+    planEfectivo?: 'FREE' | 'PRO';
+    beneficioPro?: BeneficioProTemporal | null;
     propietarioId: number;
+  }>;
+  vinculosOrganizacion?: Array<{
+    tipo: 'OWNER' | 'MIEMBRO';
+    organizacion: { id: number; nombre: string };
+    owner: { id: number; nombre: string; apellido: string; email: string };
+    beneficioPro?: BeneficioProTemporal | null;
   }>;
   empresas?: Array<{
     id: number;
@@ -27,6 +35,13 @@ export interface UserProfile {
   createdAt?: string;
   fotoPerfilUrl?: string | null;
   fotoPerfilEncuadre?: FotoPerfilEncuadre;
+}
+
+export interface BeneficioProTemporal {
+  id: number;
+  fechaInicio: string;
+  fechaFin: string;
+  motivo?: string | null;
 }
 
 export interface FotoPerfilEncuadre {
@@ -114,6 +129,22 @@ export const updateUserPlan = (
   plan: 'FREE' | 'PRO',
 ): Promise<UserProfile> =>
   api.patch<UserProfile>(`/users/admin/${id}/plan`, { plan }).then((r) => r.data);
+
+export const otorgarBeneficioPro = (
+  organizacionId: number,
+  duracionMeses: number,
+  motivo?: string,
+): Promise<BeneficioProTemporal> =>
+  api
+    .post<BeneficioProTemporal>('/users/admin/beneficios-pro', {
+      organizacionId,
+      duracionMeses,
+      motivo,
+    })
+    .then((r) => r.data);
+
+export const revocarBeneficioPro = (id: number): Promise<{ id: number }> =>
+  api.delete<{ id: number }>(`/users/admin/beneficios-pro/${id}`).then((r) => r.data);
 
 export const deleteUser = (id: number): Promise<{ ok: boolean }> =>
   api.delete<{ ok: boolean }>(`/users/admin/${id}`).then((r) => r.data);

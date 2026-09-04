@@ -38,7 +38,9 @@ export function EvidenceAction({
 
   if (!organizacionId || !recursoId) return null;
 
-  if (organizacion?.plan !== 'PRO') {
+  const tienePro = organizacion?.plan === 'PRO' || organizacion?.planEfectivo === 'PRO';
+
+  if (!tienePro) {
     return (
       <Link
         to="/precios"

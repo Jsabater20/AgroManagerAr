@@ -18,6 +18,7 @@ import {
   ChangePasswordDto,
   UpdateUserPlanDto,
   UpdateUserRolDto,
+  OtorgarBeneficioProDto,
   PrepararFotoPerfilDto,
   ConfirmarFotoPerfilDto,
   ActualizarEncuadreFotoPerfilDto,
@@ -101,6 +102,22 @@ export class UsersController {
     @Body() dto: UpdateUserRolDto,
   ) {
     return this.usersService.updateUserRol(req.user.id, id, dto);
+  }
+
+  @Post('admin/beneficios-pro')
+  otorgarBeneficioPro(
+    @Request() req: AuthRequest,
+    @Body() dto: OtorgarBeneficioProDto,
+  ) {
+    return this.usersService.otorgarBeneficioPro(req.user.id, dto);
+  }
+
+  @Delete('admin/beneficios-pro/:id')
+  revocarBeneficioPro(
+    @Request() req: AuthRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.usersService.revocarBeneficioPro(req.user.id, id);
   }
 
   @Delete('admin/:id')

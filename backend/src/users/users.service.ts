@@ -14,6 +14,7 @@ import {
   ChangePasswordDto,
   UpdateUserPlanDto,
   UpdateUserRolDto,
+  OtorgarBeneficioProDto,
   PrepararFotoPerfilDto,
   ConfirmarFotoPerfilDto,
   ActualizarEncuadreFotoPerfilDto,
@@ -68,6 +69,31 @@ export class UsersService {
       ).values(),
     );
 
+    const beneficiosActivos = organizaciones.length
+      ? await this.prisma.beneficioProOrganizacion.findMany({
+          where: {
+            organizacionId: { in: organizaciones.map((organizacion) => organizacion.id) },
+            activo: true,
+            fechaInicio: { lte: new Date() },
+            fechaFin: { gt: new Date() },
+          },
+          orderBy: { fechaFin: 'desc' },
+          select: { id: true, organizacionId: true, fechaInicio: true, fechaFin: true, motivo: true },
+        })
+      : [];
+
+    const beneficioPorOrganizacion = new Map(
+      beneficiosActivos.map((beneficio) => [beneficio.organizacionId, beneficio]),
+    );
+    const organizacionesConPlanEfectivo = organizaciones.map((organizacion) => {
+      const beneficioPro = beneficioPorOrganizacion.get(organizacion.id) ?? null;
+      return {
+        ...organizacion,
+        planEfectivo: organizacion.plan === 'PRO' || beneficioPro ? 'PRO' : 'FREE',
+        beneficioPro,
+      };
+    });
+
     const empresas = await this.prisma.empresa.findMany({
       where: {
         activo: true,
@@ -98,7 +124,7 @@ export class UsersService {
         posicionY: u.fotoPerfilPosicionY,
         escala: u.fotoPerfilEscala,
       },
-      organizaciones,
+      organizaciones: organizacionesConPlanEfectivo,
       empresas,
       usuarioOrganizacionId,
     };
@@ -251,7 +277,7 @@ export class UsersService {
     if (admin?.rolGlobal !== 'SUPERADMIN')
       throw new ForbiddenException('Solo SUPERADMIN');
 
-    return this.prisma.usuario.findMany({
+    const usuarios = await this.prisma.usuario.findMany({
       select: {
         id: true,
         email: true,
@@ -260,8 +286,145 @@ export class UsersService {
         rolGlobal: true,
         plan: true,
         createdAt: true,
+        organizacionesQueEsDueno: {
+          select: {
+            id: true,
+            nombre: true,
+            beneficiosPro: {
+              where: {
+                activo: true,
+                fechaInicio: { lte: new Date() },
+                fechaFin: { gt: new Date() },
+              },
+              orderBy: { fechaFin: 'desc' },
+              take: 1,
+              select: { id: true, fechaInicio: true, fechaFin: true, motivo: true },
+            },
+          },
+        },
+        membresiasOrganizacion: {
+          where: { activo: true },
+          select: {
+            organizacion: {
+              select: {
+                id: true,
+                nombre: true,
+                beneficiosPro: {
+                  where: {
+                    activo: true,
+                    fechaInicio: { lte: new Date() },
+                    fechaFin: { gt: new Date() },
+                  },
+                  orderBy: { fechaFin: 'desc' },
+                  take: 1,
+                  select: { id: true, fechaInicio: true, fechaFin: true, motivo: true },
+                },
+                propietario: {
+                  select: { id: true, nombre: true, apellido: true, email: true },
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
+    });
+
+    return usuarios.map(({ organizacionesQueEsDueno, membresiasOrganizacion, ...usuario }) => ({
+      ...usuario,
+      vinculosOrganizacion: [
+        ...organizacionesQueEsDueno.map((organizacion) => ({
+          tipo: 'OWNER' as const,
+          organizacion: { id: organizacion.id, nombre: organizacion.nombre },
+          beneficioPro: organizacion.beneficiosPro[0] ?? null,
+          owner: {
+            id: usuario.id,
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            email: usuario.email,
+          },
+        })),
+        ...membresiasOrganizacion
+          .filter(({ organizacion }) => organizacion.propietario.id !== usuario.id)
+          .map(({ organizacion }) => ({
+            tipo: 'MIEMBRO' as const,
+            organizacion: { id: organizacion.id, nombre: organizacion.nombre },
+            beneficioPro: organizacion.beneficiosPro[0] ?? null,
+            owner: organizacion.propietario,
+          })),
+      ],
+    }));
+  }
+
+  private async validarSuperadmin(usuarioId: number) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { rolGlobal: true },
+    });
+    if (usuario?.rolGlobal !== 'SUPERADMIN') {
+      throw new ForbiddenException('Solo SUPERADMIN');
+    }
+  }
+
+  async otorgarBeneficioPro(adminId: number, dto: OtorgarBeneficioProDto) {
+    await this.validarSuperadmin(adminId);
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: dto.organizacionId },
+      select: { id: true, nombre: true, plan: true },
+    });
+    if (!organizacion) throw new NotFoundException('Organización no encontrada');
+
+    const ahora = new Date();
+    const beneficioVigente = await this.prisma.beneficioProOrganizacion.findFirst({
+      where: {
+        organizacionId: dto.organizacionId,
+        activo: true,
+        fechaInicio: { lte: ahora },
+        fechaFin: { gt: ahora },
+      },
+      orderBy: { fechaFin: 'desc' },
+    });
+    const fechaBase = beneficioVigente?.fechaFin ?? ahora;
+    const fechaFin = new Date(fechaBase);
+    fechaFin.setMonth(fechaFin.getMonth() + dto.duracionMeses);
+    const motivo = dto.motivo?.trim() || null;
+
+    const beneficio = beneficioVigente
+      ? await this.prisma.beneficioProOrganizacion.update({
+          where: { id: beneficioVigente.id },
+          data: { fechaFin, motivo },
+        })
+      : await this.prisma.beneficioProOrganizacion.create({
+          data: {
+            organizacionId: dto.organizacionId,
+            otorgadoPorId: adminId,
+            fechaInicio: ahora,
+            fechaFin,
+            motivo,
+          },
+        });
+
+    return {
+      ...beneficio,
+      organizacion: { id: organizacion.id, nombre: organizacion.nombre },
+      planContratado: organizacion.plan,
+    };
+  }
+
+  async revocarBeneficioPro(adminId: number, beneficioId: number) {
+    await this.validarSuperadmin(adminId);
+
+    const beneficio = await this.prisma.beneficioProOrganizacion.findUnique({
+      where: { id: beneficioId },
+      select: { id: true, organizacionId: true },
+    });
+    if (!beneficio) throw new NotFoundException('Beneficio no encontrado');
+
+    return this.prisma.beneficioProOrganizacion.update({
+      where: { id: beneficio.id },
+      data: { activo: false, revocadoEn: new Date() },
+      select: { id: true, organizacionId: true, activo: true, revocadoEn: true },
     });
   }
 

@@ -72,7 +72,15 @@ export class PlanService {
     const [organizacion, usuario] = await Promise.all([
       this.prisma.organizacion.findUnique({
         where: { id: organizacionId },
-        select: { plan: true },
+        select: {
+          plan: true,
+          beneficiosPro: {
+            where: { activo: true, fechaInicio: { lte: new Date() }, fechaFin: { gt: new Date() } },
+            orderBy: { fechaFin: 'desc' },
+            take: 1,
+            select: { id: true, fechaInicio: true, fechaFin: true, motivo: true },
+          },
+        },
       }),
       this.prisma.usuario.findUnique({
         where: { id: usuarioId },
@@ -84,8 +92,13 @@ export class PlanService {
       throw new ForbiddenException('Organización no encontrada');
     }
 
+    const beneficioPro = organizacion.beneficiosPro[0] ?? null;
+    const planEfectivo = organizacion.plan === 'PRO' || beneficioPro ? 'PRO' : 'FREE';
+
     return {
-      plan: organizacion.plan,
+      plan: planEfectivo,
+      planContratado: organizacion.plan,
+      beneficioPro,
       planExpira: usuario.planExpira,
       mpSuscripcionId: usuario.mpSuscripcionId,
       trialUsado: usuario.trialUsado,
@@ -126,10 +139,16 @@ export class PlanService {
   async isOrgPro(organizacionId: number): Promise<boolean> {
     const org = await this.prisma.organizacion.findUnique({
       where: { id: organizacionId },
-      select: { plan: true },
+      select: {
+        plan: true,
+        beneficiosPro: {
+          where: { activo: true, fechaInicio: { lte: new Date() }, fechaFin: { gt: new Date() } },
+          select: { id: true },
+          take: 1,
+        },
+      },
     });
-    if (!org || org.plan !== 'PRO') return false;
-    return true;
+    return Boolean(org && (org.plan === 'PRO' || org.beneficiosPro.length > 0));
   }
 
   async checkCamposLimit(organizacionId: number) {
@@ -196,7 +215,7 @@ export class PlanService {
       throw new ForbiddenException('Organizacion no encontrada');
     }
 
-    const [miembrosAdicionales, invitacionesPendientes, actividadesActivas] =
+    const [miembrosAdicionales, invitacionesPendientes, actividadesActivas, esPro] =
       await Promise.all([
         this.prisma.usuarioOrganizacion.count({
           where: {
@@ -218,17 +237,18 @@ export class PlanService {
             estado: { in: ['PENDIENTE', 'EN_PROGRESO', 'PAUSADA'] },
           },
         }),
+        this.isOrgPro(organizacionId),
       ]);
 
     return {
-      plan: organizacion.plan,
+      plan: esPro ? 'PRO' : 'FREE',
       miembros: {
         usados: miembrosAdicionales + invitacionesPendientes,
-        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.miembrosAdicionales : null,
+        limite: esPro ? null : LIMITES_FREE.miembrosAdicionales,
       },
       actividades: {
         usadas: actividadesActivas,
-        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.actividadesActivas : null,
+        limite: esPro ? null : LIMITES_FREE.actividadesActivas,
       },
     };
   }

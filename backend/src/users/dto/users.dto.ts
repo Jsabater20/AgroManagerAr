@@ -73,6 +73,22 @@ export class UpdateUserRolDto {
   rol!: 'SUPERADMIN' | 'USER';
 }
 
+export class OtorgarBeneficioProDto {
+  @IsInt()
+  @Min(1)
+  organizacionId!: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(36)
+  duracionMeses!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  motivo?: string;
+}
+
 export interface AdminPanelUserDto {
   id: number;
   email: string;

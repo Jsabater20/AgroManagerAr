@@ -7,6 +7,13 @@ export interface Organizacion {
   nombre: string;
   email?: string;
   plan?: 'FREE' | 'PRO';
+  planEfectivo?: 'FREE' | 'PRO';
+  beneficioPro?: {
+    id: number;
+    fechaInicio: string;
+    fechaFin: string;
+    motivo?: string | null;
+  } | null;
   propietarioId: number;
 }
 
@@ -97,7 +104,7 @@ export const useAuthStore = create<AuthState>()(
 
       isPro: () => {
         const currentOrg = get().currentOrg();
-        return currentOrg?.plan === 'PRO';
+        return currentOrg?.plan === 'PRO' || currentOrg?.planEfectivo === 'PRO';
       },
 
       currentOrg: () => {
