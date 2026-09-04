@@ -189,11 +189,7 @@ export default function OrganizationMembersPage() {
           Invitar al equipo
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-<<<<<<< HEAD
-          Invita colaboradores y gestiona los roles dentro de tu organización
-=======
           Enviá una invitación. Después definís qué puede ver cada persona y qué trabajos puede realizar.
->>>>>>> develop
         </p>
         {usoMiembros?.plan === 'FREE' && (
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
