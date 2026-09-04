@@ -29,3 +29,14 @@
   margin: 0;
   font-size: 16px;
 }
+
+html.dark .actividades-header h2 {
+  color: #f1f5f9;
+}
+
+html.dark .actividades-loading,
+html.dark .actividades-error,
+html.dark .actividades-empty {
+  background: #1f2937;
+  color: #d1d5db;
+}

@@ -373,7 +373,7 @@ export function OwnerPanelPage() {
                     className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2"
                   >
                     <div>
-                      <p className="text-sm font-medium text-gray-800">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
                         {nombresCampos.get(recurso.id) ||
                           recurso.nombre?.trim() ||
                           `Campo #${recurso.id}`}
