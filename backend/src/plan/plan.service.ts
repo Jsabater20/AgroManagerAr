@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
+import { isProtectedProAccount } from '../auth/system-accounts';
 
 const LIMITES_FREE = {
   campos: 1,
@@ -27,8 +28,6 @@ const PRECIOS = {
     descuento: 'Ahorrá un 16% con el plan anual',
   },
 };
-
-const TRIAL_DIAS = 30;
 
 @Injectable()
 export class PlanService {
@@ -58,13 +57,11 @@ export class PlanService {
         precio: PRECIOS.mensual.monto,
         label: 'Pro Mensual',
         descuento: PRECIOS.mensual.descuento,
-        trialDias: TRIAL_DIAS,
       },
       anual: {
         precio: PRECIOS.anual.monto,
         label: 'Pro Anual',
         descuento: PRECIOS.anual.descuento,
-        trialDias: TRIAL_DIAS,
       },
     };
   }
@@ -75,7 +72,15 @@ export class PlanService {
     const [organizacion, usuario] = await Promise.all([
       this.prisma.organizacion.findUnique({
         where: { id: organizacionId },
-        select: { plan: true },
+        select: {
+          plan: true,
+          beneficiosPro: {
+            where: { activo: true, fechaInicio: { lte: new Date() }, fechaFin: { gt: new Date() } },
+            orderBy: { fechaFin: 'desc' },
+            take: 1,
+            select: { id: true, fechaInicio: true, fechaFin: true, motivo: true },
+          },
+        },
       }),
       this.prisma.usuario.findUnique({
         where: { id: usuarioId },
@@ -87,8 +92,13 @@ export class PlanService {
       throw new ForbiddenException('Organización no encontrada');
     }
 
+    const beneficioPro = organizacion.beneficiosPro[0] ?? null;
+    const planEfectivo = organizacion.plan === 'PRO' || beneficioPro ? 'PRO' : 'FREE';
+
     return {
-      plan: organizacion.plan,
+      plan: planEfectivo,
+      planContratado: organizacion.plan,
+      beneficioPro,
       planExpira: usuario.planExpira,
       mpSuscripcionId: usuario.mpSuscripcionId,
       trialUsado: usuario.trialUsado,
@@ -129,10 +139,16 @@ export class PlanService {
   async isOrgPro(organizacionId: number): Promise<boolean> {
     const org = await this.prisma.organizacion.findUnique({
       where: { id: organizacionId },
-      select: { plan: true },
+      select: {
+        plan: true,
+        beneficiosPro: {
+          where: { activo: true, fechaInicio: { lte: new Date() }, fechaFin: { gt: new Date() } },
+          select: { id: true },
+          take: 1,
+        },
+      },
     });
-    if (!org || org.plan !== 'PRO') return false;
-    return true;
+    return Boolean(org && (org.plan === 'PRO' || org.beneficiosPro.length > 0));
   }
 
   async checkCamposLimit(organizacionId: number) {
@@ -199,7 +215,7 @@ export class PlanService {
       throw new ForbiddenException('Organizacion no encontrada');
     }
 
-    const [miembrosAdicionales, invitacionesPendientes, actividadesActivas] =
+    const [miembrosAdicionales, invitacionesPendientes, actividadesActivas, esPro] =
       await Promise.all([
         this.prisma.usuarioOrganizacion.count({
           where: {
@@ -221,17 +237,18 @@ export class PlanService {
             estado: { in: ['PENDIENTE', 'EN_PROGRESO', 'PAUSADA'] },
           },
         }),
+        this.isOrgPro(organizacionId),
       ]);
 
     return {
-      plan: organizacion.plan,
+      plan: esPro ? 'PRO' : 'FREE',
       miembros: {
         usados: miembrosAdicionales + invitacionesPendientes,
-        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.miembrosAdicionales : null,
+        limite: esPro ? null : LIMITES_FREE.miembrosAdicionales,
       },
       actividades: {
         usadas: actividadesActivas,
-        limite: organizacion.plan === 'FREE' ? LIMITES_FREE.actividadesActivas : null,
+        limite: esPro ? null : LIMITES_FREE.actividadesActivas,
       },
     };
   }
@@ -305,10 +322,6 @@ export class PlanService {
   ) {
     await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const p = PRECIOS[tipo];
-    const u = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
-      select: { trialUsado: true },
-    });
     const client = this.getMPClient();
     const preApproval = new PreApproval(client);
     const autoRecurring: Record<string, unknown> = {
@@ -317,9 +330,6 @@ export class PlanService {
       transaction_amount: p.monto,
       currency_id: 'ARS',
     };
-    if (!u?.trialUsado) {
-      autoRecurring.free_trial = { frequency: TRIAL_DIAS, frequency_type: 'days' };
-    }
     const result = await preApproval.create({
       body: {
         reason: p.label,
@@ -405,6 +415,14 @@ export class PlanService {
           .catch(() => {});
       }
     } else if (status === 'cancelled' || status === 'paused') {
+      const cuentaProtegida = await this.prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { email: true },
+      });
+      if (isProtectedProAccount(cuentaProtegida?.email)) {
+        return { ok: true };
+      }
+
       const usuario = await this.prisma.usuario.update({
         where: { id: usuarioId },
         data: { plan: 'FREE', planExpira: null },
@@ -517,8 +535,11 @@ export class PlanService {
     await this.validarAccesoOrganizacion(usuarioId, organizacionId, true);
     const u = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: { mpSuscripcionId: true },
+      select: { email: true, mpSuscripcionId: true },
     });
+    if (isProtectedProAccount(u?.email)) {
+      throw new ForbiddenException('Esta cuenta debe mantener el Plan PRO');
+    }
     if (u?.mpSuscripcionId) {
       const client = this.getMPClient();
       const preApproval = new PreApproval(client);

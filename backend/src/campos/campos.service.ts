@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PlanService } from '../plan/plan.service';
 import { MemberAccessService } from '../organizations/member-access.service';
+import { ReferidosService } from '../referidos/referidos.service';
 import {
   CreateCampoDto,
   UpdateCampoDto,
@@ -18,6 +19,7 @@ export class CamposService {
     private prisma: PrismaService,
     private planService: PlanService,
     private memberAccessService: MemberAccessService,
+    private referidosService: ReferidosService,
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
@@ -74,10 +76,12 @@ export class CamposService {
   async create(dto: CreateCampoDto, usuarioId: number, organizacionId: number) {
     await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Campos');
     await this.planService.checkCamposLimit(organizacionId);
-    return this.prisma.campo.create({
+    const campo = await this.prisma.campo.create({
       data: { ...dto, usuarioId, organizacionId },
       include: { lotes: true, usuario: true },
     });
+    await this.referidosService.marcarPrimerCampoCreado(usuarioId);
+    return campo;
   }
 
   async update(

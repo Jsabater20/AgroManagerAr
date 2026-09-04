@@ -7,6 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import { camposApi } from '../../api/campos.api';
 import type { CreateLoteDto, CreateCampoDto } from '../../api/types';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
 const emptyLote: CreateLoteDto = { nombre: '', hectareas: 0 };
 
@@ -99,6 +100,7 @@ export default function CampoDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <EvidenceAction organizacionId={Number(orgId)} origen="CAMPOS" tipoRecurso="CAMPO" recursoId={campoId} titulo={`Evidencia de ${campo.nombre}`} compacto />
             <button
               onClick={() => { setEditForm({ nombre: campo.nombre, hectareas: campo.hectareas, ubicacion: campo.ubicacion ?? '', propietario: campo.propietario ?? '' }); setShowEditModal(true); }}
               className="flex items-center gap-1.5 text-sm text-gray-600 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"

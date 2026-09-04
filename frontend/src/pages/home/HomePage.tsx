@@ -13,9 +13,16 @@ import {
   TrendingUp,
   CheckCircle2,
   ChevronRight,
+  UsersRound,
+  Camera,
+  Building2,
+  BarChart3,
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
+import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
+import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
+import TeamSection from '../../components/marketing/TeamSection';
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -26,6 +33,7 @@ const FREE_FEATURES = [
   'Tareas rurales',
   '1 miembro adicional + hasta 3 trabajos activos',
   'Asigná recursos y trabajos con fechas y estados',
+  'Fotos de perfil para tu equipo',
   'Clima actual',
   'Dashboard básico',
 ];
@@ -33,6 +41,7 @@ const PRO_FEATURES = [
   'Campos, lotes y animales ilimitados',
   'Miembros, recursos y trabajos ilimitados',
   'Permisos, horarios e historial completo del equipo',
+  'Evidencias y observaciones completas de actividades',
   'Campañas agrícolas',
   'AgroBot IA',
   'Analytics avanzados + rentabilidad',
@@ -83,6 +92,22 @@ const FEATURES = [
     desc: 'Planificá y analizá cada campaña. Costos, rendimientos y rentabilidad por lote, cultivo y establecimiento.',
     gradient: 'from-amber-500 to-orange-500',
     pill: 'bg-amber-50 text-amber-700',
+  },
+  {
+    icon: UsersRound,
+    badge: 'Equipo',
+    title: 'Tu equipo conectado',
+    desc: 'Invitá colaboradores, asigná campos y trabajos, definí permisos y seguí cada actividad desde un solo lugar.',
+    gradient: 'from-emerald-500 to-teal-600',
+    pill: 'bg-emerald-50 text-emerald-700',
+  },
+  {
+    icon: Camera,
+    badge: 'Evidencia',
+    title: 'Seguimiento con fotos',
+    desc: 'Documentá tareas, animales, maquinarias, cultivos y lotes con imágenes y observaciones de cada jornada.',
+    gradient: 'from-rose-500 to-orange-500',
+    pill: 'bg-rose-50 text-rose-700',
   },
 ];
 
@@ -328,8 +353,8 @@ export default function HomePage() {
             </h1>
 
             <p className="text-gray-400 text-lg md:text-xl max-w-xl leading-relaxed">
-              El ERP agropecuario que une IA, mapas, trazabilidad y finanzas en un
-              solo lugar. Hecho en Argentina, para el campo argentino.
+              Campos, equipo, tareas, evidencias y finanzas en un solo lugar.
+              Hecho en Argentina, para decidir mejor todos los días.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
@@ -337,7 +362,7 @@ export default function HomePage() {
                 to="/register"
                 className="bg-green-500 hover:bg-green-400 text-white font-bold px-7 py-3.5 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-green-900/40 w-full sm:w-auto justify-center text-base"
               >
-                Probar gratis
+                Crear cuenta gratis
                 <ArrowRight size={18} />
               </Link>
               <Link
@@ -376,7 +401,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-5 gap-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, badge, title, desc, gradient, pill }) => (
               <div
                 key={title}
@@ -403,6 +428,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <TeamSection />
 
       {/* ── SCREENSHOTS ──────────────────────────────────────────── */}
       <section className="py-24 px-4 bg-gray-950 text-white">
@@ -455,6 +482,125 @@ export default function HomePage() {
       </section>
 
       {/* ── PRICING ──────────────────────────────────────────────── */}
+      <section className="bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-900 px-4 py-24">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-300">
+              Para empresas agropecuarias
+            </p>
+            <h2 className="max-w-xl text-3xl font-bold leading-tight text-white md:text-4xl">
+              Si gestionás varios establecimientos, mirá todo desde un solo lugar.
+            </h2>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-200">
+              Empresas reúne la información de tus campos sin mezclar sus datos. Así podés
+              seguir trabajos, maquinarias, producción y finanzas con una visión clara de todo
+              el negocio.
+            </p>
+
+            <div className="mt-8 space-y-4">
+              {[
+                {
+                  icon: Building2,
+                  title: 'Todos tus establecimientos, ordenados',
+                  description: 'Conservan su información propia y se agrupan bajo una misma empresa.',
+                },
+                {
+                  icon: UsersRound,
+                  title: 'Cada persona ve solo lo que necesita',
+                  description: 'Asigná equipos y permisos según el establecimiento donde trabajan.',
+                },
+                {
+                  icon: BarChart3,
+                  title: 'Una visión completa para decidir mejor',
+                  description: 'Consultá actividad, finanzas y resultados de forma consolidada.',
+                },
+              ].map(({ icon: Icon, title, description }) => (
+                <div key={title} className="flex gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-300/20">
+                    <Icon size={19} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">{title}</h3>
+                    <p className="mt-0.5 text-sm leading-relaxed text-slate-300">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link
+                to="/demo/empresa"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300"
+              >
+                <Building2 size={19} />
+                Ver Demo Empresa
+              </Link>
+              <a
+                href={EMPRESA_STANDARD_PAYMENT_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300"
+              >
+                <Building2 size={19} />
+                Contratar hasta 3
+              </a>
+              <a
+                href={WHATSAPP_BUSINESS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold text-white transition hover:border-emerald-300/60 hover:bg-white/15"
+              >
+                <WhatsAppIcon size={19} />
+                Más de 3: cotizar
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-black/30 p-5 shadow-2xl shadow-black/30 sm:p-7">
+            <div className="flex items-center justify-between border-b border-white/10 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white">
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <p className="font-semibold text-white">Empresa Los Álamos</p>
+                  <p className="text-xs text-slate-400">Resumen de establecimientos</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300">
+                Empresas
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {[
+                ['La Esperanza', '3 trabajos activos · Maquinaria operativa'],
+                ['Las Meninas', '2 siembras en curso · Equipo asignado'],
+                ['El Ombú', 'Finanzas actualizadas · Sin alertas'],
+              ].map(([nombre, detalle]) => (
+                <div key={nombre} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <p className="font-medium text-white">{nombre}</p>
+                  <p className="mt-1 text-xs text-slate-400">{detalle}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {[
+                ['3', 'Establecimientos'],
+                ['5', 'Trabajos activos'],
+                ['1', 'Vista consolidada'],
+              ].map(([valor, etiqueta]) => (
+                <div key={etiqueta} className="rounded-xl bg-emerald-500/10 p-3 text-center">
+                  <p className="text-xl font-bold text-emerald-300">{valor}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-emerald-100/70">{etiqueta}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-24 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
@@ -477,7 +623,7 @@ export default function HomePage() {
                 $0{' '}
                 <span className="text-base font-normal text-gray-400">/ mes</span>
               </p>
-              <p className="text-sm text-gray-400 mb-6">Para empezar a gestionar tu campo</p>
+              <p className="text-sm text-gray-400 mb-6">Para empezar a ordenar tu campo, equipo y tareas en una misma plataforma</p>
               <ul className="space-y-3 mb-7">
                 {FREE_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-gray-600">
@@ -513,9 +659,7 @@ export default function HomePage() {
                 $13.990{' '}
                 <span className="text-base font-normal text-gray-400">ARS / mes</span>
               </p>
-              <p className="text-sm text-green-700 font-medium mb-6">
-                ✓ 14 días de prueba gratis
-              </p>
+              <p className="text-sm text-green-700 font-medium mb-6">Plan Pro completo para una gestión sin límites</p>
               <ul className="space-y-3 mb-7">
                 <li className="flex items-start gap-2.5 text-sm text-gray-700 font-medium">
                   <CheckCircle2 size={16} className="text-green-600 mt-0.5 shrink-0" />
@@ -567,18 +711,17 @@ export default function HomePage() {
         <div className="relative max-w-2xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 text-green-400 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest mb-6">
             <Sprout size={12} />
-            Sin riesgo
+            Conocé AgroManager
           </div>
           <h2 className="text-3xl md:text-4xl font-black mb-4 leading-tight">
-            Probá AgroManager gratis
+            Empezá a ordenar tu operación
             <br />
             <span className="text-transparent bg-clip-text bg-linear-to-r from-green-400 to-emerald-300">
-              durante 14 días
+              desde el primer día
             </span>
           </h2>
           <p className="text-gray-400 text-lg mb-8 leading-relaxed">
-            Accedé a todas las funciones Pro sin costo. Sin tarjeta de crédito.
-            Cancelá cuando quieras. Tu campo, tus reglas.
+            Creá una cuenta Free para empezar o recorré la Demo Empresa y conocé cómo se gestiona una operación con varios establecimientos.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
@@ -586,22 +729,22 @@ export default function HomePage() {
               to="/register"
               className="bg-green-500 hover:bg-green-400 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-lg shadow-green-900/40 flex items-center gap-2 w-full sm:w-auto justify-center text-base"
             >
-              Empezar prueba gratuita
+              Crear cuenta gratis
               <ArrowRight size={18} />
             </Link>
             <Link
-              to="/contacto"
+              to="/demo/empresa"
               className="border border-white/20 hover:border-white/40 text-white font-semibold px-8 py-4 rounded-xl transition-all text-base hover:bg-white/5 w-full sm:w-auto text-center"
             >
-              Hablar con el equipo
+              Ver Demo Empresa
             </Link>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-500">
             {[
-              '14 días gratis',
+              'Plan Free incluido',
+              'Demo Empresa guiada',
               'Sin tarjeta de crédito',
-              'Cancelá cuando quieras',
               '100% argentino',
             ].map((item) => (
               <span key={item} className="flex items-center gap-1.5">

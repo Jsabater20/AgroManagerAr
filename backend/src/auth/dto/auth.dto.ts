@@ -1,4 +1,14 @@
-import { IsEmail, IsNotEmpty, Matches, MinLength, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 
 export class RegisterDto {
   @IsEmail({}, { message: 'El email no es válido' })
@@ -26,6 +36,23 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   invitationToken?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(80)
+  codigoReferido?: string;
+
+  @IsOptional()
+  @IsIn(['DUENO_CAMPO', 'EMPRESA'])
+  tipoRegistro?: 'DUENO_CAMPO' | 'EMPRESA';
+
+  @ValidateIf((dto) => dto.tipoRegistro === 'EMPRESA')
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(120)
+  nombreEmpresa?: string;
 }
 
 export class LoginDto {

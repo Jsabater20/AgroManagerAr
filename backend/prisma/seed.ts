@@ -63,24 +63,6 @@ async function main() {
   const girasol = girasolExist ?? await prisma.tipoCultivo.create({ data: { nombre: 'Girasol', descripcion: 'Helianthus annuus' } });
   console.log('🌿 Tipos de cultivo OK');
 
-  async function getOrCreateInsumo(nombre: string, tipo: string, unidad: string, descripcion: string) {
-    return (await prisma.insumo.findFirst({ where: { nombre } }))
-      ?? prisma.insumo.create({ data: { nombre, tipo: tipo as any, unidad, descripcion } });
-  }
-
-  const [glifosato, urea, fda, semSoja, semMaiz, mancozeb, cipermetrina, nitrato] =
-    await Promise.all([
-      getOrCreateInsumo('Glifosato 48%',       'HERBICIDA',    'litros', 'Herbicida sistémico'),
-      getOrCreateInsumo('Urea Granulada',      'FERTILIZANTE', 'kg',     '46% N'),
-      getOrCreateInsumo('Fosfato Diamónico',   'FERTILIZANTE', 'kg',     '18-46-0'),
-      getOrCreateInsumo('Semilla Soja NK7059', 'SEMILLA',      'kg',     'Grupo VII, tolerante a sequía'),
-      getOrCreateInsumo('Semilla Maíz DK7210', 'SEMILLA',      'kg',     'Híbrido simple, alto rendimiento'),
-      getOrCreateInsumo('Mancozeb 80%',        'FUNGICIDA',    'kg',     'Fungicida preventivo'),
-      getOrCreateInsumo('Cipermetrina 25%',    'INSECTICIDA',  'litros', 'Insecticida piretroide'),
-      getOrCreateInsumo('Nitrato de Amonio',   'FERTILIZANTE', 'kg',     '34.5% N'),
-    ]);
-  console.log('🧴 Insumos OK');
-
   const hashAdmin = await bcrypt.hash('Jsadmin1234', 10);
   const usuario = await prisma.usuario.upsert({
     where: { email: ADMIN_EMAIL },
@@ -162,6 +144,26 @@ async function main() {
       },
     });
   }
+
+  async function getOrCreateInsumo(nombre: string, tipo: string, unidad: string, descripcion: string) {
+    return (await prisma.insumo.findFirst({ where: { nombre, organizacionId: orgDemo.id } }))
+      ?? prisma.insumo.create({
+        data: { nombre, tipo: tipo as any, unidad, descripcion, organizacionId: orgDemo.id },
+      });
+  }
+
+  const [glifosato, urea, fda, semSoja, semMaiz, mancozeb, cipermetrina, nitrato] =
+    await Promise.all([
+      getOrCreateInsumo('Glifosato 48%',       'HERBICIDA',    'litros', 'Herbicida sistémico'),
+      getOrCreateInsumo('Urea Granulada',      'FERTILIZANTE', 'kg',     '46% N'),
+      getOrCreateInsumo('Fosfato Diamónico',   'FERTILIZANTE', 'kg',     '18-46-0'),
+      getOrCreateInsumo('Semilla Soja NK7059', 'SEMILLA',      'kg',     'Grupo VII, tolerante a sequía'),
+      getOrCreateInsumo('Semilla Maíz DK7210', 'SEMILLA',      'kg',     'Híbrido simple, alto rendimiento'),
+      getOrCreateInsumo('Mancozeb 80%',        'FUNGICIDA',    'kg',     'Fungicida preventivo'),
+      getOrCreateInsumo('Cipermetrina 25%',    'INSECTICIDA',  'litros', 'Insecticida piretroide'),
+      getOrCreateInsumo('Nitrato de Amonio',   'FERTILIZANTE', 'kg',     '34.5% N'),
+    ]);
+  console.log('🧴 Insumos OK');
 
   await limpiarDemoData(usuarioDemo.id);
   console.log('🗑️  Datos demo anteriores eliminados');

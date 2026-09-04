@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { Moon, Sun, Search, Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import NotificationBell from './NotificationBell';
@@ -9,12 +9,20 @@ import OnboardingWizard, { useOnboarding } from './OnboardingWizard';
 import { useThemeStore } from '../../store/theme.store';
 import AiChat from '../ui/AiChat';
 import DemoBanner from '../ui/DemoBanner';
+import PageBackButton from './PageBackButton';
+import { useAuthStore } from '../../store/auth.store';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const usuario = useAuthStore((state) => state.usuario);
+  const activeOrgId = useAuthStore((state) => state.activeOrgId());
   const { theme, toggle } = useThemeStore();
   const { open: searchOpen, setOpen: setSearchOpen } = useGlobalSearch();
   const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding();
+
+  if (!activeOrgId && usuario?.empresas?.length) {
+    return <Navigate to="/empresa/estado" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-[#edf2ed] dark:bg-gray-950">
@@ -78,6 +86,7 @@ export default function Layout() {
 
       {/* Contenido centrado */}
       <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '2rem 24px' }}>
+        <PageBackButton />
         <Outlet />
       </main>
 

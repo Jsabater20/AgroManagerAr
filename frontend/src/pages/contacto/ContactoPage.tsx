@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { api } from '../../api/client';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
+import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 
 const CONTACT_EMAIL = 'agromanagerarcontacto@gmail.com';
 
@@ -188,10 +189,31 @@ export default function ContactoPage() {
               </p>
             </div>
 
+            <div className="bg-[#ecfdf3] rounded-2xl p-6 border border-green-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-[#25D366] w-9 h-9 rounded-xl flex items-center justify-center text-white">
+                  <WhatsAppIcon size={20} />
+                </div>
+                <h3 className="font-semibold text-gray-900">WhatsApp Business</h3>
+              </div>
+              <p className="text-sm text-green-800 leading-relaxed mb-4">
+                Escribinos para consultas comerciales, soporte o para conocer AgroManager AR.
+              </p>
+              <a
+                href={WHATSAPP_BUSINESS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#1fbd5a]"
+              >
+                <WhatsAppIcon size={17} />
+                Abrir WhatsApp
+              </a>
+            </div>
+
             <div className="bg-green-50 rounded-2xl p-6 border border-green-100">
               <p className="text-sm font-semibold text-green-800 mb-1">¿Sos nuevo?</p>
               <p className="text-sm text-green-700 mb-3">
-                Probá AgroManager AR gratis sin necesidad de tarjeta de crédito.
+                Creá una cuenta Free o conocé la Demo Empresa sin necesidad de tarjeta de crédito.
               </p>
               <a
                 href="/register"

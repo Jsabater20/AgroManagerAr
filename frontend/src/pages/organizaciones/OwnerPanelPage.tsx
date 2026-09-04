@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 
 import { ownerAdminApi } from '../../api/owner-admin.api';
+import { camposApi } from '../../api/campos.api';
 
 const ROLES = [
   'OPERARIO',
@@ -20,6 +21,14 @@ const ROLES = [
   'CONTADOR',
   'VETERINARIO',
 ] as const;
+
+const ROL_DESCRIPCIONES: Record<(typeof ROLES)[number], string> = {
+  OPERARIO: 'Realiza las tareas que le asignás y usa solo los accesos que habilites.',
+  MECANICO: 'Trabaja sobre mantenimientos y tareas vinculadas a maquinaria.',
+  ADMINISTRADOR: 'Puede colaborar en la gestión diaria según los accesos que habilites.',
+  CONTADOR: 'Consulta o registra información financiera cuando le habilitás esos módulos.',
+  VETERINARIO: 'Accede a la información ganadera que necesitás compartirle.',
+};
 
 const MODULOS_DISPONIBLES = [
   'Dashboard',
@@ -52,6 +61,11 @@ type MiembroPanel = {
   modulos: Array<{ moduloNombre: string; activo: boolean }>;
 };
 
+type CampoDisponible = {
+  id: number;
+  nombre: string;
+};
+
 export function OwnerPanelPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const orgIdNum = Number(orgId || 0);
@@ -80,6 +94,20 @@ export function OwnerPanelPage() {
     },
     enabled: orgIdNum > 0 && !!selectedMember,
   });
+
+  const camposQuery = useQuery<CampoDisponible[]>({
+    queryKey: ['campos-organizacion', orgIdNum],
+    queryFn: () => camposApi.getAll(),
+    enabled: orgIdNum > 0,
+  });
+
+  const nombresCampos = useMemo(
+    () =>
+      new Map(
+        (camposQuery.data ?? []).map((campo) => [campo.id, campo.nombre.trim()]),
+      ),
+    [camposQuery.data],
+  );
 
   const cambiarRolMutation = useMutation({
     mutationFn: ({
@@ -180,12 +208,12 @@ export function OwnerPanelPage() {
         <div className="mb-3 flex items-center gap-2">
           <UserCog className="h-4 w-4 text-emerald-600" />
           <h2 className="text-base font-semibold text-gray-900">
-            Administración del personal
+            Elegí la persona que querés configurar
           </h2>
         </div>
 
         <label className="block text-sm">
-          <span className="mb-1.5 block text-gray-700">Miembro</span>
+          <span className="mb-1.5 block text-gray-700">Persona del equipo</span>
           <select
             value={selectedMember?.id ?? miembros[0].id}
             onChange={(e) => setSelectedMemberId(Number(e.target.value))}
@@ -241,6 +269,10 @@ export function OwnerPanelPage() {
                     </option>
                   ))}
                 </select>
+                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                  {ROL_DESCRIPCIONES[selectedMember.rol as keyof typeof ROL_DESCRIPCIONES] ??
+                    'El rol describe su responsabilidad. Los accesos se configuran por separado.'}
+                </p>
               </div>
 
               <div>
@@ -283,16 +315,16 @@ export function OwnerPanelPage() {
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <h3 className="font-semibold text-gray-900">Permisos y recursos</h3>
+              <h3 className="font-semibold text-gray-900">Accesos de trabajo</h3>
             </div>
 
             <div className="mb-3 mt-1 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-              Se mantienen los permisos y asignaciones reales del backend.
+              Primero definí las pantallas que puede usar. Después indicá los campos sobre los que puede trabajar.
             </div>
 
             <div className="mb-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Módulos habilitados
+                Pantallas que puede usar
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {MODULOS_DISPONIBLES.map((moduloNombre) => {
@@ -318,7 +350,7 @@ export function OwnerPanelPage() {
                           : 'border-gray-200 bg-gray-50 text-gray-500'
                       }`}
                     >
-                      {moduloNombre}: {activo ? 'ON' : 'OFF'}
+                      {moduloNombre}: {activo ? 'Puede acceder' : 'Sin acceso'}
                     </button>
                   );
                 })}
@@ -332,14 +364,20 @@ export function OwnerPanelPage() {
               </div>
             ) : (
               <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Campos a los que puede acceder
+                </p>
                 {recursosQuery.data?.map((recurso) => (
                   <div
                     key={`${recurso.tipo}-${recurso.id}`}
                     className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2"
                   >
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{recurso.nombre}</p>
-                      <p className="text-xs text-gray-500">{recurso.tipo}</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                        {nombresCampos.get(recurso.id) ||
+                          recurso.nombre?.trim() ||
+                          `Campo #${recurso.id}`}
+                      </p>
                     </div>
 
                     <button
@@ -357,7 +395,7 @@ export function OwnerPanelPage() {
                           : 'bg-gray-100 text-gray-700'
                       }`}
                     >
-                      {recurso.asignado ? 'ON' : 'OFF'}
+                      {recurso.asignado ? 'Asignado' : 'Sin acceso'}
                     </button>
                   </div>
                 ))}

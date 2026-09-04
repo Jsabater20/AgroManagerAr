@@ -8,8 +8,15 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { Resend } from 'resend';
-import { InvitacionOrganizacion, Organizacion } from '@prisma/client';
+import {
+  EstadoEmpresa,
+  InvitacionOrganizacion,
+  Organizacion,
+  RolEmpresa,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReferidosService } from '../referidos/referidos.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import {
   RegisterDto,
   LoginDto,
@@ -29,6 +36,8 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private referidosService: ReferidosService,
+    private notificacionesService: NotificacionesService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -38,6 +47,10 @@ export class AuthService {
     if (existe) {
       throw new ConflictException('Ya existe un usuario con ese email');
     }
+
+    const referente = dto.codigoReferido
+      ? await this.referidosService.buscarReferentePorCodigo(dto.codigoReferido)
+      : null;
 
     let invitacion:
       | (InvitacionOrganizacion & { organizacion: Organizacion })
@@ -70,6 +83,18 @@ export class AuthService {
       invitacion = foundInvitacion;
     }
 
+    const esRegistroEmpresa = dto.tipoRegistro === 'EMPRESA';
+    if (invitacion && esRegistroEmpresa) {
+      throw new BadRequestException(
+        'Las cuentas invitadas deben registrarse desde la invitación recibida.',
+      );
+    }
+
+    const nombreEmpresa = dto.nombreEmpresa?.trim();
+    if (esRegistroEmpresa && !nombreEmpresa) {
+      throw new BadRequestException('El nombre de la empresa es obligatorio');
+    }
+
     const hash = await bcrypt.hash(dto.password, 10);
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto
@@ -89,6 +114,10 @@ export class AuthService {
       select: { id: true, email: true, nombre: true, apellido: true },
     });
 
+    if (referente) {
+      await this.referidosService.registrarReferido(referente.id, usuario.id);
+    }
+
     if (invitacion) {
       await this.prisma.usuarioOrganizacion.create({
         data: {
@@ -107,6 +136,25 @@ export class AuthService {
           usuarioId: usuario.id,
         },
       });
+    } else if (esRegistroEmpresa) {
+      await this.prisma.$transaction(async (tx) => {
+        const empresa = await tx.empresa.create({
+          data: {
+            nombre: nombreEmpresa!,
+            propietarioId: usuario.id,
+            estadoComercial: EstadoEmpresa.PENDIENTE,
+          },
+        });
+
+        await tx.usuarioEmpresa.create({
+          data: {
+            empresaId: empresa.id,
+            usuarioId: usuario.id,
+            rol: RolEmpresa.OWNER,
+            accesoTodasOrganizaciones: true,
+          },
+        });
+      });
     } else {
       await this.prisma.organizacion.create({
         data: {
@@ -117,6 +165,11 @@ export class AuthService {
         },
       });
     }
+
+    await this.notificacionesService.notificarNuevoRegistro(
+      usuario.id,
+      esRegistroEmpresa ? 'EMPRESA' : 'DUENO_CAMPO',
+    );
 
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${rawToken}`;
     if (this.resend) {
@@ -137,6 +190,7 @@ export class AuthService {
     return {
       message:
         'Registrado. Revisá tu email para verificar tu cuenta antes de ingresar.',
+      tipoRegistro: esRegistroEmpresa ? 'EMPRESA' : 'DUENO_CAMPO',
     };
   }
 
@@ -182,10 +236,31 @@ export class AuthService {
       },
     });
 
-    const organizaciones = [
-      ...orgsDelUsuario,
-      ...orgsComoMiembro.map((m) => m.organizacion),
-    ];
+    const organizaciones = Array.from(
+      new Map(
+        [...orgsDelUsuario, ...orgsComoMiembro.map((m) => m.organizacion)].map(
+          (organizacion) => [organizacion.id, organizacion],
+        ),
+      ).values(),
+    );
+
+    const empresas = await this.prisma.empresa.findMany({
+      where: {
+        activo: true,
+        OR: [
+          { propietarioId: usuario.id },
+          { miembros: { some: { usuarioId: usuario.id, activo: true } } },
+        ],
+      },
+      select: {
+        id: true,
+        nombre: true,
+        estadoComercial: true,
+        limiteEstablecimientos: true,
+        propietarioId: true,
+      },
+      orderBy: { nombre: 'asc' },
+    });
 
     const orgPrincipal = orgsDelUsuario[0] || orgsComoMiembro[0]?.organizacion;
     const usuarioOrganizacionId = orgPrincipal?.id ?? null;
@@ -201,6 +276,7 @@ export class AuthService {
       usuario: {
         ...usuarioSinPassword,
         organizaciones,
+        empresas,
         usuarioOrganizacionId,
       },
       token,
@@ -221,6 +297,7 @@ export class AuthService {
       where: { id: usuario.id },
       data: { emailVerificado: true, emailVerifToken: null },
     });
+    await this.referidosService.marcarEmailVerificado(usuario.id);
     return {
       message: 'Email verificado correctamente. Ya podés iniciar sesión.',
     };

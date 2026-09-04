@@ -1,27 +1,39 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, AlertTriangle, Clock, PawPrint, X } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Bell, AlertTriangle, Clock, PawPrint, X, Gift, UserPlus } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
+import { getNotificaciones, marcarNotificacionLeida } from '../../api/notificaciones.api';
 
 interface Alerta {
   id: string;
-  tipo: 'vencida' | 'prenez' | 'tarea_hoy';
+  tipo: 'vencida' | 'prenez' | 'tarea_hoy' | 'referidos';
   titulo: string;
   sub: string;
   link: string;
   icon: typeof Bell;
   color: string;
+  notificacionId?: string;
 }
 
 export default function NotificationBell() {
   const { orgId } = useParams<{ orgId: string }>();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const { data: animales } = useQuery({ queryKey: ['ganado'],  queryFn: () => ganadoApi.getAll() });
   const { data: tareas }   = useQuery({ queryKey: ['tareas'],  queryFn: () => tareasApi.getAll() });
+  const { data: notificaciones } = useQuery({
+    queryKey: ['notificaciones'],
+    queryFn: getNotificaciones,
+    refetchInterval: 60000,
+  });
+  const marcarLeida = useMutation({
+    mutationFn: marcarNotificacionLeida,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notificaciones'] }),
+  });
 
   // Cerrar al click afuera
   useEffect(() => {
@@ -32,7 +44,18 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const alertas: Alerta[] = [];
+  const alertas: Alerta[] = (notificaciones ?? [])
+    .filter((notificacion) => !notificacion.leidaEn)
+    .map((notificacion) => ({
+      id: `notificacion-${notificacion.id}`,
+      tipo: 'referidos' as const,
+      titulo: notificacion.titulo,
+      sub: notificacion.mensaje,
+      link: notificacion.enlace || '/',
+      icon: notificacion.tipo === 'NUEVO_REGISTRO' ? UserPlus : Gift,
+      color: notificacion.tipo === 'NUEVO_REGISTRO' ? 'text-blue-700 bg-blue-50' : 'text-emerald-700 bg-emerald-50',
+      notificacionId: notificacion.id,
+    }));
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
   // Tareas vencidas
@@ -134,7 +157,10 @@ export default function NotificationBell() {
                   <Link
                     key={a.id}
                     to={a.link}
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      if (a.notificacionId) marcarLeida.mutate(a.notificacionId);
+                      setOpen(false);
+                    }}
                     className="flex items-start gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
                   >
                     <div className={`p-2 rounded-xl shrink-0 ${a.color}`}>

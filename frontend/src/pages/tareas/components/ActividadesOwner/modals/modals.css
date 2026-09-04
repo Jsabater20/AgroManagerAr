@@ -207,3 +207,56 @@
   background-color: #f3f4f6;
   color: #6b7280;
 }
+
+html.dark .observaciones-list h3,
+html.dark .observaciones-form h3,
+html.dark .observacion-autor strong {
+  color: #f1f5f9;
+}
+
+html.dark .observaciones-timeline,
+html.dark .estado-carga,
+html.dark .estado-vacio {
+  border-color: #4b5563;
+  background-color: #111827;
+  color: #9ca3af;
+}
+
+html.dark .observacion-item {
+  border-color: #4b5563;
+  background-color: #1f2937;
+}
+
+html.dark .observacion-fecha,
+html.dark .char-count,
+html.dark .observacion-contenido p {
+  color: #cbd5e1;
+}
+
+html.dark .observaciones-form textarea {
+  border-color: #4b5563;
+  background-color: #111827;
+  color: #f1f5f9;
+}
+
+html.dark .observaciones-form textarea:disabled,
+html.dark .btn-secondary:disabled {
+  background-color: #374151;
+  color: #9ca3af;
+}
+
+html.dark .btn-secondary {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
+html.dark .btn-secondary:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+html.dark .badge-warning { background-color: #78350f; color: #fde68a; }
+html.dark .badge-info { background-color: #1e3a8a; color: #bfdbfe; }
+html.dark .badge-secondary,
+html.dark .badge-default { background-color: #374151; color: #d1d5db; }
+html.dark .badge-success { background-color: #14532d; color: #bbf7d0; }
+html.dark .badge-danger { background-color: #7f1d1d; color: #fecaca; }

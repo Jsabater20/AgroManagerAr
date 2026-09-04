@@ -110,7 +110,7 @@ export default function SuscripcionExitosaPage() {
                 <Zap size={16} /> Lo que desbloqueaste:
               </p>
               <ul className="text-green-700 text-sm space-y-1">
-                <li>✓ 14 días gratis — sin cobro hasta que termine la prueba</li>
+                <li>✓ Activación inmediata de tu suscripción Pro</li>
                 <li>✓ Campos, lotes y animales ilimitados</li>
                 <li>✓ AgroBot IA con contexto de tu establecimiento</li>
                 <li>✓ Campañas, reportes avanzados y export</li>

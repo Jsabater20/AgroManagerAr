@@ -7,6 +7,21 @@ export interface Organizacion {
   nombre: string;
   email?: string;
   plan?: 'FREE' | 'PRO';
+  planEfectivo?: 'FREE' | 'PRO';
+  beneficioPro?: {
+    id: number;
+    fechaInicio: string;
+    fechaFin: string;
+    motivo?: string | null;
+  } | null;
+  propietarioId: number;
+}
+
+export interface EmpresaSesion {
+  id: number;
+  nombre: string;
+  estadoComercial: 'PENDIENTE' | 'ACTIVA' | 'SUSPENDIDA' | 'VENCIDA';
+  limiteEstablecimientos: number;
   propietarioId: number;
 }
 
@@ -21,6 +36,13 @@ export interface Usuario {
   planExpira?: string | null;
   usuarioOrganizacionId?: number | null;
   organizaciones?: Organizacion[];
+  empresas?: EmpresaSesion[];
+  fotoPerfilUrl?: string | null;
+  fotoPerfilEncuadre?: {
+    posicionX: number;
+    posicionY: number;
+    escala: number;
+  };
 }
 
 const normalizeUsuario = (usuario: Usuario | null): Usuario | null => {
@@ -82,7 +104,7 @@ export const useAuthStore = create<AuthState>()(
 
       isPro: () => {
         const currentOrg = get().currentOrg();
-        return currentOrg?.plan === 'PRO';
+        return currentOrg?.plan === 'PRO' || currentOrg?.planEfectivo === 'PRO';
       },
 
       currentOrg: () => {

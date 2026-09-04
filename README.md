@@ -96,6 +96,30 @@ Los límites se determinan por organización mediante `Organizacion.plan`; el OW
 
 ---
 
+## Empresas
+
+El registro permite elegir entre **Dueño de campo** y **Empresa**:
+
+- Una cuenta Empresa se crea en estado **Pendiente** y no accede a módulos operativos hasta su habilitación.
+- Un SUPERADMIN administra las solicitudes desde **Admin → Empresas**, donde define estado comercial, vigencia y cantidad de establecimientos.
+- Cada establecimiento creado o vinculado desde ese panel queda asociado a la empresa y utiliza **Plan PRO** mediante \`Organizacion.plan\`.
+- El Plan Empresa publicado incluye hasta **3 establecimientos** por $69.990 ARS mensuales. Las ampliaciones se cotizan de forma personalizada.
+- Los miembros se registran únicamente desde invitaciones del OWNER y pertenecen a la empresa a través de su organización.
+
+## Despliegue de Empresas
+
+Antes de publicar backend y frontend, ejecutar en el servicio backend:
+
+\`\`\`bash
+cd backend
+npx prisma migrate deploy
+npm run build
+\`\`\`
+
+La migración \`20260903110000_add_estado_comercial_empresa\` agrega el estado comercial y la vigencia de las empresas. Desplegar primero el backend y luego el frontend para que las nuevas rutas administrativas estén disponibles.
+
+---
+
 ## Estructura del proyecto
 
 ```

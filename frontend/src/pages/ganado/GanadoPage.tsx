@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import {
   PawPrint, Plus, Loader2, Baby, Trash2, X,
   ChevronLeft, ChevronRight, BadgeCheck, AlertCircle, Clock, Scale,
@@ -11,6 +12,7 @@ import type {
   Especie, Sexo, CategoriaAnimal, EstadoPrenez,
   RegistroPeso, CreateRegistroPesoDto,
 } from '../../api/types';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
 const PAGE_SIZE = 10;
 
@@ -82,6 +84,8 @@ function formatDate(iso: string) {
 function today() { return new Date().toISOString().split('T')[0]; }
 
 export default function GanadoPage() {
+  const { orgId } = useParams<{ orgId: string }>();
+  const organizacionId = Number(orgId);
   const queryClient = useQueryClient();
   const [showModal, setShowModal]           = useState(false);
   const [form, setForm]                     = useState<CreateAnimalDto>(emptyAnimal);
@@ -289,6 +293,7 @@ export default function GanadoPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2 justify-end">
+                          <EvidenceAction organizacionId={organizacionId} origen="GANADERIA" tipoRecurso="ANIMAL" recursoId={a.id} titulo={`Evidencia de ${a.nombre}`} compacto />
                           {canPrenez && (
                             <button
                               onClick={() => { setPrenezForm({ ...emptyPrenez, fechaInicio: today() }); setPrenezTarget(a); }}

@@ -18,6 +18,7 @@ import { RecursoAsignableDto } from './dto/recurso-asignable.dto';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
 import { MailerService } from '../mailer/mailer.service';
 import { PlanService } from '../plan/plan.service';
+import { R2StorageService } from '../storage/r2-storage.service';
 
 const MODULOS_DISPONIBLES = [
   'Dashboard',
@@ -41,6 +42,7 @@ export class OrganizationsService {
     private prisma: PrismaService,
     private mailerService: MailerService,
     private planService: PlanService,
+    private r2StorageService: R2StorageService,
   ) {}
 
   private invitationUrl(token: string): string {
@@ -122,6 +124,10 @@ export class OrganizationsService {
             email: true,
             nombre: true,
             apellido: true,
+            fotoPerfilStorageKey: true,
+            fotoPerfilPosicionX: true,
+            fotoPerfilPosicionY: true,
+            fotoPerfilEscala: true,
           },
         },
         AsignacionCampo: {
@@ -134,11 +140,17 @@ export class OrganizationsService {
       },
     });
 
-    return miembros.map((m) => ({
+    return Promise.all(miembros.map(async (m) => ({
       id: m.id,
       usuarioId: m.usuarioId,
       nombre: m.usuario.nombre,
       apellido: m.usuario.apellido,
+      fotoPerfilUrl: await this.obtenerFotoPerfilUrl(m.usuario.fotoPerfilStorageKey),
+      fotoPerfilEncuadre: {
+        posicionX: m.usuario.fotoPerfilPosicionX,
+        posicionY: m.usuario.fotoPerfilPosicionY,
+        escala: m.usuario.fotoPerfilEscala,
+      },
       email: m.usuario.email,
       rol: m.roles,
       activo: m.activo,
@@ -150,7 +162,7 @@ export class OrganizationsService {
         nombre: ac.Campo.nombre,
       })),
       modulos: m.VisibilidadModulo,
-    }));
+    })));
   }
 
   // ─── PANEL DEL OWNER ───────────────────────────────────────────────────────
@@ -170,6 +182,10 @@ export class OrganizationsService {
             email: true,
             nombre: true,
             apellido: true,
+            fotoPerfilStorageKey: true,
+            fotoPerfilPosicionX: true,
+            fotoPerfilPosicionY: true,
+            fotoPerfilEscala: true,
           },
         },
         AsignacionCampo: {
@@ -223,6 +239,12 @@ export class OrganizationsService {
     return {
       id: miembro.id,
       usuarioId: miembro.usuarioId,
+      fotoPerfilUrl: await this.obtenerFotoPerfilUrl(miembro.usuario.fotoPerfilStorageKey),
+      fotoPerfilEncuadre: {
+        posicionX: miembro.usuario.fotoPerfilPosicionX,
+        posicionY: miembro.usuario.fotoPerfilPosicionY,
+        escala: miembro.usuario.fotoPerfilEscala,
+      },
       usuario: miembro.usuario,
       roles: miembro.roles ? [miembro.roles] : [],
       activo: miembro.activo,
@@ -250,6 +272,10 @@ export class OrganizationsService {
             nombre: true,
             apellido: true,
             email: true,
+            fotoPerfilStorageKey: true,
+            fotoPerfilPosicionX: true,
+            fotoPerfilPosicionY: true,
+            fotoPerfilEscala: true,
           },
         },
         AsignacionCampo: {
@@ -289,6 +315,12 @@ export class OrganizationsService {
         id: m.id,
         nombre: m.usuario.nombre,
         apellido: m.usuario.apellido,
+        fotoPerfilUrl: await this.obtenerFotoPerfilUrl(m.usuario.fotoPerfilStorageKey),
+        fotoPerfilEncuadre: {
+          posicionX: m.usuario.fotoPerfilPosicionX,
+          posicionY: m.usuario.fotoPerfilPosicionY,
+          escala: m.usuario.fotoPerfilEscala,
+        },
         email: m.usuario.email,
         rol: m.roles,
         activo: m.activo,
@@ -430,6 +462,7 @@ export class OrganizationsService {
     const campos = await this.prisma.campo.findMany({
       where: { organizacionId: orgId },
       select: { id: true, nombre: true },
+      orderBy: { nombre: 'asc' },
     });
 
     // Obtener asignaciones actuales del miembro
@@ -442,7 +475,7 @@ export class OrganizationsService {
 
     return campos.map((campo) => ({
       id: campo.id,
-      nombre: campo.nombre,
+      nombre: campo.nombre.trim() || `Campo #${campo.id}`,
       tipo: 'CAMPO' as const,
       asignado: camposAsignadosIds.includes(campo.id),
     }));
@@ -780,6 +813,16 @@ export class OrganizationsService {
     });
 
     return { success: true, message: 'Invitación cancelada' };
+  }
+
+  private async obtenerFotoPerfilUrl(storageKey?: string | null) {
+    if (!storageKey) return null;
+
+    try {
+      return await this.r2StorageService.crearUrlDeLectura(storageKey);
+    } catch {
+      return null;
+    }
   }
 
   // ─── MIEMBROS (MÉTODOS HEREDADOS) ─────────────────────────────────────────

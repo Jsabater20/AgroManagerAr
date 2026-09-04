@@ -96,6 +96,13 @@ export const ObservacionesModal = ({
                     </div>
                     <div className="observacion-contenido">
                       <p>{obs.contenido}</p>
+                      {obs.fotoBase64 && (
+                        <img
+                          src={obs.fotoBase64}
+                          alt={`Evidencia de ${obs.autor?.nombre ?? 'actividad'}`}
+                          style={{ marginTop: 12, maxHeight: 280, maxWidth: '100%', borderRadius: 8 }}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}

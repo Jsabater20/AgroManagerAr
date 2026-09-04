@@ -17,6 +17,7 @@ import {
   Wrench,
   Settings,
   Users,
+  Building2,
   Shield,
   ChevronDown,
 } from 'lucide-react';
@@ -25,6 +26,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { organizacionesApi } from '../../api/organizaciones.api';
+import { empresasApi } from '../../api/empresas.api';
+import { ProfileAvatar } from '../profile/ProfileAvatar';
 import { useAuthStore } from '../../store/auth.store';
 
 interface NavItem {
@@ -57,12 +60,13 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { orgId } = useParams<{ orgId: string }>();
-  const { usuario, logout, isPro, isLoading } = useAuthStore();
+  const { usuario, logout, isPro, isLoading, currentOrg } = useAuthStore();
   const navigate = useNavigate();
   const [isMembersOpen, setIsMembersOpen] = useState(true);
 
-  const currentOrgId = orgId || '1';
+  const currentOrgId = orgId || String(currentOrg()?.id ?? '');
   const currentOrgIdNumber = Number(currentOrgId);
+  const hasOrganizationContext = currentOrgIdNumber > 0;
   const isSuperAdmin = !isLoading && usuario?.rolGlobal === 'SUPERADMIN';
   const isOwner = usuario?.organizaciones?.some(
     (organizacion) =>
@@ -73,7 +77,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const miembroActualQuery = useQuery({
     queryKey: ['miembro-actual', currentOrgIdNumber],
     queryFn: () => organizacionesApi.obtenerMiembroActual(currentOrgIdNumber),
-    enabled: !isLoading && !!usuario && currentOrgIdNumber > 0 && !canManageMembers,
+    enabled: !isLoading && !!usuario && hasOrganizationContext && !canManageMembers,
     retry: false,
   });
 
@@ -82,24 +86,29 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       .filter((modulo) => modulo.activo)
       .map((modulo) => modulo.moduloNombre),
   );
-  const visibleNavItems = canManageMembers
+  const visibleNavItems = !hasOrganizationContext
+    ? []
+    : canManageMembers
     ? navItems
     : navItems.filter((item) => item.modulo !== null && modulosHabilitados.has(item.modulo));
+  const empresasQuery = useQuery({
+    queryKey: ['empresas-mias'],
+    queryFn: empresasApi.listarMias,
+    enabled: !isLoading && !!usuario,
+    retry: false,
+  });
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const initials = [usuario?.nombre?.[0] ?? '', usuario?.apellido?.[0] ?? '']
-    .join('')
-    .toUpperCase() || '?';
-
   const memberSubitems = [
-    { label: 'Invitar miembros', to: `/org/${currentOrgId}/miembros/invitar` },
-    { label: 'Administración de personal', to: `/org/${currentOrgId}/miembros/administracion` },
-    { label: 'Asignar trabajo', to: `/org/${currentOrgId}/miembros/asignar-trabajo` },
-    { label: 'Miembros y trabajos', to: `/org/${currentOrgId}/miembros/trabajos` },
+    { label: 'Resumen del equipo', to: `/org/${currentOrgId}/miembros` },
+    { label: '1. Invitar persona', to: `/org/${currentOrgId}/miembros/invitar` },
+    { label: '2. Configurar accesos', to: `/org/${currentOrgId}/miembros/administracion` },
+    { label: '3. Asignar trabajo', to: `/org/${currentOrgId}/miembros/asignar-trabajo` },
+    { label: 'Ver seguimiento', to: `/org/${currentOrgId}/miembros/trabajos` },
   ];
 
   return (
@@ -129,6 +138,20 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </div>
 
       <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
+        {empresasQuery.data?.length ? (
+          <NavLink
+            to="/empresas"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isActive ? 'bg-white/15 text-white ring-1 ring-white/10' : 'text-green-300 hover:bg-white/10 hover:text-white'
+              }`
+            }
+          >
+            <Building2 size={18} className="shrink-0" />
+            <span>Empresas</span>
+          </NavLink>
+        ) : null}
         {visibleNavItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={label}
@@ -147,7 +170,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </NavLink>
         ))}
 
-        {canManageMembers && (
+        {hasOrganizationContext && canManageMembers && (
           <div className="pt-1">
             <button
               type="button"
@@ -200,9 +223,14 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="flex items-center justify-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-            {initials}
-          </div>
+          <ProfileAvatar
+            nombre={usuario?.nombre}
+            apellido={usuario?.apellido}
+            fotoUrl={usuario?.fotoPerfilUrl}
+            encuadre={usuario?.fotoPerfilEncuadre}
+            size="sm"
+            className="border-green-200"
+          />
           <p className="text-sm font-medium text-white">
             {usuario?.nombre} {usuario?.apellido}
           </p>

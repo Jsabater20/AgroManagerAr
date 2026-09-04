@@ -1,11 +1,12 @@
 import { useAuthStore } from '../../store/auth.store';
 
 const DEMO_EMAIL = 'demo@agromanager.ar';
+const DEMO_EMPRESA_EMAIL = 'demoempresa@agromanager.ar';
 
 export default function DemoBanner() {
   const { usuario } = useAuthStore();
 
-  if (usuario?.email !== DEMO_EMAIL) return null;
+  if (usuario?.email !== DEMO_EMAIL && usuario?.email !== DEMO_EMPRESA_EMAIL) return null;
 
   return (
     <div className="bg-amber-500 text-white text-center text-xs font-medium py-2 px-4">

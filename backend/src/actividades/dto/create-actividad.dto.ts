@@ -43,9 +43,9 @@ export class CreateActividadDto {
   @IsNotEmpty()
   fechaInicio: string;
 
+  @IsOptional()
   @IsDateString()
-  @IsNotEmpty()
-  fechaEstimadaFin: string;
+  fechaEstimadaFin?: string;
 
   @IsEnum(Prioridad)
   @IsNotEmpty()

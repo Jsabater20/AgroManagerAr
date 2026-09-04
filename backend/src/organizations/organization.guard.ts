@@ -21,7 +21,8 @@ export class OrganizationGuard implements CanActivate {
       request.params?.organizacionId ??
       request.params?.orgId ??
       request.query?.organizacionId ??
-      request.body?.organizacionId;
+      request.body?.organizacionId ??
+      request.headers?.['x-organization-id'];
     const orgIdParam = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
     const organizacionId = orgIdParam ? parseInt(String(orgIdParam), 10) : undefined;
 

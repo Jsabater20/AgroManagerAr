@@ -2,6 +2,13 @@ import { api } from './client';
 
 export interface PlanInfo {
   plan: 'FREE' | 'PRO';
+  planContratado?: 'FREE' | 'PRO';
+  beneficioPro?: {
+    id: number;
+    fechaInicio: string;
+    fechaFin: string;
+    motivo?: string | null;
+  } | null;
   planExpira: string | null;
   mpSuscripcionId: string | null;
   trialUsado: boolean;

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useActividades } from '../../../../hooks/useActividades';
 import { ActividadesList } from './ActividadesList';
 import './ActividadesOwner.css';
 
@@ -7,9 +8,12 @@ interface ActividadesOwnerProps {
 }
 
 export const ActividadesOwner = ({ organizacionId }: ActividadesOwnerProps) => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const actividades: any[] = [];
-  const isLoadingList = false;
+  const navigate = useNavigate();
+  const { actividades = [], isLoadingList } = useActividades(organizacionId);
+
+  const asignarTrabajo = () => {
+    navigate(`/org/${organizacionId}/miembros/asignar-trabajo`);
+  };
 
   return (
     <div className="actividades-owner">
@@ -17,9 +21,9 @@ export const ActividadesOwner = ({ organizacionId }: ActividadesOwnerProps) => {
         <h2>Centro de Actividades</h2>
         <button
           className="btn-primary"
-          onClick={() => setShowCreateModal(true)}
+          onClick={asignarTrabajo}
         >
-          + Nueva Actividad
+          + Asignar trabajo
         </button>
       </div>
 
@@ -30,17 +34,14 @@ export const ActividadesOwner = ({ organizacionId }: ActividadesOwnerProps) => {
       ) : !actividades || actividades.length === 0 ? (
         <div className="actividades-empty">
           <p>Todavía no hay actividades asignadas.</p>
+          <button className="btn-primary" onClick={asignarTrabajo}>
+            Asignar el primer trabajo
+          </button>
         </div>
       ) : (
         <ActividadesList actividades={actividades} organizacionId={organizacionId} />
       )}
 
-      {showCreateModal && (
-        <div className="actividades-modal-placeholder">
-          <p>Modal de crear actividad - Próximamente</p>
-          <button onClick={() => setShowCreateModal(false)}>Cerrar</button>
-        </div>
-      )}
     </div>
   );
 };

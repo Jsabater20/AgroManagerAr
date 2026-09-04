@@ -18,6 +18,10 @@ import {
   ChangePasswordDto,
   UpdateUserPlanDto,
   UpdateUserRolDto,
+  OtorgarBeneficioProDto,
+  PrepararFotoPerfilDto,
+  ConfirmarFotoPerfilDto,
+  ActualizarEncuadreFotoPerfilDto,
 } from './dto/users.dto';
 
 interface AuthRequest {
@@ -39,6 +43,35 @@ export class UsersController {
   @Patch('profile')
   updateProfile(@Request() req: AuthRequest, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(req.user.id, dto);
+  }
+
+  @Post('profile/foto/subida')
+  prepararFotoPerfil(
+    @Request() req: AuthRequest,
+    @Body() dto: PrepararFotoPerfilDto,
+  ) {
+    return this.usersService.prepararFotoPerfil(req.user.id, dto);
+  }
+
+  @Post('profile/foto/confirmar')
+  confirmarFotoPerfil(
+    @Request() req: AuthRequest,
+    @Body() dto: ConfirmarFotoPerfilDto,
+  ) {
+    return this.usersService.confirmarFotoPerfil(req.user.id, dto);
+  }
+
+  @Patch('profile/foto/encuadre')
+  actualizarEncuadreFotoPerfil(
+    @Request() req: AuthRequest,
+    @Body() dto: ActualizarEncuadreFotoPerfilDto,
+  ) {
+    return this.usersService.actualizarEncuadreFotoPerfil(req.user.id, dto);
+  }
+
+  @Delete('profile/foto')
+  eliminarFotoPerfil(@Request() req: AuthRequest) {
+    return this.usersService.eliminarFotoPerfil(req.user.id);
   }
 
   @Patch('profile/password')
@@ -69,6 +102,22 @@ export class UsersController {
     @Body() dto: UpdateUserRolDto,
   ) {
     return this.usersService.updateUserRol(req.user.id, id, dto);
+  }
+
+  @Post('admin/beneficios-pro')
+  otorgarBeneficioPro(
+    @Request() req: AuthRequest,
+    @Body() dto: OtorgarBeneficioProDto,
+  ) {
+    return this.usersService.otorgarBeneficioPro(req.user.id, dto);
+  }
+
+  @Delete('admin/beneficios-pro/:id')
+  revocarBeneficioPro(
+    @Request() req: AuthRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.usersService.revocarBeneficioPro(req.user.id, id);
   }
 
   @Delete('admin/:id')

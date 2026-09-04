@@ -8,6 +8,12 @@ export class MiembroPanelDto {
   id: number;
   nombre: string;
   apellido: string;
+  fotoPerfilUrl?: string | null;
+  fotoPerfilEncuadre?: {
+    posicionX: number;
+    posicionY: number;
+    escala: number;
+  };
   email: string;
   rol: string;
   activo: boolean;

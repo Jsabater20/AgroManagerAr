@@ -14,6 +14,7 @@ import type {
   CreateSiembraDto, CreateCosechaDto, CreateAplicacionDto,
   EstadoSiembra, Siembra,
 } from '../../api/types';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
 const PAGE_SIZE = 10;
 
@@ -35,8 +36,9 @@ const ESTADO_CONFIG: Record<EstadoSiembra, { label: string; color: string; Icon:
 const ESTADOS: EstadoSiembra[] = ['EN_CURSO', 'COSECHADA', 'PERDIDA'];
 
 export default function SiembrasPage() {
-  const queryClient = useQueryClient();
   const { orgId } = useParams<{ orgId: string }>();
+  const organizacionId = Number(orgId);
+  const queryClient = useQueryClient();
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<CreateSiembraDto>(emptyForm);
@@ -194,7 +196,8 @@ export default function SiembrasPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         {s.estado === 'EN_CURSO' && (
-                          <div className="flex items-center gap-2 justify-end">
+                          <div className="flex flex-wrap items-center gap-2 justify-end">
+                            <EvidenceAction organizacionId={organizacionId} origen="SIEMBRAS" tipoRecurso="SIEMBRA" recursoId={s.id} titulo={`Evidencia de ${s.tipoCultivo?.nombre ?? 'siembra'}`} compacto />
                             <button onClick={() => openAplicacionModal(s)}
                               className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
                               <FlaskConical size={13} />Insumo

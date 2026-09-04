@@ -7,6 +7,7 @@ import {
 import { camposApi } from '../../api/campos.api';
 import { siembrasApi } from '../../api/siembras.api';
 import type { Siembra } from '../../api/types';
+import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -89,13 +90,16 @@ export default function LoteDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">{lote.nombre}</h1>
           <p className="text-gray-500 text-sm mt-0.5">{campo.nombre} · {lote.hectareas} ha</p>
         </div>
-        <Link
-          to={`/org/${orgId}/siembras`}
-          className="flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Sprout size={15} />
-          Nueva siembra
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <EvidenceAction organizacionId={Number(orgId)} origen="CAMPOS" tipoRecurso="LOTE" recursoId={lId} titulo={`Evidencia de ${lote.nombre}`} compacto />
+          <Link
+            to={`/org/${orgId}/siembras`}
+            className="flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Sprout size={15} />
+            Nueva siembra
+          </Link>
+        </div>
       </div>
 
       {/* KPIs del lote */}

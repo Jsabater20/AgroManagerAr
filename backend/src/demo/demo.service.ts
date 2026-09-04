@@ -3,8 +3,9 @@ import { Cron } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { DEMO_EMAIL, DEMO_EMPRESA_EMAIL } from '../auth/system-accounts';
 
-export const DEMO_EMAIL = 'demo@agromanager.ar';
+export { DEMO_EMAIL } from '../auth/system-accounts';
 
 @Injectable()
 export class DemoService implements OnModuleInit {
@@ -15,6 +16,8 @@ export class DemoService implements OnModuleInit {
   /** Al iniciar: resetea la demo si falta algún dato clave (ej. maquinarias vacías) */
   async onModuleInit() {
     try {
+      await this.asegurarDemoEmpresa();
+
       const demo = await this.prisma.usuario.findUnique({
         where: { email: DEMO_EMAIL },
         select: { id: true },
@@ -27,12 +30,16 @@ export class DemoService implements OnModuleInit {
       });
       if (!demoOrg) return;
 
-      if (demoOrg.plan !== 'PRO') {
-        await this.prisma.organizacion.update({
+      await this.prisma.$transaction([
+        this.prisma.usuario.update({
+          where: { id: demo.id },
+          data: { plan: 'PRO', planExpira: new Date('2035-12-31') },
+        }),
+        this.prisma.organizacion.update({
           where: { id: demoOrg.id },
           data: { plan: 'PRO' },
-        });
-      }
+        }),
+      ]);
 
       await Promise.all([
         this.prisma.campo.updateMany({
@@ -94,6 +101,7 @@ export class DemoService implements OnModuleInit {
   /** Cron: reinicia los datos demo todos los días a las 7:00 UTC (4:00 AR) */
   @Cron('0 7 * * *')
   async scheduledReset() {
+    await this.resetDemoEmpresaData();
     this.logger.log('Iniciando reset automático de cuenta demo...');
     await this.resetDemoData();
     this.logger.log('Reset demo completado.');
@@ -219,22 +227,30 @@ export class DemoService implements OnModuleInit {
       this.prisma.tipoCultivo.findFirst({ where: { nombre: 'Trigo' } }),
       this.prisma.tipoCultivo.findFirst({ where: { nombre: 'Girasol' } }),
     ]);
+    const insumosDemo = [
+      { nombre: 'Glifosato 48%', tipo: 'HERBICIDA', unidad: 'litros', descripcion: 'Herbicida sistémico' },
+      { nombre: 'Urea Granulada', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '46% N' },
+      { nombre: 'Fosfato Diamónico', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '18-46-0' },
+      { nombre: 'Semilla Soja NK7059', tipo: 'SEMILLA', unidad: 'kg', descripcion: 'Grupo VII, tolerante a sequía' },
+      { nombre: 'Semilla Maíz DK7210', tipo: 'SEMILLA', unidad: 'kg', descripcion: 'Híbrido simple, alto rendimiento' },
+      { nombre: 'Mancozeb 80%', tipo: 'FUNGICIDA', unidad: 'kg', descripcion: 'Fungicida preventivo' },
+      { nombre: 'Cipermetrina 25%', tipo: 'INSECTICIDA', unidad: 'litros', descripcion: 'Insecticida piretroide' },
+      { nombre: 'Nitrato de Amonio', tipo: 'FERTILIZANTE', unidad: 'kg', descripcion: '34.5% N' },
+    ] as const;
+
     const [glifosato, urea, fda, semSoja, semMaiz, mancozeb, cipermetrina, nitrato] =
-      await Promise.all([
-        this.prisma.insumo.findFirst({ where: { nombre: 'Glifosato 48%' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Urea Granulada' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Fosfato Diamónico' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Semilla Soja NK7059' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Semilla Maíz DK7210' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Mancozeb 80%' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Cipermetrina 25%' } }),
-        this.prisma.insumo.findFirst({ where: { nombre: 'Nitrato de Amonio' } }),
-      ]);
+      await Promise.all(
+        insumosDemo.map(async (insumo) => {
+          const existente = await this.prisma.insumo.findFirst({
+            where: { nombre: insumo.nombre, organizacionId },
+          });
+          return existente ?? this.prisma.insumo.create({
+            data: { ...insumo, organizacionId },
+          });
+        }),
+      );
 
     if (!soja || !maiz || !trigo || !girasol) return;
-    if (!glifosato || !urea || !fda || !semSoja || !semMaiz || !mancozeb || !cipermetrina || !nitrato)
-      return;
-
     // ─── Campos y Lotes ──────────────────────────────────────────────────────
     const campoEsperanza = await this.prisma.campo.create({
       data: {
@@ -1426,5 +1442,400 @@ export class DemoService implements OnModuleInit {
         (movimiento): Prisma.MovimientoFinancieroCreateManyInput => ({ ...movimiento, organizacionId }),
       ),
     });
+  }
+
+  private async asegurarDemoEmpresa() {
+    const contexto = await this.prepararDemoEmpresa();
+    const [campos, actividades] = await Promise.all([
+      this.prisma.campo.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+      this.prisma.actividadMiembro.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+    ]);
+
+    if (campos < 12 || actividades < 9) {
+      this.logger.log('Demo Empresa incompleta — ejecutando reset...');
+      await this.reiniciarDemoEmpresa(contexto);
+    }
+  }
+
+  async resetDemoEmpresaData() {
+    const contexto = await this.prepararDemoEmpresa();
+    await this.reiniciarDemoEmpresa(contexto);
+  }
+
+  private async prepararDemoEmpresa() {
+    const password = await bcrypt.hash('DemoEmpresa1234', 10);
+    const owner = await this.prisma.usuario.upsert({
+      where: { email: DEMO_EMPRESA_EMAIL },
+      update: {
+        nombre: 'Equipo Demo',
+        apellido: 'Empresa',
+        password,
+        rol: 'ADMIN',
+        plan: 'PRO',
+        planExpira: new Date('2035-12-31'),
+        emailVerificado: true,
+        trialUsado: true,
+      },
+      create: {
+        email: DEMO_EMPRESA_EMAIL,
+        nombre: 'Equipo Demo',
+        apellido: 'Empresa',
+        password,
+        rol: 'ADMIN',
+        plan: 'PRO',
+        planExpira: new Date('2035-12-31'),
+        emailVerificado: true,
+        trialUsado: true,
+      },
+    });
+
+    let empresa = await this.prisma.empresa.findFirst({
+      where: { nombre: 'Agro del Centro Demo', propietarioId: owner.id },
+    });
+    if (!empresa) {
+      empresa = await this.prisma.empresa.create({
+        data: {
+          nombre: 'Agro del Centro Demo',
+          propietarioId: owner.id,
+          estadoComercial: 'ACTIVA',
+          limiteEstablecimientos: 3,
+          fechaInicioComercial: new Date('2026-01-01'),
+          fechaVencimiento: new Date('2035-12-31'),
+        },
+      });
+    } else {
+      empresa = await this.prisma.empresa.update({
+        where: { id: empresa.id },
+        data: {
+          activo: true,
+          estadoComercial: 'ACTIVA',
+          limiteEstablecimientos: 3,
+          fechaInicioComercial: new Date('2026-01-01'),
+          fechaVencimiento: new Date('2035-12-31'),
+        },
+      });
+    }
+
+    const establecimientosBase = [
+      { nombre: 'Estancia La Esperanza', email: 'la-esperanza.demoempresa@agromanager.ar' },
+      { nombre: 'Establecimiento Los Álamos', email: 'los-alamos.demoempresa@agromanager.ar' },
+      { nombre: 'Campo El Horizonte', email: 'el-horizonte.demoempresa@agromanager.ar' },
+    ];
+    const organizaciones: Array<{ id: number; nombre: string }> = [];
+    for (const establecimiento of establecimientosBase) {
+      const existente = await this.prisma.organizacion.findUnique({
+        where: { email: establecimiento.email },
+      });
+      const organizacion = existente
+        ? await this.prisma.organizacion.update({
+            where: { id: existente.id },
+            data: { nombre: establecimiento.nombre, propietarioId: owner.id, plan: 'PRO' },
+          })
+        : await this.prisma.organizacion.create({
+            data: {
+              nombre: establecimiento.nombre,
+              email: establecimiento.email,
+              propietarioId: owner.id,
+              plan: 'PRO',
+            },
+          });
+      organizaciones.push(organizacion);
+
+      await this.prisma.usuarioOrganizacion.upsert({
+        where: {
+          usuarioId_organizacionId: { usuarioId: owner.id, organizacionId: organizacion.id },
+        },
+        update: { roles: JSON.stringify(['OWNER']), activo: true },
+        create: {
+          usuarioId: owner.id,
+          organizacionId: organizacion.id,
+          roles: JSON.stringify(['OWNER']),
+          activo: true,
+        },
+      });
+      await this.prisma.empresaOrganizacion.upsert({
+        where: {
+          empresaId_organizacionId: { empresaId: empresa.id, organizacionId: organizacion.id },
+        },
+        update: {},
+        create: { empresaId: empresa.id, organizacionId: organizacion.id },
+      });
+    }
+
+    await this.prisma.usuarioEmpresa.upsert({
+      where: { empresaId_usuarioId: { empresaId: empresa.id, usuarioId: owner.id } },
+      update: { rol: 'OWNER', activo: true, accesoTodasOrganizaciones: true },
+      create: {
+        empresaId: empresa.id,
+        usuarioId: owner.id,
+        rol: 'OWNER',
+        activo: true,
+        accesoTodasOrganizaciones: true,
+      },
+    });
+
+    await this.prepararEquipoDemoEmpresa(empresa.id, organizaciones.map((organizacion) => organizacion.id));
+    return { ownerId: owner.id, organizaciones };
+  }
+
+  private async prepararEquipoDemoEmpresa(empresaId: number, organizacionesIds: number[]) {
+    const integrantes = [
+      {
+        email: 'sofia.demoempresa@agromanager.ar',
+        nombre: 'Sofía',
+        apellido: 'Fernández',
+        rolEmpresa: 'GERENTE_ESTABLECIMIENTO',
+        roles: JSON.stringify(['ADMIN']),
+        organizaciones: [organizacionesIds[0], organizacionesIds[1]],
+      },
+      {
+        email: 'martin.demoempresa@agromanager.ar',
+        nombre: 'Martín',
+        apellido: 'Gómez',
+        rolEmpresa: 'SUPERVISOR',
+        roles: JSON.stringify(['OPERARIO']),
+        organizaciones: [organizacionesIds[1], organizacionesIds[2]],
+      },
+      {
+        email: 'lucia.demoempresa@agromanager.ar',
+        nombre: 'Lucía',
+        apellido: 'Ramos',
+        rolEmpresa: 'RESPONSABLE_FINANCIERO',
+        roles: JSON.stringify(['CONTADOR']),
+        organizaciones: organizacionesIds,
+      },
+    ];
+
+    for (const integrante of integrantes) {
+      const password = await bcrypt.hash('EquipoDemo1234', 10);
+      const usuario = await this.prisma.usuario.upsert({
+        where: { email: integrante.email },
+        update: {
+          nombre: integrante.nombre,
+          apellido: integrante.apellido,
+          password,
+          plan: 'PRO',
+          planExpira: new Date('2035-12-31'),
+          emailVerificado: true,
+        },
+        create: {
+          email: integrante.email,
+          nombre: integrante.nombre,
+          apellido: integrante.apellido,
+          password,
+          rol: 'OPERADOR',
+          plan: 'PRO',
+          planExpira: new Date('2035-12-31'),
+          emailVerificado: true,
+        },
+      });
+      const miembroEmpresa = await this.prisma.usuarioEmpresa.upsert({
+        where: { empresaId_usuarioId: { empresaId, usuarioId: usuario.id } },
+        update: { rol: integrante.rolEmpresa as any, activo: true, accesoTodasOrganizaciones: false },
+        create: {
+          empresaId,
+          usuarioId: usuario.id,
+          rol: integrante.rolEmpresa as any,
+          activo: true,
+          accesoTodasOrganizaciones: false,
+        },
+      });
+
+      for (const organizacionId of integrante.organizaciones) {
+        await this.prisma.usuarioOrganizacion.upsert({
+          where: { usuarioId_organizacionId: { usuarioId: usuario.id, organizacionId } },
+          update: { roles: integrante.roles, activo: true },
+          create: { usuarioId: usuario.id, organizacionId, roles: integrante.roles, activo: true },
+        });
+        await this.prisma.usuarioEmpresaOrganizacion.upsert({
+          where: {
+            usuarioEmpresaId_organizacionId: {
+              usuarioEmpresaId: miembroEmpresa.id,
+              organizacionId,
+            },
+          },
+          update: {},
+          create: { usuarioEmpresaId: miembroEmpresa.id, organizacionId },
+        });
+      }
+    }
+  }
+
+  private async reiniciarDemoEmpresa(contexto: {
+    ownerId: number;
+    organizaciones: Array<{ id: number; nombre: string }>;
+  }) {
+    const organizacionesIds = contexto.organizaciones.map((organizacion) => organizacion.id);
+    await this.limpiarDemoEmpresaData(contexto.ownerId, organizacionesIds);
+    for (const organizacion of contexto.organizaciones) {
+      await this.seedDemoData(contexto.ownerId, organizacion.id);
+    }
+    await this.crearActividadesDemoEmpresa(contexto.ownerId, contexto.organizaciones);
+  }
+
+  private async limpiarDemoEmpresaData(ownerId: number, organizacionesIds: number[]) {
+    const campos = await this.prisma.campo.findMany({
+      where: { organizacionId: { in: organizacionesIds } },
+      select: { id: true },
+    });
+    const camposIds = campos.map((campo) => campo.id);
+    const lotes = camposIds.length
+      ? await this.prisma.lote.findMany({
+          where: { campoId: { in: camposIds } },
+          select: { id: true },
+        })
+      : [];
+    const lotesIds = lotes.map((lote) => lote.id);
+    const siembras = lotesIds.length
+      ? await this.prisma.siembra.findMany({
+          where: { loteId: { in: lotesIds } },
+          select: { id: true },
+        })
+      : [];
+    const siembrasIds = siembras.map((siembra) => siembra.id);
+    const animales = await this.prisma.animal.findMany({
+      where: { organizacionId: { in: organizacionesIds } },
+      select: { id: true },
+    });
+    const animalesIds = animales.map((animal) => animal.id);
+
+    await this.prisma.archivoEvidencia.deleteMany({
+      where: { evidencia: { organizacionId: { in: organizacionesIds } } },
+    });
+    await this.prisma.evidencia.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.observacionActividad.deleteMany({
+      where: { actividad: { organizacionId: { in: organizacionesIds } } },
+    });
+    await this.prisma.actividadMiembro.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.asignacionRecurso.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    if (camposIds.length) {
+      await this.prisma.asignacionCampo.deleteMany({ where: { campoId: { in: camposIds } } });
+    }
+    await this.prisma.movimientoFinanciero.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.tareaRural.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.maquinaria.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    if (siembrasIds.length) {
+      await this.prisma.aplicacionInsumo.deleteMany({ where: { siembraId: { in: siembrasIds } } });
+      await this.prisma.cosecha.deleteMany({ where: { siembraId: { in: siembrasIds } } });
+      await this.prisma.siembra.deleteMany({ where: { id: { in: siembrasIds } } });
+    }
+    await this.prisma.campania.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    if (animalesIds.length) {
+      await this.prisma.registroPeso.deleteMany({ where: { animalId: { in: animalesIds } } });
+      await this.prisma.prenez.deleteMany({ where: { animalId: { in: animalesIds } } });
+      await this.prisma.animal.deleteMany({ where: { id: { in: animalesIds } } });
+    }
+    if (lotesIds.length) {
+      await this.prisma.lote.deleteMany({ where: { id: { in: lotesIds } } });
+    }
+    if (camposIds.length) {
+      await this.prisma.campo.deleteMany({ where: { id: { in: camposIds } } });
+    }
+    await this.prisma.insumo.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.auditoriaLog.deleteMany({
+      where: { usuarioId: ownerId, organizacionId: { in: organizacionesIds } },
+    });
+  }
+
+  private async crearActividadesDemoEmpresa(
+    ownerId: number,
+    organizaciones: Array<{ id: number; nombre: string }>,
+  ) {
+    const campos = await this.prisma.campo.findMany({
+      where: { organizacionId: { in: organizaciones.map((organizacion) => organizacion.id) } },
+      select: { id: true, nombre: true, organizacionId: true },
+      orderBy: { id: 'asc' },
+    });
+    const miembros = await this.prisma.usuarioOrganizacion.findMany({
+      where: { organizacionId: { in: organizaciones.map((organizacion) => organizacion.id) }, activo: true },
+      select: { id: true, organizacionId: true, usuario: { select: { email: true } } },
+    });
+    const fecha = (dias: number) => {
+      const valor = new Date();
+      valor.setDate(valor.getDate() + dias);
+      return valor;
+    };
+    const actividades: Prisma.ActividadMiembroCreateManyInput[] = organizaciones.flatMap(
+      (organizacion, indice): Prisma.ActividadMiembroCreateManyInput[] => {
+      const campo = campos.find((item) => item.organizacionId === organizacion.id);
+      const miembro = miembros.find(
+        (item) =>
+          item.organizacionId === organizacion.id &&
+          item.usuario.email !== DEMO_EMPRESA_EMAIL,
+      );
+      const asignado = miembro ?? miembros.find((item) => item.organizacionId === organizacion.id);
+      if (!asignado) return [];
+      const contexto = campo ? 'Campo: ' + campo.nombre : organizacion.nombre;
+      return [
+        {
+          organizacionId: organizacion.id,
+          usuarioOrganizacionId: asignado.id,
+          creadoPorId: ownerId,
+          titulo: 'Recorrida y control operativo',
+          descripcion: 'Verificar el estado general del establecimiento y registrar novedades.',
+          recursoTipo: 'CAMPO',
+          recursoId: campo?.id,
+          contexto,
+          fechaInicio: fecha(-1),
+          fechaEstimadaFin: fecha(indice + 1),
+          estado: 'PENDIENTE',
+          prioridad: indice === 0 ? 'ALTA' : 'MEDIA',
+          activo: true,
+        },
+        {
+          organizacionId: organizacion.id,
+          usuarioOrganizacionId: asignado.id,
+          creadoPorId: ownerId,
+          titulo: 'Seguimiento de maquinaria',
+          descripcion: 'Revisar horas de uso, mantenimientos próximos y disponibilidad.',
+          recursoTipo: 'MAQUINARIA',
+          contexto,
+          fechaInicio: fecha(-2),
+          fechaEstimadaFin: fecha(2),
+          estado: indice === 1 ? 'PAUSADA' : 'EN_PROGRESO',
+          prioridad: 'MEDIA',
+          activo: true,
+        },
+        {
+          organizacionId: organizacion.id,
+          usuarioOrganizacionId: asignado.id,
+          creadoPorId: ownerId,
+          titulo: 'Actualizar parte semanal',
+          descripcion: 'Consolidar las tareas realizadas y las novedades del equipo.',
+          recursoTipo: 'GENERAL',
+          contexto: organizacion.nombre,
+          fechaInicio: fecha(-8),
+          fechaEstimadaFin: fecha(-2),
+          fechaRealFin: fecha(-1),
+          estado: 'COMPLETADA',
+          prioridad: 'BAJA',
+          activo: true,
+        },
+      ];
+      },
+    );
+    if (actividades.length) {
+      await this.prisma.actividadMiembro.createMany({ data: actividades });
+    }
   }
 }

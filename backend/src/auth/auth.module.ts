@@ -4,10 +4,14 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { ReferidosModule } from '../referidos/referidos.module';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 @Module({
   imports: [
     PassportModule,
+    ReferidosModule,
+    NotificacionesModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'agromanager_secret_dev_2026',
       signOptions: { expiresIn: '7d' },

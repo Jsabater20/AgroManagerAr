@@ -1,4 +1,14 @@
-import { IsString, MinLength, IsOptional, IsIn } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -22,6 +32,37 @@ export class ChangePasswordDto {
   passwordNueva!: string;
 }
 
+export class PrepararFotoPerfilDto {
+  @IsIn(['image/jpeg', 'image/png', 'image/webp'])
+  mimeType!: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
+export class ConfirmarFotoPerfilDto {
+  @IsString()
+  @MaxLength(300)
+  storageKey!: string;
+}
+
+export class ActualizarEncuadreFotoPerfilDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  posicionX?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  posicionY?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(2)
+  escala?: number;
+}
+
 export class UpdateUserPlanDto {
   @IsIn(['FREE', 'PRO'])
   plan!: 'FREE' | 'PRO';
@@ -30,6 +71,22 @@ export class UpdateUserPlanDto {
 export class UpdateUserRolDto {
   @IsIn(['SUPERADMIN', 'USER'])
   rol!: 'SUPERADMIN' | 'USER';
+}
+
+export class OtorgarBeneficioProDto {
+  @IsInt()
+  @Min(1)
+  organizacionId!: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(36)
+  duracionMeses!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  motivo?: string;
 }
 
 export interface AdminPanelUserDto {

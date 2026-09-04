@@ -1,0 +1,1 @@
+ALTER TYPE "TipoRecursoEvidencia" ADD VALUE IF NOT EXISTS 'TAREA';

@@ -13,9 +13,13 @@
 
   html {
     color-scheme: light;
+    --chart-grid: #e5e7eb;
+    --chart-tick: #6b7280;
   }
   html.dark {
     color-scheme: dark;
+    --chart-grid: #374151;
+    --chart-tick: #9ca3af;
   }
 
   body {
@@ -59,6 +63,8 @@ html.dark {
   & .border-gray-200 { border-color: #374151; }    /* gray-700 */
 
   /* Text hierarchy */
+  & .text-gray-950,
+  & .text-gray-800 { color: #f1f5f9; }           /* títulos y datos destacados */
   & .text-gray-900 { color: #f1f5f9; }             /* gray-100  */
   & .text-gray-700 { color: #d1d5db; }             /* gray-300  */
   & .text-gray-600 { color: #9ca3af; }             /* gray-400  */
@@ -67,6 +73,78 @@ html.dark {
   /* Subtle backgrounds */
   & .bg-gray-50  { background-color: #111827; }    /* gray-900 — table headers, strips */
   & .bg-gray-100 { background-color: #374151; }    /* gray-700 — badges, icon chips    */
+  & .bg-gray-200 { background-color: #4b5563; }
+
+  /* Slate is used by the newer screens. Keep it in the same dark surface scale. */
+  & .bg-slate-50  { background-color: #0f172a; }
+  & .bg-slate-100 { background-color: #1e293b; }
+  & .bg-slate-200 { background-color: #334155; }
+  & .bg-slate-800 { background-color: #1e293b; }
+  & .bg-slate-900 { background-color: #0f172a; }
+  & .bg-slate-950 { background-color: #020617; }
+  & .border-slate-100,
+  & .border-slate-200,
+  & .border-slate-300 { border-color: #334155; }
+  & .border-slate-700,
+  & .border-slate-800 { border-color: #475569; }
+  & .text-slate-900,
+  & .text-slate-800 { color: #f1f5f9; }
+  & .text-slate-700 { color: #d1d5db; }
+  & .text-slate-600,
+  & .text-slate-500 { color: #a8b3c5; }
+
+  /* Alerts and informative sections retain their meaning without light backgrounds. */
+  & .bg-emerald-50,
+  & .bg-green-50 { background-color: #064e3b; }
+  & .bg-emerald-100,
+  & .bg-green-100 { background-color: #065f46; }
+  & .border-emerald-100,
+  & .border-emerald-200,
+  & .border-green-100,
+  & .border-green-200 { border-color: #047857; }
+  & .text-emerald-950,
+  & .text-emerald-900,
+  & .text-emerald-800,
+  & .text-emerald-700,
+  & .text-green-800,
+  & .text-green-700 { color: #a7f3d0; }
+
+  & .bg-blue-50,
+  & .bg-blue-100 { background-color: #172554; }
+  & .border-blue-100,
+  & .border-blue-200 { border-color: #1d4ed8; }
+  & .text-blue-800,
+  & .text-blue-700 { color: #bfdbfe; }
+
+  & .bg-amber-50,
+  & .bg-amber-100,
+  & .bg-yellow-50,
+  & .bg-yellow-100 { background-color: #451a03; }
+  & .border-amber-200,
+  & .border-yellow-200 { border-color: #b45309; }
+  & .text-amber-800,
+  & .text-amber-700,
+  & .text-yellow-900,
+  & .text-yellow-800,
+  & .text-yellow-700 { color: #fde68a; }
+
+  & .bg-red-50,
+  & .bg-red-100 { background-color: #450a0a; }
+  & .border-red-200,
+  & .border-red-300 { border-color: #b91c1c; }
+  & .text-red-800,
+  & .text-red-700 { color: #fecaca; }
+
+  & .bg-orange-50,
+  & .bg-orange-100 { background-color: #431407; }
+  & .border-orange-200 { border-color: #c2410c; }
+  & .text-orange-700 { color: #fed7aa; }
+
+  & .bg-purple-50,
+  & .bg-purple-100 { background-color: #3b0764; }
+  & .border-purple-200 { border-color: #7e22ce; }
+  & .text-purple-800,
+  & .text-purple-700 { color: #e9d5ff; }
 
   /* Dividers (divide-y) */
   & .divide-gray-100 > :not(:last-child),
@@ -76,4 +154,6 @@ html.dark {
   & .hover\:bg-gray-100:hover { background-color: #374151; } /* gray-700 */
   & .hover\:bg-gray-50:hover  { background-color: #1f2937; } /* gray-800 */
   & .hover\:text-gray-700:hover { color: #d1d5db; }          /* gray-300 */
+  & .hover\:bg-slate-50:hover { background-color: #1e293b; }
+  & .hover\:bg-slate-100:hover { background-color: #334155; }
 }

@@ -220,15 +220,15 @@ export default function ClimaPage() {
               {/* Bar chart */}
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={forecastData} barSize={14}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                   <XAxis
                     dataKey="dia"
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    tick={{ fontSize: 10, fill: 'var(--chart-tick)' }}
                     axisLine={false}
                     tickLine={false}
                     unit="°"
