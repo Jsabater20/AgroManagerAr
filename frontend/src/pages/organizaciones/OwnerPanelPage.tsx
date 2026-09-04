@@ -356,7 +356,6 @@ export function OwnerPanelPage() {
                       <p className="text-sm font-medium text-gray-800">
                         {recurso.nombre?.trim() || `Campo #${recurso.id}`}
                       </p>
-                      <p className="text-xs text-gray-500">Campo registrado</p>
                     </div>
 
                     <button
