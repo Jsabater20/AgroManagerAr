@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 
 import { ownerAdminApi } from '../../api/owner-admin.api';
+import { camposApi } from '../../api/campos.api';
 
 const ROLES = [
   'OPERARIO',
@@ -60,6 +61,11 @@ type MiembroPanel = {
   modulos: Array<{ moduloNombre: string; activo: boolean }>;
 };
 
+type CampoDisponible = {
+  id: number;
+  nombre: string;
+};
+
 export function OwnerPanelPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const orgIdNum = Number(orgId || 0);
@@ -88,6 +94,20 @@ export function OwnerPanelPage() {
     },
     enabled: orgIdNum > 0 && !!selectedMember,
   });
+
+  const camposQuery = useQuery<CampoDisponible[]>({
+    queryKey: ['campos-organizacion', orgIdNum],
+    queryFn: () => camposApi.getAll(),
+    enabled: orgIdNum > 0,
+  });
+
+  const nombresCampos = useMemo(
+    () =>
+      new Map(
+        (camposQuery.data ?? []).map((campo) => [campo.id, campo.nombre.trim()]),
+      ),
+    [camposQuery.data],
+  );
 
   const cambiarRolMutation = useMutation({
     mutationFn: ({
@@ -354,7 +374,9 @@ export function OwnerPanelPage() {
                   >
                     <div>
                       <p className="text-sm font-medium text-gray-800">
-                        {recurso.nombre?.trim() || `Campo #${recurso.id}`}
+                        {nombresCampos.get(recurso.id) ||
+                          recurso.nombre?.trim() ||
+                          `Campo #${recurso.id}`}
                       </p>
                     </div>
 
