@@ -199,9 +199,11 @@ export class ActividadesService {
 
   validarFechas(
     fechaInicio: Date,
-    fechaEstimadaFin: Date,
+    fechaEstimadaFin?: Date | null,
     tolerancia?: Date,
   ): void {
+    if (!fechaEstimadaFin) return;
+
     if (fechaInicio > fechaEstimadaFin) {
       throw new BadRequestException(
         'fechaInicio no puede ser mayor a fechaEstimadaFin',
@@ -265,7 +267,9 @@ export class ActividadesService {
     this.validarContexto(dto.recursoTipo, dto.contexto);
 
     const fechaInicio = new Date(dto.fechaInicio);
-    const fechaEstimadaFin = new Date(dto.fechaEstimadaFin);
+    const fechaEstimadaFin = dto.fechaEstimadaFin
+      ? new Date(dto.fechaEstimadaFin)
+      : null;
     this.validarFechas(fechaInicio, fechaEstimadaFin);
 
     const resultado = await this.prisma.$transaction(async (tx) => {
@@ -587,6 +591,12 @@ export class ActividadesService {
     const actividad = await this.obtenerActividad(orgId, actividadId);
 
     const nuevaFecha = new Date(dto.fechaEstimadaFin);
+
+    if (!actividad.fechaEstimadaFin) {
+      throw new BadRequestException(
+        'Esta actividad no tiene una fecha estimada de finalización para prolongar',
+      );
+    }
 
     if (nuevaFecha <= actividad.fechaEstimadaFin) {
       throw new BadRequestException(

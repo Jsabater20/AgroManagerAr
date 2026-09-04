@@ -30,7 +30,7 @@ type ActividadMiembro = {
   recursoTipo: string;
   recursoId?: number | null;
   fechaInicio: string;
-  fechaEstimadaFin: string;
+  fechaEstimadaFin?: string | null;
   horarioInicio?: string | null;
   horarioFin?: string | null;
   prioridad: string;
@@ -156,7 +156,12 @@ export default function MiembrosTrabajosPage() {
                         </div>
                         <div className="flex items-center gap-2"><EvidenceAction organizacionId={orgIdNum} origen="ACTIVIDADES" tipoRecurso="ACTIVIDAD" recursoId={trabajo.id} titulo={`Evidencia de ${trabajo.titulo}`} compacto /><span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">{trabajo.prioridad}</span></div>
                       </div>
-                      <p className="mt-2 text-xs text-gray-500">{formatDate(trabajo.fechaInicio)} → {formatDate(trabajo.fechaEstimadaFin)}{trabajo.horarioInicio ? ` · ${trabajo.horarioInicio}` : ''}{trabajo.horarioFin ? ` - ${trabajo.horarioFin}` : ''}</p>
+                      <p className="mt-2 text-xs text-gray-500">
+                        Inicio: {formatDate(trabajo.fechaInicio)}
+                        {trabajo.fechaEstimadaFin ? ` · Finalización estimada: ${formatDate(trabajo.fechaEstimadaFin)}` : ''}
+                        {trabajo.horarioInicio ? ` · ${trabajo.horarioInicio}` : ''}
+                        {trabajo.horarioFin ? ` - ${trabajo.horarioFin}` : ''}
+                      </p>
                     </div>
                   ))}
                 </div>

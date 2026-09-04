@@ -194,7 +194,7 @@ export default function MiembrosPage() {
           activityForm.recursoTipo === 'GENERAL' ? 'GENERAL' : activityForm.recursoTipo,
         recursoId:
           activityForm.recursoTipo === 'GENERAL' ? null : Number(activityForm.recursoId),
-        fechaInicio: activityForm.fechaInicio || undefined,
+        fechaInicio: activityForm.fechaInicio,
         fechaEstimadaFin: activityForm.fechaFin || undefined,
         horarioInicio: activityForm.horarioInicio || undefined,
         horarioFin: activityForm.horarioFin || undefined,
@@ -262,6 +262,7 @@ export default function MiembrosPage() {
   const canSubmit =
     !!activityForm.miembroId &&
     !!activityForm.titulo.trim() &&
+    !!activityForm.fechaInicio &&
     (!!activityForm.recursoTipo && activityForm.recursoTipo !== 'GENERAL'
       ? !!activityForm.recursoId
       : true);
@@ -328,9 +329,9 @@ export default function MiembrosPage() {
       </header>
 
       <section className="grid gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950 md:grid-cols-3 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
-        <div><strong>Obligatorio:</strong> responsable y tarea a realizar.</div>
+        <div><strong>Obligatorio:</strong> responsable, tarea y fecha de inicio.</div>
         <div><strong>Recurso:</strong> elegí un campo, lote o maquinaria solo si el trabajo está relacionado.</div>
-        <div><strong>Fechas y horarios:</strong> son opcionales, pero ayudan a planificar el trabajo.</div>
+        <div><strong>Finalización y horarios:</strong> son opcionales, pero ayudan a planificar el trabajo.</div>
       </section>
 
       {actividadesAlLimite && (
@@ -492,9 +493,10 @@ export default function MiembrosPage() {
             </label>
 
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Fecha de inicio <span className="text-gray-400">(opcional)</span></span>
+              <span className="mb-1.5 block font-medium text-gray-700">Fecha de inicio <span className="text-red-500">*</span></span>
               <input
                 type="date"
+                required
                 value={activityForm.fechaInicio}
                 onChange={(e) =>
                   setActivityForm((prev) => ({ ...prev, fechaInicio: e.target.value }))

@@ -12,17 +12,19 @@ interface ActividadAsignada {
   recursoTipo: string;
   recursoId?: number | null;
   fechaInicio: string;
-  fechaEstimadaFin: string;
+  fechaEstimadaFin?: string | null;
   prioridad: string;
   estado: 'PENDIENTE' | 'EN_PROGRESO' | 'PAUSADA' | 'COMPLETADA' | 'CANCELADA';
 }
 
-const formatDate = (fecha: string) =>
-  new Date(fecha).toLocaleDateString('es-AR', {
+const formatDate = (fecha?: string | null) =>
+  fecha
+    ? new Date(fecha).toLocaleDateString('es-AR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  });
+    })
+    : 'Sin fecha estimada';
 
 const siguienteEstado = (estado: ActividadAsignada['estado']) => {
   if (estado === 'PENDIENTE') return { valor: 'EN_PROGRESO', etiqueta: 'Iniciar', Icon: PlayCircle };
@@ -100,7 +102,8 @@ export function ActividadesAsignadas({ organizacionId }: { organizacionId: numbe
 
               <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
                 <Clock3 className="h-4 w-4" />
-                {formatDate(actividad.fechaInicio)} al {formatDate(actividad.fechaEstimadaFin)}
+                Inicio: {formatDate(actividad.fechaInicio)}
+                {actividad.fechaEstimadaFin ? ` · Finalización estimada: ${formatDate(actividad.fechaEstimadaFin)}` : ''}
               </div>
 
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">

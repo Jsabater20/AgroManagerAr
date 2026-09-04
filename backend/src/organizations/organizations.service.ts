@@ -462,6 +462,7 @@ export class OrganizationsService {
     const campos = await this.prisma.campo.findMany({
       where: { organizacionId: orgId },
       select: { id: true, nombre: true },
+      orderBy: { nombre: 'asc' },
     });
 
     // Obtener asignaciones actuales del miembro
@@ -474,7 +475,7 @@ export class OrganizationsService {
 
     return campos.map((campo) => ({
       id: campo.id,
-      nombre: campo.nombre,
+      nombre: campo.nombre.trim() || `Campo #${campo.id}`,
       tipo: 'CAMPO' as const,
       asignado: camposAsignadosIds.includes(campo.id),
     }));

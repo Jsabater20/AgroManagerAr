@@ -122,7 +122,7 @@ export interface ActividadConsolidadaEmpresa {
   recursoId: number | null;
   contexto: string | null;
   fechaInicio: string;
-  fechaEstimadaFin: string;
+  fechaEstimadaFin: string | null;
   fechaRealFin: string | null;
   estado: 'PENDIENTE' | 'EN_PROGRESO' | 'PAUSADA' | 'COMPLETADA' | 'CANCELADA';
   prioridad: 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';

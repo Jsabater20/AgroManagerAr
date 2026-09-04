@@ -89,6 +89,7 @@ function EstadoMaquinaria({ estado }: { estado: MaquinariaConsolidadaEmpresa['es
   return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${estilos[estado]}`}>{estado.replaceAll('_', ' ')}</span>;
 }
 
-function formatearFecha(fecha: string) {
+function formatearFecha(fecha: string | null) {
+  if (!fecha) return 'Sin fecha estimada';
   return new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(new Date(fecha));
 }

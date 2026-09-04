@@ -9,7 +9,7 @@ export interface CreateActividadPayload {
   recursoId?: number;
   contexto?: string;
   fechaInicio: string;
-  fechaEstimadaFin: string;
+  fechaEstimadaFin?: string;
   prioridad: string;
 }
 

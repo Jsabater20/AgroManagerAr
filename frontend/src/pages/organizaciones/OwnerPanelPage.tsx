@@ -353,8 +353,10 @@ export function OwnerPanelPage() {
                     className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2"
                   >
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{recurso.nombre}</p>
-                      <p className="text-xs text-gray-500">{recurso.tipo}</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {recurso.nombre?.trim() || `Campo #${recurso.id}`}
+                      </p>
+                      <p className="text-xs text-gray-500">Campo registrado</p>
                     </div>
 
                     <button

@@ -507,7 +507,7 @@ model ActividadMiembro {
   contexto    String?
 
   fechaInicio      DateTime
-  fechaEstimadaFin DateTime
+  fechaEstimadaFin DateTime?
   fechaRealFin     DateTime?
 
   estado    EstadoActividad @default(PENDIENTE)
