@@ -29,6 +29,16 @@ type RolOrganizacion =
   | 'ASESOR'
   | 'CONTRATISTA';
 
+const AYUDA_ROLES: Record<RolOrganizacion, string> = {
+  OWNER: 'Control total de la organización. Este rol es solo para la persona propietaria.',
+  ADMIN: 'Puede administrar el equipo y operar los módulos que le habilites.',
+  OPERARIO: 'Recibe trabajos y accede únicamente a los módulos y recursos que le habilites.',
+  CONTADOR: 'Ideal para registrar y consultar la información financiera autorizada.',
+  MECANICO: 'Ideal para trabajar con maquinarias, mantenimientos y tareas relacionadas.',
+  ASESOR: 'Puede consultar la información técnica que decidas compartirle.',
+  CONTRATISTA: 'Acceso puntual y limitado para realizar trabajos específicos.',
+};
+
 export default function OrganizationMembersPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
@@ -176,10 +186,10 @@ export default function OrganizationMembersPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-3">
           <Mail className="text-green-600" size={32} />
-          Administración de personal
+          Invitar al equipo
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Invita nuevos usuarios y gestiona los roles dentro de tu organización
+          Enviá una invitación. Después definís qué puede ver cada persona y qué trabajos puede realizar.
         </p>
         {usoMiembros?.plan === 'FREE' && (
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -208,16 +218,25 @@ export default function OrganizationMembersPage() {
       )}
 
       {/* SECCIÓN: Agregar nuevo miembro */}
+      <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+        <p className="font-semibold">¿Qué pasa después de enviar la invitación?</p>
+        <ol className="mt-2 grid gap-2 text-emerald-900/80 dark:text-emerald-100/80 md:grid-cols-3">
+          <li><strong>1.</strong> La persona recibe un email con su invitación.</li>
+          <li><strong>2.</strong> Se registra o inicia sesión para aceptar y sumarse al equipo.</li>
+          <li><strong>3.</strong> Vos definís sus accesos y le asignás trabajos cuando lo necesite.</li>
+        </ol>
+      </section>
+
       <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Plus size={20} className="text-green-600" />
-          Agregar Nuevo Miembro
+          Datos de la invitación
         </h2>
         <form onSubmit={handleInvite} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-1">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Rol Inicial <span className="text-red-500">*</span>
+                Rol inicial <span className="text-red-500">*</span>
               </label>
               <select
                 value={roleInput}
@@ -234,10 +253,13 @@ export default function OrganizationMembersPage() {
                   </option>
                 ))}
               </select>
+              <p className="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                {AYUDA_ROLES[roleInput]}
+              </p>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Email del Nuevo Miembro <span className="text-red-500">*</span>
+                Email de la persona invitada <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -253,14 +275,14 @@ export default function OrganizationMembersPage() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Mensaje Opcional
+              Mensaje para la invitación <span className="text-gray-400">(opcional)</span>
             </label>
             <textarea
               value={mensajeInput}
               onChange={(e) => setMensajeInput(e.target.value)}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
-              placeholder="Agrega un mensaje personalizado para el invitado (ej: Bienvenido al equipo)..."
+              placeholder="Ej: Te invitamos a sumarte al equipo de trabajo..."
               rows={3}
               className="w-full px-4 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-green-500 focus:outline-none resize-none"
             />
@@ -280,7 +302,7 @@ export default function OrganizationMembersPage() {
               ) : (
                 <>
                   <Mail size={18} />
-                  Enviar Invitación
+                  Enviar invitación
                 </>
               )}
             </button>
@@ -293,7 +315,7 @@ export default function OrganizationMembersPage() {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Clock size={20} className="text-yellow-600" />
-            Invitaciones Pendientes ({invitaciones.length})
+            Invitaciones esperando aceptación ({invitaciones.length})
           </h2>
         </div>
 
@@ -367,7 +389,7 @@ export default function OrganizationMembersPage() {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Check size={20} className="text-green-600" />
-            Miembros Agregados ({miembros.length})
+            Personas que ya forman parte del equipo ({miembros.length})
           </h2>
         </div>
 

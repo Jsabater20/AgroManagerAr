@@ -43,7 +43,7 @@ import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
 import RolesPage from './pages/organizaciones/RolesPage';
-import MiembrosPage from './pages/miembros/MiembrosPage';
+import MiembrosInicioPage from './pages/miembros/MiembrosInicioPage';
 import InvitarMiembrosPage from './pages/miembros/InvitarMiembrosPage';
 import AdministracionPersonalPage from './pages/miembros/AdministracionPersonalPage';
 import AsignarTrabajoPage from './pages/miembros/AsignarTrabajoPage';
@@ -146,7 +146,7 @@ export default function App() {
               <Route path="/org/:orgId/insumos" element={<InsumosPage />} />
               <Route path="/org/:orgId/ganado" element={<GanadoPage />} />
               <Route path="/org/:orgId/tareas" element={<TareasPage />} />
-              <Route path="/org/:orgId/miembros" element={<MiembrosPage />} />
+              <Route path="/org/:orgId/miembros" element={<MiembrosInicioPage />} />
               <Route path="/org/:orgId/miembros/invitar" element={<InvitarMiembrosPage />} />
               <Route path="/org/:orgId/miembros/administracion" element={<AdministracionPersonalPage />} />
               <Route path="/org/:orgId/miembros/asignar-trabajo" element={<AsignarTrabajoPage />} />

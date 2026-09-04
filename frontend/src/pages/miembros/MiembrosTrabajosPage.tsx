@@ -41,6 +41,34 @@ type ActividadMiembro = {
 const formatDate = (value?: string | null) =>
   value ? new Date(value).toLocaleDateString('es-AR') : 'Sin fecha';
 
+const recursoLabel = (tipo: string) => {
+  const recursos: Record<string, string> = {
+    CAMPO: 'Campo',
+    LOTE: 'Lote',
+    SIEMBRA: 'Siembra',
+    ANIMAL: 'Animal',
+    TAREA: 'Tarea',
+    MAQUINARIA: 'Maquinaria',
+    CAMPANIA: 'Campaña',
+    GENERAL: 'Trabajo general',
+  };
+
+  return recursos[tipo] ?? tipo;
+};
+
+const estadoLabel = (estado: string) => {
+  const estados: Record<string, string> = {
+    PENDIENTE: 'Pendiente',
+    EN_PROGRESO: 'En progreso',
+    PAUSADA: 'Pausada',
+    COMPLETADA: 'Completada',
+    CANCELADA: 'Cancelada',
+    ARCHIVADA: 'Archivada',
+  };
+
+  return estados[estado] ?? estado;
+};
+
 export default function MiembrosTrabajosPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const orgIdNum = Number(orgId || 0);
@@ -77,8 +105,8 @@ export default function MiembrosTrabajosPage() {
           <Users className="h-3.5 w-3.5" />
           Miembros
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Miembros y trabajos</h1>
-        <p className="text-sm text-gray-500">Estado del equipo, sus recursos y actividades asignadas.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Seguimiento del equipo</h1>
+        <p className="text-sm text-gray-500">Consultá qué puede hacer cada persona y cómo avanzan los trabajos que le asignaste.</p>
       </header>
 
       {miembros.length === 0 ? (
@@ -108,23 +136,23 @@ export default function MiembrosTrabajosPage() {
                 </div>
 
                 <div className="mt-4 rounded-xl bg-gray-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recursos asignados</p>
-                  <p className="mt-1 text-sm text-gray-700">{miembro.recursosCampos.length ? miembro.recursosCampos.join(', ') : 'Sin recursos asignados'}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Puede trabajar sobre</p>
+                  <p className="mt-1 text-sm text-gray-700">{miembro.recursosCampos.length ? miembro.recursosCampos.join(', ') : 'Todavía no tiene campos asignados'}</p>
                 </div>
 
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
                     <BriefcaseBusiness className="h-4 w-4 text-emerald-600" />
-                    Trabajos ({trabajos.length})
+                    Trabajos asignados ({trabajos.length})
                   </div>
                   {trabajos.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-gray-200 px-3 py-3 text-sm text-gray-500">Sin trabajos asignados.</p>
+                    <p className="rounded-xl border border-dashed border-gray-200 px-3 py-3 text-sm text-gray-500">Todavía no tiene trabajos asignados.</p>
                   ) : trabajos.map((trabajo) => (
                     <div key={trabajo.id} className="rounded-xl border border-gray-200 p-3 text-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-medium text-gray-900">{trabajo.titulo}</p>
-                          <p className="mt-0.5 text-xs text-gray-500">{trabajo.recursoTipo}{trabajo.recursoId ? ` #${trabajo.recursoId}` : ''} · {trabajo.estado}</p>
+                          <p className="mt-0.5 text-xs text-gray-500">{recursoLabel(trabajo.recursoTipo)} · {estadoLabel(trabajo.estado)}</p>
                         </div>
                         <div className="flex items-center gap-2"><EvidenceAction organizacionId={orgIdNum} origen="ACTIVIDADES" tipoRecurso="ACTIVIDAD" recursoId={trabajo.id} titulo={`Evidencia de ${trabajo.titulo}`} compacto /><span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">{trabajo.prioridad}</span></div>
                       </div>

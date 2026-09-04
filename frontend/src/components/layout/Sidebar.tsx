@@ -104,10 +104,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   };
 
   const memberSubitems = [
-    { label: 'Invitar miembros', to: `/org/${currentOrgId}/miembros/invitar` },
-    { label: 'Administración de personal', to: `/org/${currentOrgId}/miembros/administracion` },
-    { label: 'Asignar trabajo', to: `/org/${currentOrgId}/miembros/asignar-trabajo` },
-    { label: 'Miembros y trabajos', to: `/org/${currentOrgId}/miembros/trabajos` },
+    { label: 'Resumen del equipo', to: `/org/${currentOrgId}/miembros` },
+    { label: '1. Invitar persona', to: `/org/${currentOrgId}/miembros/invitar` },
+    { label: '2. Configurar accesos', to: `/org/${currentOrgId}/miembros/administracion` },
+    { label: '3. Asignar trabajo', to: `/org/${currentOrgId}/miembros/asignar-trabajo` },
+    { label: 'Ver seguimiento', to: `/org/${currentOrgId}/miembros/trabajos` },
   ];
 
   return (

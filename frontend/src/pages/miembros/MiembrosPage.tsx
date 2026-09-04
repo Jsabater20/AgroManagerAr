@@ -68,7 +68,6 @@ export default function MiembrosPage() {
   const queryClient = useQueryClient();
 
   const usuario = useAuthStore((s) => s.usuario);
-  const currentOrg = useAuthStore((s) => s.currentOrg());
   const { isOwner, isMember, isSuperAdmin, isLoading } = usePermissions();
 
   const canManageMembers = Boolean(isSuperAdmin || isOwner);
@@ -288,13 +287,31 @@ export default function MiembrosPage() {
     );
   }
 
+  if (!canManageMembers) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 p-4 md:p-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Trabajos del equipo</h1>
+        <p className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+          Solo la persona propietaria o administradora puede asignar trabajos. Tus actividades aparecen en la sección Tareas.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/org/' + orgIdNum + '/tareas')}
+          className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+        >
+          Ver mis tareas
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Asignar trabajo</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Asignar un trabajo</h1>
           <p className="text-sm text-gray-500">
-            Organización: {currentOrg?.nombre ?? 'Sin organización'}
+            Paso 3: elegí la persona responsable, indicá qué tiene que hacer y definí cuándo debe realizarlo.
           </p>
         </div>
         {usoMiembros?.plan === 'FREE' && (
@@ -309,6 +326,12 @@ export default function MiembrosPage() {
           </div>
         )}
       </header>
+
+      <section className="grid gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950 md:grid-cols-3 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+        <div><strong>Obligatorio:</strong> responsable y tarea a realizar.</div>
+        <div><strong>Recurso:</strong> elegí un campo, lote o maquinaria solo si el trabajo está relacionado.</div>
+        <div><strong>Fechas y horarios:</strong> son opcionales, pero ayudan a planificar el trabajo.</div>
+      </section>
 
       {actividadesAlLimite && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -339,7 +362,7 @@ export default function MiembrosPage() {
         <div className="p-4 md:p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Miembro</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Persona responsable <span className="text-red-500">*</span></span>
               <select
                 value={activityForm.miembroId}
                 onChange={(e) =>
@@ -379,19 +402,19 @@ export default function MiembrosPage() {
             </label>
 
             <label className="block text-sm md:col-span-2">
-              <span className="mb-1.5 block font-medium text-gray-700">Título del trabajo</span>
+              <span className="mb-1.5 block font-medium text-gray-700">¿Qué tiene que hacer? <span className="text-red-500">*</span></span>
               <input
                 value={activityForm.titulo}
                 onChange={(e) =>
                   setActivityForm((prev) => ({ ...prev, titulo: e.target.value }))
                 }
                 className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Ej: Revisar alambrado del campo norte"
+                placeholder="Ej: Revisar el alambrado del campo norte"
               />
             </label>
 
             <label className="block text-sm md:col-span-2">
-              <span className="mb-1.5 block font-medium text-gray-700">Descripción</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Indicaciones para la persona <span className="text-gray-400">(opcional)</span></span>
               <textarea
                 rows={3}
                 value={activityForm.descripcion}
@@ -399,12 +422,12 @@ export default function MiembrosPage() {
                   setActivityForm((prev) => ({ ...prev, descripcion: e.target.value }))
                 }
                 className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Detalle de la actividad..."
+                placeholder="Ej: Revisar el sector oeste y avisar si hace falta reparar algo."
               />
             </label>
 
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Tipo de recurso</span>
+              <span className="mb-1.5 block font-medium text-gray-700">¿Dónde o con qué se realiza? <span className="text-red-500">*</span></span>
               <select
                 value={activityForm.recursoTipo}
                 onChange={(e) => {
@@ -417,7 +440,7 @@ export default function MiembrosPage() {
                 }}
                 className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
               >
-                <option value="">Seleccionar tipo</option>
+                <option value="">Seleccionar recurso relacionado</option>
                 {recursoTipoOptions.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
@@ -427,7 +450,7 @@ export default function MiembrosPage() {
             </label>
 
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Recurso real</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Recurso específico</span>
               {activityForm.recursoTipo && activityForm.recursoTipo !== 'GENERAL' ? (
                 recursosQuery.isLoading ? (
                   <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
@@ -462,14 +485,14 @@ export default function MiembrosPage() {
               ) : (
                 <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
                   {activityForm.recursoTipo === 'GENERAL'
-                    ? 'La actividad general no requiere recurso.'
-                    : 'Selecciona un tipo de recurso para cargar los existentes.'}
+                    ? 'Elegiste un trabajo general: no hace falta vincularlo a un recurso.'
+                    : 'Elegí primero dónde se realiza el trabajo para ver los recursos disponibles.'}
                 </div>
               )}
             </label>
 
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Fecha inicio</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Fecha de inicio <span className="text-gray-400">(opcional)</span></span>
               <input
                 type="date"
                 value={activityForm.fechaInicio}
@@ -481,7 +504,7 @@ export default function MiembrosPage() {
             </label>
 
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Fecha finalización</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Fecha estimada de finalización <span className="text-gray-400">(opcional)</span></span>
               <input
                 type="date"
                 value={activityForm.fechaFin}
@@ -493,7 +516,7 @@ export default function MiembrosPage() {
             </label>
 
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Horario inicio</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Horario de inicio <span className="text-gray-400">(opcional)</span></span>
               <input
                 type="time"
                 value={activityForm.horarioInicio}
@@ -505,7 +528,7 @@ export default function MiembrosPage() {
             </label>
 
             <label className="block text-sm">
-              <span className="mb-1.5 block font-medium text-gray-700">Horario fin</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Horario de finalización <span className="text-gray-400">(opcional)</span></span>
               <input
                 type="time"
                 value={activityForm.horarioFin}
@@ -517,7 +540,7 @@ export default function MiembrosPage() {
             </label>
 
             <label className="block text-sm md:col-span-2">
-              <span className="mb-1.5 block font-medium text-gray-700">Observación inicial</span>
+              <span className="mb-1.5 block font-medium text-gray-700">Nota para la persona <span className="text-gray-400">(opcional)</span></span>
               <textarea
                 rows={2}
                 value={activityForm.observacionInicial}
@@ -528,7 +551,7 @@ export default function MiembrosPage() {
                   }))
                 }
                 className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Observación opcional..."
+                placeholder="Ej: Avisame cuando termines o si encontrás una dificultad."
               />
             </label>
           </div>
@@ -579,7 +602,7 @@ export default function MiembrosPage() {
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  Asignar trabajo
+                  Confirmar y asignar trabajo
                 </>
               )}
             </button>
