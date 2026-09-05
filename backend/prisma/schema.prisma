@@ -695,6 +695,7 @@ model ArchivoEvidencia {
   id          String   @id @default(uuid())
   evidenciaId String
   storageKey  String   @unique
+  urlExterna  String?
   nombre      String
   mimeType    String
   tamanoBytes Int

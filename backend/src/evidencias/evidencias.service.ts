@@ -181,9 +181,11 @@ export class EvidenciasService {
         archivos: await Promise.all(
           evidencia.archivos.map(async (archivo) => ({
             ...archivo,
-            url: await this.r2StorageService.crearUrlDeLectura(
-              archivo.storageKey,
-            ),
+            url:
+              archivo.urlExterna ??
+              (await this.r2StorageService.crearUrlDeLectura(
+                archivo.storageKey,
+              )),
           })),
         ),
       })),
@@ -209,7 +211,9 @@ export class EvidenciasService {
     }
 
     return {
-      url: await this.r2StorageService.crearUrlDeLectura(archivo.storageKey),
+      url:
+        archivo.urlExterna ??
+        (await this.r2StorageService.crearUrlDeLectura(archivo.storageKey)),
       expiresIn: 900,
     };
   }
@@ -227,7 +231,9 @@ export class EvidenciasService {
     );
 
     await this.r2StorageService.eliminarArchivos(
-      evidencia.archivos.map((archivo) => archivo.storageKey),
+      evidencia.archivos
+        .filter((archivo) => !archivo.urlExterna)
+        .map((archivo) => archivo.storageKey),
     );
 
     await this.prisma.evidencia.delete({ where: { id: evidenciaId } });
