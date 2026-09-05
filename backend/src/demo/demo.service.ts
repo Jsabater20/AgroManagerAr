@@ -1,11 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import {
-  EstadoEvidencia,
-  OrigenEvidencia,
-  Prisma,
-  TipoRecursoEvidencia,
-} from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { DEMO_EMAIL, DEMO_EMPRESA_EMAIL } from '../auth/system-accounts';
@@ -80,7 +75,7 @@ export class DemoService implements OnModuleInit {
         tareaCount,
         maquinariaCount,
         finanzaCount,
-        evidenciaCount,
+        miembroCount,
       ] =
         await Promise.all([
           this.prisma.campo.count({ where: { usuarioId: demo.id } }),
@@ -89,10 +84,11 @@ export class DemoService implements OnModuleInit {
           this.prisma.tareaRural.count({ where: { usuarioId: demo.id } }),
           this.prisma.maquinaria.count({ where: { usuarioId: demo.id } }),
           this.prisma.movimientoFinanciero.count({ where: { usuarioId: demo.id } }),
-          this.prisma.evidencia.count({
+          this.prisma.usuarioOrganizacion.count({
             where: {
               organizacionId: demoOrg.id,
-              estado: EstadoEvidencia.CONFIRMADA,
+              usuarioId: { not: demo.id },
+              activo: true,
             },
           }),
         ]);
@@ -106,7 +102,7 @@ export class DemoService implements OnModuleInit {
         tareaCount < 14 ||
         maquinariaCount < 8 ||
         finanzaCount < 28 ||
-        evidenciaCount < 3 ||
+        miembroCount < 3 ||
         campoSinGps
       ) {
         this.logger.log('Demo incompleta — ejecutando reset...');
@@ -163,6 +159,21 @@ export class DemoService implements OnModuleInit {
       select: { id: true },
     });
     const campoIds = campos.map((c) => c.id);
+
+    await this.prisma.observacionActividad.deleteMany({
+      where: { actividad: { organizacionId: demoOrgId } },
+    });
+    await this.prisma.actividadMiembro.deleteMany({
+      where: { organizacionId: demoOrgId },
+    });
+    await this.prisma.asignacionRecurso.deleteMany({
+      where: { organizacionId: demoOrgId },
+    });
+    if (campoIds.length) {
+      await this.prisma.asignacionCampo.deleteMany({
+        where: { campoId: { in: campoIds } },
+      });
+    }
 
     if (campoIds.length) {
       const lotes = await this.prisma.lote.findMany({
@@ -241,6 +252,191 @@ export class DemoService implements OnModuleInit {
 
     // ── Re-crear datos demo ──────────────────────────────────────────────────
     await this.seedDemoData(uid, demoOrgId);
+    await this.prepararMiembrosDemo(uid, demoOrgId);
+  }
+
+  private async prepararMiembrosDemo(ownerId: number, organizacionId: number) {
+    const [campo, maquinaria] = await Promise.all([
+      this.prisma.campo.findFirst({
+        where: { organizacionId },
+        orderBy: { id: 'asc' },
+        select: { id: true, nombre: true },
+      }),
+      this.prisma.maquinaria.findFirst({
+        where: { organizacionId, nombre: 'Tractor John Deere 5075E' },
+        select: { id: true, nombre: true },
+      }),
+    ]);
+
+    if (!campo || !maquinaria) {
+      this.logger.warn('No se pudo preparar el equipo Demo: faltan recursos asignables.');
+      return;
+    }
+
+    const integrantes = [
+      {
+        clave: 'campo',
+        email: 'mateo.campo.demo@agromanagerar.com',
+        nombre: 'Mateo',
+        apellido: 'González',
+        roles: JSON.stringify(['OPERARIO']),
+        modulos: ['Dashboard', 'Campos', 'Tareas', 'Clima'],
+      },
+      {
+        clave: 'maquinaria',
+        email: 'camila.maquinaria.demo@agromanagerar.com',
+        nombre: 'Camila',
+        apellido: 'Pérez',
+        roles: JSON.stringify(['OPERARIO']),
+        modulos: ['Dashboard', 'Maquinarias', 'Tareas'],
+      },
+      {
+        clave: 'finanzas',
+        email: 'lucas.finanzas.demo@agromanagerar.com',
+        nombre: 'Lucas',
+        apellido: 'Martínez',
+        roles: JSON.stringify(['CONTADOR']),
+        modulos: ['Dashboard', 'Finanzas'],
+      },
+    ] as const;
+
+    const password = await bcrypt.hash('EquipoDemo2026', 10);
+    const miembros = new Map<string, number>();
+
+    for (const integrante of integrantes) {
+      const usuario = await this.prisma.usuario.upsert({
+        where: { email: integrante.email },
+        update: {
+          nombre: integrante.nombre,
+          apellido: integrante.apellido,
+          password,
+          rol: 'OPERADOR',
+          plan: 'FREE',
+          planExpira: null,
+          emailVerificado: true,
+        },
+        create: {
+          email: integrante.email,
+          nombre: integrante.nombre,
+          apellido: integrante.apellido,
+          password,
+          rol: 'OPERADOR',
+          plan: 'FREE',
+          emailVerificado: true,
+        },
+      });
+
+      const miembro = await this.prisma.usuarioOrganizacion.upsert({
+        where: {
+          usuarioId_organizacionId: { usuarioId: usuario.id, organizacionId },
+        },
+        update: { roles: integrante.roles, activo: true },
+        create: {
+          usuarioId: usuario.id,
+          organizacionId,
+          roles: integrante.roles,
+          activo: true,
+        },
+      });
+
+      await this.prisma.$transaction([
+        this.prisma.visibilidadModulo.deleteMany({
+          where: { usuarioOrganizacionId: miembro.id },
+        }),
+        this.prisma.asignacionCampo.deleteMany({
+          where: { usuarioOrganizacionId: miembro.id },
+        }),
+        this.prisma.asignacionRecurso.deleteMany({
+          where: { usuarioOrganizacionId: miembro.id },
+        }),
+      ]);
+
+      await this.prisma.visibilidadModulo.createMany({
+        data: integrante.modulos.map((moduloNombre) => ({
+          usuarioOrganizacionId: miembro.id,
+          moduloNombre,
+          activo: true,
+        })),
+      });
+
+      if (integrante.clave === 'campo') {
+        await this.prisma.asignacionCampo.create({
+          data: { usuarioOrganizacionId: miembro.id, campoId: campo.id },
+        });
+      }
+
+      if (integrante.clave === 'maquinaria') {
+        await this.prisma.asignacionRecurso.create({
+          data: {
+            usuarioOrganizacionId: miembro.id,
+            organizacionId,
+            recursoTipo: 'MAQUINARIA',
+            recursoId: maquinaria.id,
+            permisosTipo: JSON.stringify(['VER', 'EDITAR']),
+          },
+        });
+      }
+
+      miembros.set(integrante.clave, miembro.id);
+    }
+
+    const fecha = (dias: number) => {
+      const valor = new Date();
+      valor.setDate(valor.getDate() + dias);
+      return valor;
+    };
+
+    await this.prisma.actividadMiembro.createMany({
+      data: [
+        {
+          organizacionId,
+          usuarioOrganizacionId: miembros.get('campo')!,
+          creadoPorId: ownerId,
+          titulo: 'Recorrida de ' + campo.nombre,
+          descripcion:
+            'Revisar alambrados, aguadas y el estado general del establecimiento.',
+          recursoTipo: 'CAMPO',
+          recursoId: campo.id,
+          contexto: 'Campo: ' + campo.nombre,
+          fechaInicio: fecha(0),
+          fechaEstimadaFin: fecha(2),
+          estado: 'PENDIENTE',
+          prioridad: 'MEDIA',
+          activo: true,
+        },
+        {
+          organizacionId,
+          usuarioOrganizacionId: miembros.get('maquinaria')!,
+          creadoPorId: ownerId,
+          titulo: 'Revisión de ' + maquinaria.nombre,
+          descripcion:
+            'Controlar horas de uso, niveles y próximos mantenimientos del equipo.',
+          recursoTipo: 'MAQUINARIA',
+          recursoId: maquinaria.id,
+          contexto: 'Maquinaria: ' + maquinaria.nombre,
+          fechaInicio: fecha(0),
+          fechaEstimadaFin: fecha(1),
+          estado: 'PENDIENTE',
+          prioridad: 'ALTA',
+          activo: true,
+        },
+        {
+          organizacionId,
+          usuarioOrganizacionId: miembros.get('finanzas')!,
+          creadoPorId: ownerId,
+          titulo: 'Control de movimientos financieros',
+          descripcion:
+            'Revisar ingresos y egresos recientes, y dejar actualizada la información semanal.',
+          recursoTipo: 'GENERAL',
+          contexto: 'Finanzas de la organización',
+          fechaInicio: fecha(0),
+          fechaEstimadaFin: fecha(3),
+          estado: 'PENDIENTE',
+          prioridad: 'MEDIA',
+          activo: true,
+        },
+      ],
+    });
   }
 
   async seedDemoData(uid: number, organizacionId: number) {
@@ -847,58 +1043,6 @@ export class DemoService implements OnModuleInit {
       ),
     );
 
-    await Promise.all([
-      this.prisma.evidencia.create({
-        data: {
-          organizacionId,
-          usuarioId: uid,
-          origen: OrigenEvidencia.GANADERIA,
-          tipoRecurso: TipoRecursoEvidencia.ANIMAL,
-          recursoId: animales[0].id,
-          comentario:
-            'Control visual de condición corporal. Se observa buen estado general.',
-          fechaHora: new Date('2026-05-12T10:30:00'),
-          estado: EstadoEvidencia.CONFIRMADA,
-          archivos: {
-            create: {
-              storageKey: 'demo/ganaderia/pantanera-01-control.jpg',
-              urlExterna:
-                'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1600&q=85',
-              nombre: 'control-pantanera-01.jpg',
-              mimeType: 'image/jpeg',
-              tamanoBytes: 0,
-              ancho: 1600,
-              alto: 1067,
-            },
-          },
-        },
-      }),
-      this.prisma.evidencia.create({
-        data: {
-          organizacionId,
-          usuarioId: uid,
-          origen: OrigenEvidencia.GANADERIA,
-          tipoRecurso: TipoRecursoEvidencia.ANIMAL,
-          recursoId: animales[1].id,
-          comentario: 'Registro de seguimiento sanitario previo al servicio.',
-          fechaHora: new Date('2026-05-18T16:15:00'),
-          estado: EstadoEvidencia.CONFIRMADA,
-          archivos: {
-            create: {
-              storageKey: 'demo/ganaderia/pantanera-02-seguimiento.jpg',
-              urlExterna:
-                'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=1600&q=85',
-              nombre: 'seguimiento-pantanera-02.jpg',
-              mimeType: 'image/jpeg',
-              tamanoBytes: 0,
-              ancho: 1600,
-              alto: 1067,
-            },
-          },
-        },
-      }),
-    ]);
-
     for (const vaca of animales.slice(0, 5)) {
       const base = vaca.peso ?? 480;
       await this.prisma.registroPeso.createMany({
@@ -1266,34 +1410,6 @@ export class DemoService implements OnModuleInit {
     }
 
     // Finanzas (ingresos y egresos)
-    if (tractorId) {
-      await this.prisma.evidencia.create({
-        data: {
-          organizacionId,
-          usuarioId: uid,
-          origen: OrigenEvidencia.MAQUINARIAS,
-          tipoRecurso: TipoRecursoEvidencia.MAQUINARIA,
-          recursoId: tractorId,
-          comentario:
-            'Registro visual posterior al service preventivo del tractor.',
-          fechaHora: new Date('2026-05-18T14:00:00'),
-          estado: EstadoEvidencia.CONFIRMADA,
-          archivos: {
-            create: {
-              storageKey: 'demo/maquinarias/tractor-john-deere-service.jpg',
-              urlExterna:
-                'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1600&q=85',
-              nombre: 'tractor-john-deere-service.jpg',
-              mimeType: 'image/jpeg',
-              tamanoBytes: 0,
-              ancho: 1600,
-              alto: 1067,
-            },
-          },
-        },
-      });
-    }
-
     await this.prisma.movimientoFinanciero.createMany({
       data: ([
         {
