@@ -1,6 +1,6 @@
 import {
   Sprout, Map, Wheat, FlaskConical, ArrowRight, PawPrint, ClipboardList,
-  AlertTriangle, TrendingUp, TrendingDown, DollarSign, Activity, Cloud,
+  AlertTriangle, TrendingUp, TrendingDown, DollarSign, Activity, Cloud, LifeBuoy,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +19,7 @@ import { finanzasApi } from '../../api/finanzas.api';
 import { organizacionesApi } from '../../api/organizaciones.api';
 import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import AiInsights from '../../components/ui/AiInsights';
+import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -64,7 +65,16 @@ export default function DashboardPage() {
   if (!puedeVerDashboard) {
     return (
       <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-600">
-        El propietario todavía no te habilitó el acceso al dashboard.
+        <p>El propietario todavía no te habilitó el acceso al dashboard.</p>
+        <a
+          href={WHATSAPP_BUSINESS_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#1fbd5a]"
+        >
+          <WhatsAppIcon size={18} />
+          Consultar por WhatsApp
+        </a>
       </div>
     );
   }
@@ -363,6 +373,29 @@ export default function DashboardPage() {
           value={siembras?.reduce((a: number, s: any) => a + s.cosechas.reduce((b: number, c: any) => b + c.totalKg, 0), 0) ?? 0}
           unit="kg" to={`/org/${orgId}/reportes`} big />
       </div>
+
+      <section className="flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/20 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+            <LifeBuoy size={20} />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-white">¿Necesitás ayuda?</h2>
+            <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-300">
+              Escribinos para resolver dudas sobre tu cuenta, equipo o plan.
+            </p>
+          </div>
+        </div>
+        <a
+          href={WHATSAPP_BUSINESS_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1fbd5a]"
+        >
+          <WhatsAppIcon size={18} />
+          Hablar por WhatsApp
+        </a>
+      </section>
     </div>
   );
 }
