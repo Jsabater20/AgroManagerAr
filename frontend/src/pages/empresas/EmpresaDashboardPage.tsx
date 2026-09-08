@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Building2,
   CircleDollarSign,
@@ -7,19 +8,25 @@ import {
   Tractor,
   Users,
   BarChart3,
+  ChartNoAxesCombined,
   Download,
   ShieldCheck,
   CalendarDays,
   MessageCircle,
+  Plus,
+  Save,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { empresasApi } from '../../api/empresas.api';
+import type { ActividadProductiva } from '../../api/organizaciones.api';
 import { WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 
 export default function EmpresaDashboardPage() {
   const { empresaId } = useParams<{ empresaId: string }>();
   const id = Number(empresaId);
+  const queryClient = useQueryClient();
+  const [mostrarAltaEstablecimiento, setMostrarAltaEstablecimiento] = useState(false);
   const dashboardQuery = useQuery({
     queryKey: ['empresa-dashboard', id],
     queryFn: () => empresasApi.obtenerDashboard(id),
@@ -92,6 +99,16 @@ export default function EmpresaDashboardPage() {
                 : 'Vigencia sin vencimiento definido'}
             </span>
           </div>
+          {dashboard.empresa.puedeCrearEstablecimientos && cupoDisponible > 0 && (
+            <button
+              type="button"
+              onClick={() => setMostrarAltaEstablecimiento(true)}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800"
+            >
+              <Plus size={16} />
+              Crear establecimiento
+            </button>
+          )}
         </div>
 
         <div className="rounded-2xl bg-emerald-950 p-5 text-white">
@@ -132,6 +149,7 @@ export default function EmpresaDashboardPage() {
           <AccessCard to={`/empresas/${id}/ganaderia`} icon={PawPrint} title="Ganadería" detail="Stock consolidado" />
           <AccessCard to={`/empresas/${id}/finanzas`} icon={CircleDollarSign} title="Finanzas" detail="Ingresos y egresos" />
           <AccessCard to={`/empresas/${id}/rentabilidad`} icon={BarChart3} title="Rentabilidad" detail="Comparativas y campañas" />
+          <AccessCard to={`/empresas/${id}/produccion`} icon={ChartNoAxesCombined} title="Producción" detail="Resultados por establecimiento" />
           <AccessCard to={`/empresas/${id}/auditoria`} icon={ShieldCheck} title="Auditoría" detail="Trazabilidad del equipo" />
           <AccessCard to={`/empresas/${id}/exportaciones`} icon={Download} title="Exportaciones" detail="Informes Excel y PDF" />
         </div>
@@ -161,7 +179,12 @@ export default function EmpresaDashboardPage() {
               <Link key={organizacion.id} to={`/org/${organizacion.id}/dashboard`} className="flex items-center justify-between gap-4 py-4 first:pt-0 hover:text-emerald-700">
                 <div>
                   <p className="font-semibold text-slate-900">{organizacion.nombre}</p>
-                  <p className="mt-1 text-sm text-slate-500">{formatNumber(organizacion.hectareas)} ha · Plan Pro</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {formatNumber(organizacion.hectareas)} ha ·{' '}
+                    {organizacion.actividadPrincipal
+                      ? etiquetaActividad(organizacion.actividadPrincipal)
+                      : 'Perfil productivo sin definir'}
+                  </p>
                 </div>
                 <span className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">Abrir</span>
               </Link>
@@ -170,6 +193,218 @@ export default function EmpresaDashboardPage() {
           </div>
         </div>
       </section>
+
+      {mostrarAltaEstablecimiento && (
+        <CrearEstablecimientoModal
+          empresaId={id}
+          cupoDisponible={cupoDisponible}
+          onClose={() => setMostrarAltaEstablecimiento(false)}
+          onCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ['empresa-dashboard', id] });
+            queryClient.invalidateQueries({ queryKey: ['empresa-organizaciones', id] });
+            setMostrarAltaEstablecimiento(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+const ACTIVIDADES_PRODUCTIVAS: Array<{
+  value: ActividadProductiva;
+  label: string;
+  descripcion: string;
+}> = [
+  { value: 'AGRICOLA', label: 'Agricultura', descripcion: 'Cultivos, siembras y cosechas.' },
+  { value: 'GANADERIA', label: 'Ganadería', descripcion: 'Rodeo, sanidad y reproducción.' },
+  { value: 'TAMBO', label: 'Tambo / Lácteos', descripcion: 'Producción de leche y ordeñe.' },
+  { value: 'AVICOLA', label: 'Avícola', descripcion: 'Aves, postura o producción.' },
+  { value: 'FRUTIHORTICOLA', label: 'Frutihorticultura', descripcion: 'Frutas, hortalizas e invernaderos.' },
+  { value: 'YERBA', label: 'Yerba mate', descripcion: 'Lotes y producción yerbatera.' },
+];
+
+function etiquetaActividad(actividad: ActividadProductiva) {
+  return (
+    ACTIVIDADES_PRODUCTIVAS.find((item) => item.value === actividad)?.label ??
+    actividad
+  );
+}
+
+function CrearEstablecimientoModal({
+  empresaId,
+  cupoDisponible,
+  onClose,
+  onCreated,
+}: {
+  empresaId: number;
+  cupoDisponible: number;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [actividades, setActividades] = useState<ActividadProductiva[]>([]);
+  const [actividadPrincipal, setActividadPrincipal] = useState<ActividadProductiva | ''>('');
+
+  const crearMutation = useMutation({
+    mutationFn: () =>
+      empresasApi.crearEstablecimiento(empresaId, {
+        nombre: nombre.trim(),
+        email: email.trim().toLowerCase(),
+        actividadPrincipal: actividadPrincipal as ActividadProductiva,
+        actividades,
+      }),
+    onSuccess: onCreated,
+  });
+
+  const alternarActividad = (actividad: ActividadProductiva) => {
+    const siguiente = actividades.includes(actividad)
+      ? actividades.filter((item) => item !== actividad)
+      : [...actividades, actividad];
+    setActividades(siguiente);
+    if (!siguiente.includes(actividadPrincipal as ActividadProductiva)) {
+      setActividadPrincipal(siguiente[0] ?? '');
+    }
+  };
+
+  const puedeCrear =
+    nombre.trim().length >= 3 &&
+    email.trim().length > 0 &&
+    actividadPrincipal !== '' &&
+    actividades.includes(actividadPrincipal);
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (puedeCrear) crearMutation.mutate();
+        }}
+        className="mx-auto my-6 w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+              Nuevo establecimiento
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900">Configurá cómo produce</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Usarás 1 de los {cupoDisponible} establecimientos que todavía tenés disponibles.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100"
+          >
+            Cancelar
+          </button>
+        </div>
+
+        <section className="mt-7">
+          <p className="text-sm font-bold text-slate-900">1. Datos del establecimiento</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-medium text-slate-700">
+              Nombre
+              <input
+                required
+                minLength={3}
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                placeholder="Ej. Estancia Pepita"
+                className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              Email de contacto
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="establecimiento@empresa.com"
+                className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="mt-7 border-t border-slate-100 pt-6">
+          <p className="text-sm font-bold text-slate-900">2. Actividades productivas</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Marcá todas las actividades que se realizan en este establecimiento.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {ACTIVIDADES_PRODUCTIVAS.map((actividad) => {
+              const seleccionada = actividades.includes(actividad.value);
+              return (
+                <label
+                  key={actividad.value}
+                  className={
+                    'cursor-pointer rounded-xl border p-3 transition ' +
+                    (seleccionada
+                      ? 'border-emerald-400 bg-emerald-50'
+                      : 'border-slate-200 hover:border-emerald-200')
+                  }
+                >
+                  <input
+                    type="checkbox"
+                    checked={seleccionada}
+                    onChange={() => alternarActividad(actividad.value)}
+                    className="sr-only"
+                  />
+                  <p className="font-semibold text-slate-900">{actividad.label}</p>
+                  <p className="mt-1 text-xs text-slate-500">{actividad.descripcion}</p>
+                </label>
+              );
+            })}
+          </div>
+
+          <label className="mt-5 block text-sm font-medium text-slate-700">
+            Actividad principal
+            <select
+              required
+              value={actividadPrincipal}
+              onChange={(event) => setActividadPrincipal(event.target.value as ActividadProductiva)}
+              disabled={!actividades.length}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+            >
+              <option value="">Seleccioná una actividad</option>
+              {ACTIVIDADES_PRODUCTIVAS.filter((actividad) => actividades.includes(actividad.value)).map(
+                (actividad) => (
+                  <option key={actividad.value} value={actividad.value}>
+                    {actividad.label}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        </section>
+
+        {crearMutation.isError && (
+          <p className="mt-5 rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            No se pudo crear el establecimiento. Revisá los datos e intentá nuevamente.
+          </p>
+        )}
+
+        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={!puedeCrear || crearMutation.isPending}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save size={16} />
+            {crearMutation.isPending ? 'Creando...' : 'Crear establecimiento'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

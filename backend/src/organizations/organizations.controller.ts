@@ -18,6 +18,7 @@ import { InvitarMiembroDto } from './dto/invitar-miembro.dto';
 import { IsOwnerGuard } from './guards/is-owner.guard';
 import { OrganizationGuard } from './organization.guard';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
+import { ActualizarActividadProductivaDto } from './dto/actualizar-actividad-productiva.dto';
 
 interface AuthRequest extends Request {
   user?: { id: number; email: string };
@@ -33,6 +34,26 @@ export class OrganizationsController {
   @Get()
   async obtenerOrganizaciones(@Request() req: AuthRequest) {
     return await this.organizacionesService.obtenerOrganizaciones(req.user?.id);
+  }
+
+  @Get(':orgId/actividad-productiva')
+  @UseGuards(OrganizationGuard)
+  async obtenerActividadProductiva(@Param('orgId') orgId: string) {
+    return this.organizacionesService.obtenerActividadProductiva(parseInt(orgId));
+  }
+
+  @Patch(':orgId/actividad-productiva')
+  @UseGuards(IsOwnerGuard)
+  async actualizarActividadProductiva(
+    @Param('orgId') orgId: string,
+    @Body() dto: ActualizarActividadProductivaDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.organizacionesService.actualizarActividadProductiva(
+      parseInt(orgId),
+      req.user?.id || 0,
+      dto,
+    );
   }
 
   // ─── MIEMBROS ─────────────────────────────────────────────────────────────

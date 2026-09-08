@@ -1,10 +1,33 @@
 import { api } from './client';
 import type { MiembroOrganizacion, InvitacionOrganizacion } from './types';
 
+export type ActividadProductiva =
+  | 'AGRICOLA'
+  | 'GANADERIA'
+  | 'TAMBO'
+  | 'AVICOLA'
+  | 'FRUTIHORTICOLA'
+  | 'YERBA';
+
 export const organizacionesApi = {
   // Obtener todas las organizaciones del usuario
   obtenerTodas: () =>
     api.get('/organizaciones').then((r) => r.data),
+
+  obtenerActividadProductiva: (orgId: number) =>
+    api.get<{
+      actividadPrincipal: ActividadProductiva | null;
+      actividades: ActividadProductiva[];
+    }>(`/organizaciones/${orgId}/actividad-productiva`).then((r) => r.data),
+
+  actualizarActividadProductiva: (
+    orgId: number,
+    dto: {
+      actividadPrincipal: ActividadProductiva;
+      actividades: ActividadProductiva[];
+    },
+  ) =>
+    api.patch(`/organizaciones/${orgId}/actividad-productiva`, dto).then((r) => r.data),
 
   // Obtener miembros de una organización
   obtenerMiembros: (orgId: number) =>

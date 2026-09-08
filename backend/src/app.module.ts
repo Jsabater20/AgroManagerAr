@@ -32,6 +32,10 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EvidenciasModule } from './evidencias/evidencias.module';
 import { EmpresasModule } from './empresas/empresas.module';
 import { ReferidosModule } from './referidos/referidos.module';
+import { FrutihorticulturaModule } from './frutihorticultura/frutihorticultura.module';
+import { TamboModule } from './tambo/tambo.module';
+import { AvicolaModule } from './avicola/avicola.module';
+import { YerbaModule } from './yerba/yerba.module';
 
 @Module({
   imports: [
@@ -71,6 +75,10 @@ import { ReferidosModule } from './referidos/referidos.module';
     EvidenciasModule,
     EmpresasModule,
     ReferidosModule,
+    FrutihorticulturaModule,
+    TamboModule,
+    AvicolaModule,
+    YerbaModule,
   ],
   controllers: [AppController],
   providers: [

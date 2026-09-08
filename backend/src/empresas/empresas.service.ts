@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  ActividadProductiva,
   Especie,
   EstadoActividad,
   EstadoEmpresa,
@@ -276,6 +277,74 @@ export class EmpresasService {
     });
   }
 
+  async crearEstablecimiento(
+    usuarioId: number,
+    empresaId: number,
+    dto: CrearEstablecimientoEmpresaDto,
+  ) {
+    const acceso = await this.empresaAccessService.obtenerAcceso(usuarioId, empresaId);
+    if (!acceso.esPropietario) {
+      throw new ForbiddenException(
+        'Solo el propietario de la empresa puede crear establecimientos',
+      );
+    }
+
+    const nombre = dto.nombre.trim();
+    const email = dto.email.trim().toLowerCase();
+    const actividades = this.validarPerfilProductivo(dto);
+    const existeEmail = await this.prisma.organizacion.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (existeEmail) {
+      throw new BadRequestException('Ya existe un establecimiento con ese email');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const empresa = await tx.empresa.findUnique({
+        where: { id: empresaId },
+        include: { organizaciones: { select: { id: true } } },
+      });
+      if (!empresa) throw new NotFoundException('Empresa no encontrada');
+      this.validarEmpresaActivaParaEstablecimientos(empresa);
+      this.validarCupoEstablecimientos(empresa);
+
+      const organizacion = await tx.organizacion.create({
+        data: {
+          nombre,
+          email,
+          plan: 'PRO',
+          propietarioId: usuarioId,
+          actividadPrincipal: dto.actividadPrincipal,
+          actividadesProductivas: {
+            create: actividades.map((tipoActividad) => ({ tipoActividad })),
+          },
+        },
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          plan: true,
+          actividadPrincipal: true,
+          actividadesProductivas: {
+            where: { activo: true },
+            select: { tipoActividad: true },
+          },
+        },
+      });
+      await tx.empresaOrganizacion.create({
+        data: { empresaId: empresa.id, organizacionId: organizacion.id },
+      });
+
+      return {
+        ...organizacion,
+        actividades: organizacion.actividadesProductivas.map(
+          (actividad) => actividad.tipoActividad,
+        ),
+      };
+    });
+  }
+
   async desvincularOrganizacionAdmin(
     superAdminId: number,
     empresaId: number,
@@ -364,6 +433,11 @@ export class EmpresasService {
         nombre: true,
         plan: true,
         propietarioId: true,
+        actividadPrincipal: true,
+        actividadesProductivas: {
+          where: { activo: true },
+          select: { tipoActividad: true },
+        },
         campos: { select: { hectareas: true } },
       },
       orderBy: { nombre: 'asc' },
@@ -374,6 +448,10 @@ export class EmpresasService {
       nombre: organizacion.nombre,
       plan: organizacion.plan,
       propietarioId: organizacion.propietarioId,
+      actividadPrincipal: organizacion.actividadPrincipal,
+      actividades: organizacion.actividadesProductivas.map(
+        (actividad) => actividad.tipoActividad,
+      ),
       hectareas: organizacion.campos.reduce((total, campo) => total + campo.hectareas, 0),
     }));
   }
@@ -424,6 +502,7 @@ export class EmpresasService {
         estadoComercial: acceso.empresa.estadoComercial,
         fechaInicioComercial: acceso.empresa.fechaInicioComercial,
         fechaVencimiento: acceso.empresa.fechaVencimiento,
+        puedeCrearEstablecimientos: acceso.esPropietario,
       },
       resumen: {
         superficieHa: campos._sum.hectareas ?? 0,
@@ -439,6 +518,104 @@ export class EmpresasService {
         completadas: actividadesPorEstado.COMPLETADA ?? 0,
         demoradas,
       },
+    };
+  }
+
+  async obtenerProduccionConsolidada(usuarioId: number, empresaId: number) {
+    const acceso = await this.empresaAccessService.requerirConsultaOperativa(usuarioId, empresaId);
+    const organizaciones = await this.prisma.organizacion.findMany({
+      where: { id: { in: acceso.organizacionesIds } },
+      select: {
+        id: true,
+        nombre: true,
+        actividadPrincipal: true,
+        actividadesProductivas: {
+          where: { activo: true },
+          select: { tipoActividad: true },
+        },
+      },
+      orderBy: { nombre: 'asc' },
+    });
+    const hoy = new Date();
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const inicioAnio = new Date(hoy.getFullYear(), 0, 1);
+
+    const establecimientos = await Promise.all(
+      organizaciones.map(async (organizacion) => {
+        const actividadesRegistradas = organizacion.actividadesProductivas.map(
+          (actividad) => actividad.tipoActividad,
+        );
+        const actividades = actividadesRegistradas.length
+          ? actividadesRegistradas
+          : organizacion.actividadPrincipal
+            ? [organizacion.actividadPrincipal]
+            : [ActividadProductiva.AGRICOLA, ActividadProductiva.GANADERIA];
+        const tieneActividad = (actividad: ActividadProductiva) => actividades.includes(actividad);
+
+        const [siembrasActivas, cosechaAgricola, animales, litrosTambo, huevosAvicola, cultivosFruti, cosechaFruti, cuadrosYerba, cosechaYerba] = await Promise.all([
+          tieneActividad(ActividadProductiva.AGRICOLA)
+            ? this.prisma.siembra.count({ where: { estado: 'EN_CURSO', lote: { campo: { organizacionId: organizacion.id } } } })
+            : 0,
+          tieneActividad(ActividadProductiva.AGRICOLA)
+            ? this.prisma.cosecha.aggregate({ where: { fechaCosecha: { gte: inicioAnio }, siembra: { lote: { campo: { organizacionId: organizacion.id } } } }, _sum: { totalKg: true } })
+            : null,
+          tieneActividad(ActividadProductiva.GANADERIA) || tieneActividad(ActividadProductiva.TAMBO)
+            ? this.prisma.animal.count({ where: { organizacionId: organizacion.id } })
+            : 0,
+          tieneActividad(ActividadProductiva.TAMBO)
+            ? this.prisma.registroOrdene.aggregate({ where: { organizacionId: organizacion.id, fecha: { gte: inicioMes } }, _sum: { litros: true } })
+            : null,
+          tieneActividad(ActividadProductiva.AVICOLA)
+            ? this.prisma.registroAvicolaDiario.aggregate({ where: { organizacionId: organizacion.id, fecha: { gte: inicioMes } }, _sum: { huevos: true } })
+            : null,
+          tieneActividad(ActividadProductiva.FRUTIHORTICOLA)
+            ? this.prisma.cultivoFrutihorticola.count({ where: { organizacionId: organizacion.id, estado: 'EN_CURSO' } })
+            : 0,
+          tieneActividad(ActividadProductiva.FRUTIHORTICOLA)
+            ? this.prisma.cosechaFrutihorticola.aggregate({ where: { fechaCosecha: { gte: inicioAnio }, cultivo: { organizacionId: organizacion.id } }, _sum: { kgPrimera: true, kgSegunda: true, kgDescarte: true } })
+            : null,
+          tieneActividad(ActividadProductiva.YERBA)
+            ? this.prisma.cuadroYerba.count({ where: { organizacionId: organizacion.id, activo: true } })
+            : 0,
+          tieneActividad(ActividadProductiva.YERBA)
+            ? this.prisma.cosechaYerba.aggregate({ where: { fechaCosecha: { gte: inicioAnio }, cuadro: { organizacionId: organizacion.id } }, _sum: { kgHojaVerde: true, kgCanchada: true } })
+            : null,
+        ]);
+
+        return {
+          id: organizacion.id,
+          nombre: organizacion.nombre,
+          actividades,
+          agricultura: { siembrasActivas, cosechaKgAnual: cosechaAgricola?._sum.totalKg ?? 0 },
+          ganaderia: { animales },
+          tambo: { litrosMes: litrosTambo?._sum.litros ?? 0 },
+          avicola: { huevosMes: huevosAvicola?._sum.huevos ?? 0 },
+          frutihorticultura: {
+            cultivosActivos: cultivosFruti,
+            cosechaKgAnual: (cosechaFruti?._sum.kgPrimera ?? 0) + (cosechaFruti?._sum.kgSegunda ?? 0) + (cosechaFruti?._sum.kgDescarte ?? 0),
+          },
+          yerba: {
+            cuadrosActivos: cuadrosYerba,
+            hojaVerdeKgAnual: cosechaYerba?._sum.kgHojaVerde ?? 0,
+            canchadaKgAnual: cosechaYerba?._sum.kgCanchada ?? 0,
+          },
+        };
+      }),
+    );
+
+    return {
+      empresa: { id: acceso.empresa.id, nombre: acceso.empresa.nombre },
+      periodo: { anio: hoy.getFullYear(), mes: hoy.getMonth() + 1 },
+      resumen: {
+        establecimientos: establecimientos.length,
+        cosechaAgricolaKg: establecimientos.reduce((total, item) => total + item.agricultura.cosechaKgAnual, 0),
+        animales: establecimientos.reduce((total, item) => total + item.ganaderia.animales, 0),
+        litrosTamboMes: establecimientos.reduce((total, item) => total + item.tambo.litrosMes, 0),
+        huevosAvicolaMes: establecimientos.reduce((total, item) => total + item.avicola.huevosMes, 0),
+        cosechaFrutihorticolaKg: establecimientos.reduce((total, item) => total + item.frutihorticultura.cosechaKgAnual, 0),
+        hojaVerdeYerbaKg: establecimientos.reduce((total, item) => total + item.yerba.hojaVerdeKgAnual, 0),
+      },
+      establecimientos,
     };
   }
 
@@ -1042,6 +1219,24 @@ export class EmpresasService {
         'La empresa debe estar activa antes de habilitar establecimientos',
       );
     }
+  }
+
+  private validarPerfilProductivo(dto: CrearEstablecimientoEmpresaDto) {
+    const actividadPrincipal = dto.actividadPrincipal;
+    const actividades = [...new Set(dto.actividades ?? [])];
+
+    if (!actividadPrincipal || actividades.length === 0) {
+      throw new BadRequestException(
+        'Definí la actividad principal y al menos una actividad productiva',
+      );
+    }
+    if (!actividades.includes(actividadPrincipal)) {
+      throw new BadRequestException(
+        'La actividad principal debe estar incluida entre las actividades seleccionadas',
+      );
+    }
+
+    return actividades as ActividadProductiva[];
   }
 
   private validarCupoEstablecimientos(empresa: {

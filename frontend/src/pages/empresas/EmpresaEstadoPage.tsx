@@ -52,6 +52,7 @@ export default function EmpresaEstadoPage() {
 
   const contenido = contenidoPorEstado[empresa.estadoComercial];
   const esPendiente = empresa.estadoComercial === 'PENDIENTE';
+  const esActiva = empresa.estadoComercial === 'ACTIVA';
   const colorEtiqueta =
     contenido.color === 'amber'
       ? 'bg-amber-400/15 text-amber-200 ring-amber-300/25'
@@ -95,15 +96,27 @@ export default function EmpresaEstadoPage() {
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
             {esPendiente
               ? 'Cuando la cotización esté confirmada, habilitaremos tus establecimientos desde AgroManager AR.'
-              : 'Podés comunicarte con nuestro equipo para conocer el estado de tu cuenta.'}
+              : esActiva
+                ? 'Ya podés crear y configurar los establecimientos incluidos en tu empresa.'
+                : 'Podés comunicarte con nuestro equipo para conocer el estado de tu cuenta.'}
           </p>
         </div>
+
+        {esActiva && (
+          <Link
+            to={'/empresas/' + empresa.id + '/dashboard'}
+            className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500"
+          >
+            <Building2 size={19} />
+            Configurar establecimientos
+          </Link>
+        )}
 
         <a
           href={WHATSAPP_BUSINESS_URL}
           target="_blank"
           rel="noreferrer"
-          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 font-semibold text-white transition hover:bg-[#1fbd5a]"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 font-semibold text-white transition hover:bg-[#1fbd5a]"
         >
           <MessageCircle size={19} />
           Consultar por WhatsApp

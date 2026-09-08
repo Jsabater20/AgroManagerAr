@@ -42,6 +42,11 @@ export default function LoginPage() {
         data.usuario?.usuarioOrganizacionId ??
         (organizaciones.length === 1 ? organizaciones[0]?.id : null);
       const empresaSinEstablecimientos = (data.usuario?.empresas?.length ?? 0) > 0;
+      const empresaActivaParaConfigurar = data.usuario?.empresas?.find(
+        (empresa: { id: number; estadoComercial: string; propietarioId: number }) =>
+          empresa.estadoComercial === 'ACTIVA' &&
+          empresa.propietarioId === data.usuario?.id,
+      );
       const empresaDemo =
         data.usuario?.email === DEMO_EMPRESA_EMAIL ? data.usuario?.empresas?.[0] : null;
 
@@ -59,6 +64,8 @@ export default function LoginPage() {
           ? '/empresas/' + empresaDemo.id + '/dashboard'
           : resolvedOrgId
           ? '/org/' + resolvedOrgId + '/dashboard'
+          : empresaActivaParaConfigurar?.id
+            ? '/empresas/' + empresaActivaParaConfigurar.id + '/dashboard'
           : empresaSinEstablecimientos
             ? '/empresa/estado'
             : '/',

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { Prisma } from '@prisma/client';
+import { ActividadProductiva, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { DEMO_EMAIL, DEMO_EMPRESA_EMAIL } from '../auth/system-accounts';
@@ -1666,16 +1666,35 @@ export class DemoService implements OnModuleInit {
 
   private async asegurarDemoEmpresa() {
     const contexto = await this.prepararDemoEmpresa();
-    const [campos, actividades] = await Promise.all([
+    const [campos, actividades, ordenes, galpones, cultivosFrutihorticolas, cuadrosYerba] = await Promise.all([
       this.prisma.campo.count({
         where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
       }),
       this.prisma.actividadMiembro.count({
         where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
       }),
+      this.prisma.registroOrdene.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+      this.prisma.galponAvicola.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+      this.prisma.cultivoFrutihorticola.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+      this.prisma.cuadroYerba.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
     ]);
 
-    if (campos < 12 || actividades < 9) {
+    if (
+      campos < 12 ||
+      actividades < 9 ||
+      ordenes < 6 ||
+      galpones < 1 ||
+      cultivosFrutihorticolas < 1 ||
+      cuadrosYerba < 1
+    ) {
       this.logger.log('Demo Empresa incompleta — ejecutando reset...');
       await this.reiniciarDemoEmpresa(contexto);
     }
@@ -1745,15 +1764,42 @@ export class DemoService implements OnModuleInit {
       { nombre: 'Establecimiento Los Álamos', email: 'los-alamos.demoempresa@agromanager.ar' },
       { nombre: 'Campo El Horizonte', email: 'el-horizonte.demoempresa@agromanager.ar' },
     ];
+    const perfilesProductivos: Array<{
+      actividadPrincipal: ActividadProductiva;
+      actividades: ActividadProductiva[];
+    }> = [
+      {
+        actividadPrincipal: ActividadProductiva.TAMBO,
+        actividades: [ActividadProductiva.TAMBO, ActividadProductiva.AVICOLA],
+      },
+      {
+        actividadPrincipal: ActividadProductiva.GANADERIA,
+        actividades: [ActividadProductiva.GANADERIA, ActividadProductiva.AGRICOLA],
+      },
+      {
+        actividadPrincipal: ActividadProductiva.FRUTIHORTICOLA,
+        actividades: [ActividadProductiva.FRUTIHORTICOLA, ActividadProductiva.YERBA],
+      },
+    ];
     const organizaciones: Array<{ id: number; nombre: string }> = [];
-    for (const establecimiento of establecimientosBase) {
+    for (const [indice, establecimiento] of establecimientosBase.entries()) {
+      const perfil = perfilesProductivos[indice];
       const existente = await this.prisma.organizacion.findUnique({
         where: { email: establecimiento.email },
       });
       const organizacion = existente
         ? await this.prisma.organizacion.update({
             where: { id: existente.id },
-            data: { nombre: establecimiento.nombre, propietarioId: owner.id, plan: 'PRO' },
+            data: {
+              nombre: establecimiento.nombre,
+              propietarioId: owner.id,
+              plan: 'PRO',
+              actividadPrincipal: perfil.actividadPrincipal,
+              actividadesProductivas: {
+                deleteMany: {},
+                create: perfil.actividades.map((tipoActividad) => ({ tipoActividad })),
+              },
+            },
           })
         : await this.prisma.organizacion.create({
             data: {
@@ -1761,6 +1807,10 @@ export class DemoService implements OnModuleInit {
               email: establecimiento.email,
               propietarioId: owner.id,
               plan: 'PRO',
+              actividadPrincipal: perfil.actividadPrincipal,
+              actividadesProductivas: {
+                create: perfil.actividades.map((tipoActividad) => ({ tipoActividad })),
+              },
             },
           });
       organizaciones.push(organizacion);
@@ -1894,6 +1944,7 @@ export class DemoService implements OnModuleInit {
     for (const organizacion of contexto.organizaciones) {
       await this.seedDemoData(contexto.ownerId, organizacion.id);
     }
+    await this.sembrarProduccionDemoEmpresa(contexto.ownerId, contexto.organizaciones);
     await this.crearActividadesDemoEmpresa(contexto.ownerId, contexto.organizaciones);
   }
 
@@ -1927,6 +1978,27 @@ export class DemoService implements OnModuleInit {
       where: { evidencia: { organizacionId: { in: organizacionesIds } } },
     });
     await this.prisma.evidencia.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.cosechaFrutihorticola.deleteMany({
+      where: { cultivo: { organizacionId: { in: organizacionesIds } } },
+    });
+    await this.prisma.cultivoFrutihorticola.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.cosechaYerba.deleteMany({
+      where: { cuadro: { organizacionId: { in: organizacionesIds } } },
+    });
+    await this.prisma.cuadroYerba.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.registroAvicolaDiario.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.galponAvicola.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.registroOrdene.deleteMany({
       where: { organizacionId: { in: organizacionesIds } },
     });
     await this.prisma.observacionActividad.deleteMany({
@@ -1975,6 +2047,123 @@ export class DemoService implements OnModuleInit {
     await this.prisma.auditoriaLog.deleteMany({
       where: { usuarioId: ownerId, organizacionId: { in: organizacionesIds } },
     });
+  }
+
+  private async sembrarProduccionDemoEmpresa(
+    ownerId: number,
+    organizaciones: Array<{ id: number; nombre: string }>,
+  ) {
+    const campos = await this.prisma.campo.findMany({
+      where: { organizacionId: { in: organizaciones.map((organizacion) => organizacion.id) } },
+      select: { id: true, organizacionId: true, lotes: { select: { id: true }, take: 1 } },
+    });
+    const fecha = (dias: number) => {
+      const valor = new Date();
+      valor.setHours(0, 0, 0, 0);
+      valor.setDate(valor.getDate() + dias);
+      return valor;
+    };
+    const establecimientoTambo = organizaciones[0];
+    const establecimientoFruti = organizaciones[2];
+    const campoFruti = campos.find((campo) => campo.organizacionId === establecimientoFruti?.id);
+
+    if (establecimientoTambo) {
+      const vacas = await this.prisma.animal.findMany({
+        where: { organizacionId: establecimientoTambo.id, especie: 'BOVINO', sexo: 'HEMBRA' },
+        select: { id: true },
+        take: 2,
+      });
+      if (vacas.length) {
+        await this.prisma.registroOrdene.createMany({
+          data: [-2, -1, 0].flatMap((dias) => [
+            {
+              organizacionId: establecimientoTambo.id,
+              usuarioId: ownerId,
+              animalId: vacas[0].id,
+              fecha: fecha(dias),
+              turno: 'MANANA',
+              litros: 28 + Math.abs(dias),
+            },
+            {
+              organizacionId: establecimientoTambo.id,
+              usuarioId: ownerId,
+              animalId: vacas[1]?.id ?? vacas[0].id,
+              fecha: fecha(dias),
+              turno: 'TARDE',
+              litros: 24 + Math.abs(dias),
+            },
+          ]),
+        });
+      }
+
+      const galpon = await this.prisma.galponAvicola.create({
+        data: {
+          organizacionId: establecimientoTambo.id,
+          usuarioId: ownerId,
+          nombre: 'Galpón de postura Norte',
+          tipo: 'POSTURA',
+          capacidad: 480,
+          observaciones: 'Producción diaria de huevos para venta local.',
+        },
+      });
+      await this.prisma.registroAvicolaDiario.createMany({
+        data: [-4, -3, -2, -1, 0].map((dias) => ({
+          organizacionId: establecimientoTambo.id,
+          galponId: galpon.id,
+          usuarioId: ownerId,
+          fecha: fecha(dias),
+          avesPresentes: 438,
+          huevos: 392 + Math.abs(dias) * 3,
+          mortandad: dias === -3 ? 1 : 0,
+          alimentoKg: 52,
+        })),
+      });
+    }
+
+    if (establecimientoFruti && campoFruti) {
+      const cultivo = await this.prisma.cultivoFrutihorticola.create({
+        data: {
+          organizacionId: establecimientoFruti.id,
+          campoId: campoFruti.id,
+          loteId: campoFruti.lotes[0]?.id,
+          usuarioId: ownerId,
+          nombre: 'Tomate bajo cubierta',
+          especie: 'Tomate',
+          variedad: 'Perita',
+          sistema: 'INVERNADERO',
+          fechaInicio: fecha(-65),
+          fechaEstimadaCosecha: fecha(20),
+          superficieM2: 1800,
+          cantidadPlantas: 4200,
+          observaciones: 'Seguimiento de madurez y sanidad del cultivo.',
+        },
+      });
+      await this.prisma.cosechaFrutihorticola.createMany({
+        data: [
+          { cultivoId: cultivo.id, usuarioId: ownerId, fechaCosecha: fecha(-14), kgPrimera: 320, kgSegunda: 65, kgDescarte: 18, destino: 'Mercado local' },
+          { cultivoId: cultivo.id, usuarioId: ownerId, fechaCosecha: fecha(-7), kgPrimera: 410, kgSegunda: 72, kgDescarte: 15, destino: 'Mercado local' },
+        ],
+      });
+
+      const cuadro = await this.prisma.cuadroYerba.create({
+        data: {
+          organizacionId: establecimientoFruti.id,
+          campoId: campoFruti.id,
+          loteId: campoFruti.lotes[0]?.id,
+          usuarioId: ownerId,
+          nombre: 'Cuadro Yerbal Sur',
+          superficieHa: 12.5,
+          edadPlantacion: 8,
+          observaciones: 'Cosecha y control de rebrote.',
+        },
+      });
+      await this.prisma.cosechaYerba.createMany({
+        data: [
+          { cuadroId: cuadro.id, usuarioId: ownerId, fechaCosecha: fecha(-28), kgHojaVerde: 4850, kgCanchada: 1600, jornales: 14 },
+          { cuadroId: cuadro.id, usuarioId: ownerId, fechaCosecha: fecha(-9), kgHojaVerde: 5320, kgCanchada: 1750, jornales: 15 },
+        ],
+      });
+    }
   }
 
   private async crearActividadesDemoEmpresa(

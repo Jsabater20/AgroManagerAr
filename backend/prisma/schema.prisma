@@ -38,6 +38,13 @@ model Usuario {
   invitaciones                   InvitacionOrganizacion[]
   maquinarias                    Maquinaria[]
   movimientos                    MovimientoFinanciero[]
+  cultivosFrutihorticolas        CultivoFrutihorticola[]
+  cosechasFrutihorticolas        CosechaFrutihorticola[]
+  ordenes                        RegistroOrdene[]
+  galponesAvicolas               GalponAvicola[]
+  registrosAvicolas              RegistroAvicolaDiario[]
+  cuadrosYerba                   CuadroYerba[]
+  cosechasYerba                  CosechaYerba[]
   organizacionesQueEsDueno       Organizacion[]           @relation("organizacion_owner")
   empresasQueEsDueno             Empresa[]                @relation("empresa_owner")
   membresiasEmpresa              UsuarioEmpresa[]
@@ -118,6 +125,8 @@ model Campo {
   maquinarias     Maquinaria[]
   movimentos      MovimientoFinanciero[]
   tareas          TareaRural[]
+  cultivosFrutihorticolas CultivoFrutihorticola[]
+  cuadrosYerba           CuadroYerba[]
 
   @@index([organizacionId])
 }
@@ -131,6 +140,8 @@ model Lote {
   updatedAt DateTime  @updatedAt
   campo     Campo     @relation(fields: [campoId], references: [id])
   siembras  Siembra[]
+  cultivosFrutihorticolas CultivoFrutihorticola[]
+  cuadrosYerba           CuadroYerba[]
 }
 
 model TipoCultivo {
@@ -171,6 +182,92 @@ model Cosecha {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   siembra         Siembra  @relation(fields: [siembraId], references: [id])
+}
+
+model CultivoFrutihorticola {
+  id                    Int                         @id @default(autoincrement())
+  organizacionId        Int
+  campoId               Int
+  loteId                Int?
+  usuarioId             Int
+  nombre                String
+  especie               String
+  variedad              String?
+  sistema               SistemaFrutihorticola
+  fechaInicio           DateTime
+  fechaEstimadaCosecha  DateTime?
+  estado                EstadoCultivoFrutihorticola @default(EN_CURSO)
+  superficieM2          Float?
+  cantidadPlantas       Int?
+  observaciones         String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  organizacion          Organizacion                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo                 Campo                       @relation(fields: [campoId], references: [id])
+  lote                  Lote?                       @relation(fields: [loteId], references: [id])
+  usuario               Usuario                     @relation(fields: [usuarioId], references: [id])
+  cosechas              CosechaFrutihorticola[]
+
+  @@index([organizacionId, estado])
+  @@index([campoId])
+  @@index([loteId])
+}
+
+model CosechaFrutihorticola {
+  id                    Int                    @id @default(autoincrement())
+  cultivoId             Int
+  usuarioId             Int
+  fechaCosecha          DateTime
+  kgPrimera             Float                  @default(0)
+  kgSegunda             Float                  @default(0)
+  kgDescarte            Float                  @default(0)
+  destino               String?
+  observaciones         String?
+  createdAt             DateTime               @default(now())
+  cultivo               CultivoFrutihorticola @relation(fields: [cultivoId], references: [id], onDelete: Cascade)
+  usuario               Usuario                @relation(fields: [usuarioId], references: [id])
+
+  @@index([cultivoId, fechaCosecha])
+}
+
+model CuadroYerba {
+  id             Int          @id @default(autoincrement())
+  organizacionId Int
+  campoId        Int
+  loteId         Int?
+  usuarioId      Int
+  nombre         String
+  superficieHa   Float?
+  edadPlantacion Int?
+  activo         Boolean      @default(true)
+  observaciones  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo          Campo        @relation(fields: [campoId], references: [id])
+  lote           Lote?        @relation(fields: [loteId], references: [id])
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  cosechas       CosechaYerba[]
+
+  @@index([organizacionId, activo])
+  @@index([campoId])
+  @@index([loteId])
+}
+
+model CosechaYerba {
+  id             Int          @id @default(autoincrement())
+  cuadroId       Int
+  usuarioId      Int
+  fechaCosecha   DateTime
+  kgHojaVerde    Float
+  kgCanchada     Float?
+  jornales       Float?
+  observaciones  String?
+  createdAt      DateTime     @default(now())
+  cuadro         CuadroYerba  @relation(fields: [cuadroId], references: [id], onDelete: Cascade)
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@index([cuadroId, fechaCosecha])
 }
 
 model Insumo {
@@ -219,6 +316,7 @@ model Animal {
   usuario         Usuario         @relation(fields: [usuarioId], references: [id])
   preneces        Prenez[]
   pesos           RegistroPeso[]
+  ordenes         RegistroOrdene[]
 
   @@index([organizacionId])
 }
@@ -363,11 +461,71 @@ model RegistroPeso {
   animal        Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
 }
 
+model RegistroOrdene {
+  id             Int          @id @default(autoincrement())
+  organizacionId Int
+  usuarioId      Int
+  animalId       Int?
+  fecha          DateTime
+  turno          TurnoOrdene
+  litros         Float
+  observaciones  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  animal         Animal?      @relation(fields: [animalId], references: [id], onDelete: SetNull)
+
+  @@index([organizacionId, fecha])
+  @@index([animalId, fecha])
+}
+
+model GalponAvicola {
+  id             Int                @id @default(autoincrement())
+  organizacionId Int
+  usuarioId      Int
+  nombre         String
+  tipo           TipoGalponAvicola
+  capacidad      Int?
+  activo         Boolean            @default(true)
+  observaciones  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  organizacion   Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario        Usuario            @relation(fields: [usuarioId], references: [id])
+  registros      RegistroAvicolaDiario[]
+
+  @@index([organizacionId, activo])
+}
+
+model RegistroAvicolaDiario {
+  id             Int          @id @default(autoincrement())
+  organizacionId Int
+  galponId       Int
+  usuarioId      Int
+  fecha          DateTime
+  avesPresentes  Int
+  huevos         Int          @default(0)
+  mortandad      Int          @default(0)
+  alimentoKg     Float        @default(0)
+  pesoPromedioGr Float?
+  observaciones  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  galpon         GalponAvicola @relation(fields: [galponId], references: [id], onDelete: Cascade)
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@unique([galponId, fecha])
+  @@index([organizacionId, fecha])
+}
+
 model Organizacion {
   id                    Int                          @id @default(autoincrement())
   nombre                String
   email                 String                       @unique
   plan                  PlanTipo                     @default(FREE)
+  actividadPrincipal    ActividadProductiva?
   propietarioId         Int
   createdAt             DateTime                     @default(now())
   updatedAt             DateTime                     @updatedAt
@@ -389,8 +547,29 @@ model Organizacion {
   beneficiosPro         BeneficioProOrganizacion[]
   vinculacionEmpresa    EmpresaOrganizacion?
   autorizacionesEmpresa UsuarioEmpresaOrganizacion[]
+  actividadesProductivas OrganizacionActividadProductiva[]
+  cultivosFrutihorticolas CultivoFrutihorticola[]
+  ordenes                 RegistroOrdene[]
+  galponesAvicolas        GalponAvicola[]
+  registrosAvicolas       RegistroAvicolaDiario[]
+  cuadrosYerba            CuadroYerba[]
 
   @@index([propietarioId])
+  @@index([actividadPrincipal])
+}
+
+model OrganizacionActividadProductiva {
+  id             Int                  @id @default(autoincrement())
+  organizacionId Int
+  tipoActividad  ActividadProductiva
+  activo         Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, tipoActividad])
+  @@index([organizacionId, activo])
 }
 
 model BeneficioProOrganizacion {
@@ -718,6 +897,15 @@ enum PlanTipo {
   PRO
 }
 
+enum ActividadProductiva {
+  AGRICOLA
+  GANADERIA
+  TAMBO
+  AVICOLA
+  FRUTIHORTICOLA
+  YERBA
+}
+
 enum RolEmpresa {
   OWNER
   ADMINISTRADOR
@@ -738,6 +926,34 @@ enum EstadoSiembra {
   EN_CURSO
   COSECHADA
   PERDIDA
+}
+
+enum SistemaFrutihorticola {
+  CAMPO_ABIERTO
+  INVERNADERO
+  HUERTA
+  MONTE_FRUTAL
+  OTRO
+}
+
+enum EstadoCultivoFrutihorticola {
+  PLANIFICADO
+  EN_CURSO
+  FINALIZADO
+  PERDIDO
+}
+
+enum TurnoOrdene {
+  MANANA
+  TARDE
+  UNICO
+}
+
+enum TipoGalponAvicola {
+  POSTURA
+  ENGORDE
+  RECRIA
+  OTRO
 }
 
 enum TipoInsumo {

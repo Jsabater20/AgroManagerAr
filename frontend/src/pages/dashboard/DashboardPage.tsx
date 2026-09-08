@@ -1,9 +1,10 @@
+import { useEffect, useState } from 'react';
 import {
   Sprout, Map, Wheat, FlaskConical, ArrowRight, PawPrint, ClipboardList,
-  AlertTriangle, TrendingUp, TrendingDown, DollarSign, Activity, Cloud, LifeBuoy,
+  AlertTriangle, TrendingUp, TrendingDown, DollarSign, Activity, Cloud, LifeBuoy, Save,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wmoInfo } from '../clima/ClimaPage';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -16,7 +17,10 @@ import { insumosApi } from '../../api/insumos.api';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 import { finanzasApi } from '../../api/finanzas.api';
-import { organizacionesApi } from '../../api/organizaciones.api';
+import {
+  organizacionesApi,
+  type ActividadProductiva,
+} from '../../api/organizaciones.api';
 import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import AiInsights from '../../components/ui/AiInsights';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
@@ -396,11 +400,203 @@ export default function DashboardPage() {
           Hablar por WhatsApp
         </a>
       </section>
+
+      {isOwner && <PerfilProductivoCard orgId={orgIdNum} />}
+
+      {isOwner && (
+        <Link to={`/org/${orgId}/produccion`} className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm transition-colors hover:border-emerald-300 dark:border-emerald-900/60 dark:bg-gray-800">
+          <span><span className="text-sm font-bold text-gray-900 dark:text-white">Panel de producción</span><span className="mt-1 block text-sm text-gray-500 dark:text-gray-400">Reuní los indicadores de todas las actividades de este establecimiento.</span></span><ArrowRight className="text-emerald-600" size={20} />
+        </Link>
+      )}
     </div>
   );
 }
 
 // ── Sub-componentes ────────────────────────────────────────────────────────────
+
+const ACTIVIDADES_PRODUCTIVAS: Array<{
+  value: ActividadProductiva;
+  label: string;
+  descripcion: string;
+}> = [
+  { value: 'AGRICOLA', label: 'Agricultura', descripcion: 'Cultivos, siembras y cosechas.' },
+  { value: 'GANADERIA', label: 'Ganadería', descripcion: 'Rodeo, sanidad y reproducción.' },
+  { value: 'TAMBO', label: 'Tambo / Lácteos', descripcion: 'Producción de leche y ordeñe.' },
+  { value: 'AVICOLA', label: 'Avícola', descripcion: 'Aves, postura o producción.' },
+  { value: 'FRUTIHORTICOLA', label: 'Frutihorticultura', descripcion: 'Frutas, hortalizas e invernaderos.' },
+  { value: 'YERBA', label: 'Yerba mate', descripcion: 'Lotes y producción yerbatera.' },
+];
+
+function PerfilProductivoCard({ orgId }: { orgId: number }) {
+  const queryClient = useQueryClient();
+  const perfilQuery = useQuery({
+    queryKey: ['actividad-productiva', orgId],
+    queryFn: () => organizacionesApi.obtenerActividadProductiva(orgId),
+    enabled: orgId > 0,
+  });
+  const [actividades, setActividades] = useState<ActividadProductiva[]>([]);
+  const [actividadPrincipal, setActividadPrincipal] = useState<ActividadProductiva | ''>('');
+
+  useEffect(() => {
+    if (!perfilQuery.data) return;
+    setActividades(perfilQuery.data.actividades);
+    setActividadPrincipal(perfilQuery.data.actividadPrincipal ?? '');
+  }, [perfilQuery.data]);
+
+  const actualizarMutation = useMutation({
+    mutationFn: () =>
+      organizacionesApi.actualizarActividadProductiva(orgId, {
+        actividadPrincipal: actividadPrincipal as ActividadProductiva,
+        actividades,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['actividad-productiva', orgId] });
+    },
+  });
+
+  const alternarActividad = (actividad: ActividadProductiva) => {
+    const siguiente = actividades.includes(actividad)
+      ? actividades.filter((item) => item !== actividad)
+      : [...actividades, actividad];
+    setActividades(siguiente);
+
+    if (!siguiente.includes(actividadPrincipal as ActividadProductiva)) {
+      setActividadPrincipal(siguiente[0] ?? '');
+    }
+  };
+
+  const puedeGuardar =
+    actividades.length > 0 &&
+    actividadPrincipal !== '' &&
+    actividades.includes(actividadPrincipal);
+
+  if (perfilQuery.isLoading) {
+    return <div className="h-48 animate-pulse rounded-2xl bg-gray-100 dark:bg-gray-800" />;
+  }
+
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700/50 dark:bg-gray-800/70">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+            Configuración del establecimiento
+          </p>
+          <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">Perfil productivo</h2>
+          <p className="mt-1 max-w-2xl text-sm text-gray-600 dark:text-gray-300">
+            Elegí a qué se dedica este establecimiento. Más adelante esto organizará sus indicadores y herramientas.
+          </p>
+        </div>
+        <span className="w-fit rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+          No cambia tu plan
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {ACTIVIDADES_PRODUCTIVAS.map((actividad) => {
+          const seleccionada = actividades.includes(actividad.value);
+          return (
+            <label
+              key={actividad.value}
+              className={`cursor-pointer rounded-xl border p-3 transition-colors ${
+                seleccionada
+                  ? 'border-emerald-400 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30'
+                  : 'border-gray-200 hover:border-emerald-200 dark:border-gray-700 dark:hover:border-emerald-800'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={seleccionada}
+                onChange={() => alternarActividad(actividad.value)}
+                className="sr-only"
+              />
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{actividad.label}</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{actividad.descripcion}</p>
+            </label>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-gray-700 sm:flex-row sm:items-end sm:justify-between">
+        <label className="block w-full sm:max-w-sm">
+          <span className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">
+            Actividad principal
+          </span>
+          <select
+            value={actividadPrincipal}
+            onChange={(event) => setActividadPrincipal(event.target.value as ActividadProductiva)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+            disabled={!actividades.length}
+          >
+            <option value="">Seleccioná una actividad</option>
+            {ACTIVIDADES_PRODUCTIVAS.filter((actividad) => actividades.includes(actividad.value)).map(
+              (actividad) => (
+                <option key={actividad.value} value={actividad.value}>
+                  {actividad.label}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => actualizarMutation.mutate()}
+          disabled={!puedeGuardar || actualizarMutation.isPending}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Save size={16} />
+          {actualizarMutation.isPending ? 'Guardando...' : 'Guardar perfil'}
+        </button>
+      </div>
+
+      {actividades.includes('FRUTIHORTICOLA') && (
+        <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/25">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-emerald-900 dark:text-emerald-100">Ya podés registrar huertas, invernaderos y montes frutales con su cosecha por calidad.</p>
+            <Link to={`/org/${orgId}/frutihorticultura`} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Abrir Frutihorticultura</Link>
+          </div>
+        </div>
+      )}
+
+      {actividades.includes('TAMBO') && (
+        <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50/70 p-3 dark:border-sky-900/60 dark:bg-sky-950/25">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-sky-900 dark:text-sky-100">Registrá el ordeñe por vaca o por tanque y seguí la producción del establecimiento.</p>
+            <Link to={`/org/${orgId}/tambo`} className="rounded-lg bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">Abrir Tambo</Link>
+          </div>
+        </div>
+      )}
+
+      {actividades.includes('AVICOLA') && (
+        <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/70 p-3 dark:border-amber-900/60 dark:bg-amber-950/25">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-amber-900 dark:text-amber-100">Organizá galpones y registrá postura, alimento y mortandad todos los días.</p>
+            <Link to={`/org/${orgId}/avicola`} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700">Abrir Avícola</Link>
+          </div>
+        </div>
+      )}
+
+      {actividades.includes('YERBA') && (
+        <div className="mt-3 rounded-xl border border-green-100 bg-green-50/70 p-3 dark:border-green-900/60 dark:bg-green-950/25">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-green-900 dark:text-green-100">Registrá cuadros yerbateros y seguí la cosecha de hoja verde y yerba canchada.</p>
+            <Link to={`/org/${orgId}/yerba`} className="rounded-lg bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800">Abrir Yerba mate</Link>
+          </div>
+        </div>
+      )}
+
+      {actualizarMutation.isSuccess && (
+        <p className="mt-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+          Perfil productivo actualizado.
+        </p>
+      )}
+      {actualizarMutation.isError && (
+        <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-300">
+          No se pudo actualizar el perfil. Intentá nuevamente.
+        </p>
+      )}
+    </section>
+  );
+}
 
 const COLOR_MAP: Record<string, { bg: string; icon: string; ring: string }> = {
   emerald: { bg: 'bg-emerald-50 dark:bg-emerald-900/30', icon: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-100 dark:ring-emerald-800/40' },

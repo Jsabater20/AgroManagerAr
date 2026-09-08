@@ -56,9 +56,15 @@ import EmpresaFinanzasPage from './pages/empresas/EmpresaFinanzasPage';
 import EmpresaRentabilidadPage from './pages/empresas/EmpresaRentabilidadPage';
 import EmpresaAuditoriaPage from './pages/empresas/EmpresaAuditoriaPage';
 import EmpresaExportacionesPage from './pages/empresas/EmpresaExportacionesPage';
+import EmpresaProduccionPage from './pages/empresas/EmpresaProduccionPage';
 import EmpresaEstadoPage from './pages/empresas/EmpresaEstadoPage';
 import DemoEmpresaEntryPage from './pages/empresas/DemoEmpresaEntryPage';
 import DemoEmpresaWelcomePage from './pages/empresas/DemoEmpresaWelcomePage';
+import FrutihorticulturaPage from './pages/frutihorticultura/FrutihorticulturaPage';
+import TamboPage from './pages/tambo/TamboPage';
+import AvicolaPage from './pages/avicola/AvicolaPage';
+import YerbaPage from './pages/yerba/YerbaPage';
+import ProduccionPage from './pages/produccion/ProduccionPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -142,6 +148,11 @@ export default function App() {
               <Route path="/org/:orgId/campos/:id" element={<CampoDetailPage />} />
               <Route path="/org/:orgId/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />
               <Route path="/org/:orgId/cultivos" element={<CultivosPage />} />
+              <Route path="/org/:orgId/frutihorticultura" element={<FrutihorticulturaPage />} />
+              <Route path="/org/:orgId/tambo" element={<TamboPage />} />
+              <Route path="/org/:orgId/avicola" element={<AvicolaPage />} />
+              <Route path="/org/:orgId/yerba" element={<YerbaPage />} />
+              <Route path="/org/:orgId/produccion" element={<ProduccionPage />} />
               <Route path="/org/:orgId/siembras" element={<SiembrasPage />} />
               <Route path="/org/:orgId/insumos" element={<InsumosPage />} />
               <Route path="/org/:orgId/ganado" element={<GanadoPage />} />
@@ -170,6 +181,7 @@ export default function App() {
               <Route path="/empresas/:empresaId/ganaderia" element={<EmpresaOperacionPage seccion="ganaderia" />} />
               <Route path="/empresas/:empresaId/finanzas" element={<EmpresaFinanzasPage />} />
               <Route path="/empresas/:empresaId/rentabilidad" element={<EmpresaRentabilidadPage />} />
+              <Route path="/empresas/:empresaId/produccion" element={<EmpresaProduccionPage />} />
               <Route path="/empresas/:empresaId/auditoria" element={<EmpresaAuditoriaPage />} />
               <Route path="/empresas/:empresaId/exportaciones" element={<EmpresaExportacionesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />

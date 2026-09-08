@@ -16,6 +16,7 @@ import { InvitacionResponseDto } from './dto/invitacion-response.dto';
 import { MiembroPanelDto, ActivityCountDto } from './dto/miembro-panel.dto';
 import { RecursoAsignableDto } from './dto/recurso-asignable.dto';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
+import { ActualizarActividadProductivaDto } from './dto/actualizar-actividad-productiva.dto';
 import { MailerService } from '../mailer/mailer.service';
 import { PlanService } from '../plan/plan.service';
 import { R2StorageService } from '../storage/r2-storage.service';
@@ -110,6 +111,78 @@ export class OrganizationsService {
     );
 
     return uniqueOrgs;
+  }
+
+  async obtenerActividadProductiva(organizacionId: number) {
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: {
+        id: true,
+        actividadPrincipal: true,
+        actividadesProductivas: {
+          where: { activo: true },
+          select: { tipoActividad: true },
+          orderBy: { tipoActividad: 'asc' },
+        },
+      },
+    });
+
+    if (!organizacion) {
+      throw new NotFoundException('Organización no encontrada');
+    }
+
+    return {
+      actividadPrincipal: organizacion.actividadPrincipal,
+      actividades: organizacion.actividadesProductivas.map(
+        (actividad) => actividad.tipoActividad,
+      ),
+    };
+  }
+
+  async actualizarActividadProductiva(
+    organizacionId: number,
+    usuarioId: number,
+    dto: ActualizarActividadProductivaDto,
+  ) {
+    await this.validarOwner(organizacionId, usuarioId);
+
+    const actividades = [...new Set(dto.actividades)];
+    if (!actividades.includes(dto.actividadPrincipal)) {
+      throw new BadRequestException(
+        'La actividad principal debe estar incluida entre las actividades seleccionadas',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizacion.update({
+        where: { id: organizacionId },
+        data: { actividadPrincipal: dto.actividadPrincipal },
+      });
+
+      await tx.organizacionActividadProductiva.updateMany({
+        where: { organizacionId },
+        data: { activo: false },
+      });
+
+      for (const tipoActividad of actividades) {
+        await tx.organizacionActividadProductiva.upsert({
+          where: {
+            organizacionId_tipoActividad: {
+              organizacionId,
+              tipoActividad,
+            },
+          },
+          update: { activo: true },
+          create: {
+            organizacionId,
+            tipoActividad,
+            activo: true,
+          },
+        });
+      }
+    });
+
+    return this.obtenerActividadProductiva(organizacionId);
   }
 
   // ─── MIEMBROS ─────────────────────────────────────────────────────────────

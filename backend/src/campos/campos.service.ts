@@ -115,8 +115,28 @@ export class CamposService {
           })
         : [];
     const siembraIds = siembras.map((s) => s.id);
+    const cultivosFrutihorticolas = await this.prisma.cultivoFrutihorticola.findMany({
+      where: { campoId: id },
+      select: { id: true },
+    });
+    const cultivosFrutihorticolasIds = cultivosFrutihorticolas.map(
+      (cultivo) => cultivo.id,
+    );
+    const cuadrosYerba = await this.prisma.cuadroYerba.findMany({
+      where: { campoId: id },
+      select: { id: true },
+    });
+    const cuadrosYerbaIds = cuadrosYerba.map((cuadro) => cuadro.id);
 
     await this.prisma.$transaction([
+      this.prisma.cosechaYerba.deleteMany({
+        where: { cuadroId: { in: cuadrosYerbaIds } },
+      }),
+      this.prisma.cuadroYerba.deleteMany({ where: { campoId: id } }),
+      this.prisma.cosechaFrutihorticola.deleteMany({
+        where: { cultivoId: { in: cultivosFrutihorticolasIds } },
+      }),
+      this.prisma.cultivoFrutihorticola.deleteMany({ where: { campoId: id } }),
       this.prisma.aplicacionInsumo.deleteMany({
         where: { siembraId: { in: siembraIds } },
       }),

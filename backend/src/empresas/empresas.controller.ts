@@ -104,6 +104,11 @@ export class EmpresasController {
     return this.empresasService.obtenerDashboard(req.user.id, empresaId);
   }
 
+  @Get(':empresaId/produccion')
+  produccion(@Request() req: AuthRequest, @Param('empresaId', ParseIntPipe) empresaId: number) {
+    return this.empresasService.obtenerProduccionConsolidada(req.user.id, empresaId);
+  }
+
   @Get(':empresaId/organizaciones')
   organizaciones(@Request() req: AuthRequest, @Param('empresaId', ParseIntPipe) empresaId: number) {
     return this.empresasService.listarOrganizaciones(req.user.id, empresaId);
@@ -210,6 +215,15 @@ export class EmpresasController {
     @Body() dto: VincularOrganizacionDto,
   ) {
     return this.empresasService.vincularOrganizacion(req.user.id, empresaId, dto);
+  }
+
+  @Post(':empresaId/establecimientos')
+  crearEstablecimiento(
+    @Request() req: AuthRequest,
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Body() dto: CrearEstablecimientoEmpresaDto,
+  ) {
+    return this.empresasService.crearEstablecimiento(req.user.id, empresaId, dto);
   }
 
   @Delete(':empresaId/organizaciones/:organizacionId')

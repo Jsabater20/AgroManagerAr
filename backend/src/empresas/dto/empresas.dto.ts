@@ -13,7 +13,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { EstadoEmpresa, RolEmpresa } from '@prisma/client';
+import { ActividadProductiva, EstadoEmpresa, RolEmpresa } from '@prisma/client';
 
 export class CrearEmpresaDto {
   @IsString()
@@ -72,6 +72,16 @@ export class CrearEstablecimientoEmpresaDto {
   @IsEmail()
   @MaxLength(160)
   email!: string;
+
+  @IsOptional()
+  @IsEnum(ActividadProductiva)
+  actividadPrincipal?: ActividadProductiva;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsEnum(ActividadProductiva, { each: true })
+  actividades?: ActividadProductiva[];
 }
 
 export class CrearMiembroEmpresaDto {

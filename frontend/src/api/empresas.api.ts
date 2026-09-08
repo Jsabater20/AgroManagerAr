@@ -1,4 +1,5 @@
 import { api } from './client';
+import type { ActividadProductiva } from './organizaciones.api';
 
 export interface EmpresaResumen {
   id: number;
@@ -67,6 +68,8 @@ export interface EstablecimientoDisponibleEmpresa {
 export interface CrearEstablecimientoEmpresaDto {
   nombre: string;
   email: string;
+  actividadPrincipal?: ActividadProductiva;
+  actividades?: ActividadProductiva[];
 }
 
 export interface EstablecimientoEmpresa {
@@ -74,6 +77,8 @@ export interface EstablecimientoEmpresa {
   nombre: string;
   plan: 'FREE' | 'PRO';
   propietarioId: number;
+  actividadPrincipal: ActividadProductiva | null;
+  actividades: ActividadProductiva[];
   hectareas: number;
 }
 
@@ -86,6 +91,7 @@ export interface DashboardEmpresa {
     estadoComercial: EstadoComercialEmpresa;
     fechaInicioComercial: string | null;
     fechaVencimiento: string | null;
+    puedeCrearEstablecimientos: boolean;
   };
   resumen: {
     superficieHa: number;
@@ -101,6 +107,31 @@ export interface DashboardEmpresa {
     completadas: number;
     demoradas: number;
   };
+}
+
+export interface ProduccionConsolidadaEmpresa {
+  empresa: { id: number; nombre: string };
+  periodo: { anio: number; mes: number };
+  resumen: {
+    establecimientos: number;
+    cosechaAgricolaKg: number;
+    animales: number;
+    litrosTamboMes: number;
+    huevosAvicolaMes: number;
+    cosechaFrutihorticolaKg: number;
+    hojaVerdeYerbaKg: number;
+  };
+  establecimientos: Array<{
+    id: number;
+    nombre: string;
+    actividades: ActividadProductiva[];
+    agricultura: { siembrasActivas: number; cosechaKgAnual: number };
+    ganaderia: { animales: number };
+    tambo: { litrosMes: number };
+    avicola: { huevosMes: number };
+    frutihorticultura: { cultivosActivos: number; cosechaKgAnual: number };
+    yerba: { cuadrosActivos: number; hojaVerdeKgAnual: number; canchadaKgAnual: number };
+  }>;
 }
 
 export interface MiembroConsolidadoEmpresa {
@@ -252,10 +283,14 @@ export const empresasApi = {
     api.post('/empresas/admin/' + empresaId + '/organizaciones', { organizacionId }).then((response) => response.data),
   crearEstablecimientoAdmin: (empresaId: number, dto: CrearEstablecimientoEmpresaDto) =>
     api.post('/empresas/admin/' + empresaId + '/establecimientos', dto).then((response) => response.data),
+  crearEstablecimiento: (empresaId: number, dto: Required<CrearEstablecimientoEmpresaDto>) =>
+    api.post(`/empresas/${empresaId}/establecimientos`, dto).then((response) => response.data),
   desvincularOrganizacionAdmin: (empresaId: number, organizacionId: number) =>
     api.delete('/empresas/admin/' + empresaId + '/organizaciones/' + organizacionId).then((response) => response.data),
   obtenerDashboard: (empresaId: number) =>
     api.get<DashboardEmpresa>(`/empresas/${empresaId}/dashboard`).then((response) => response.data),
+  obtenerProduccion: (empresaId: number) =>
+    api.get<ProduccionConsolidadaEmpresa>(`/empresas/${empresaId}/produccion`).then((response) => response.data),
   obtenerOrganizaciones: (empresaId: number) =>
     api.get<EstablecimientoEmpresa[]>(`/empresas/${empresaId}/organizaciones`).then((response) => response.data),
   obtenerMiembrosConsolidados: (empresaId: number) =>
