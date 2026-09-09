@@ -347,6 +347,20 @@ export class ActividadesService {
 
   // ─── LISTAR ACTIVIDADES ───────────────────────────────────────────────
 
+  async crearDesdeCalculo(
+    orgId: number,
+    dto: CreateActividadDto,
+    userId: number,
+  ): Promise<ActividadMiembro> {
+    if (!(await this.planService.isOrgPro(orgId))) {
+      throw new ForbiddenException(
+        'Crear trabajos desde un calculo esta disponible con el Plan Pro.',
+      );
+    }
+
+    return this.crear(orgId, dto, userId);
+  }
+
   async listar(
     orgId: number,
     userId: number,

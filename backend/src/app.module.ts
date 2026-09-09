@@ -36,6 +36,7 @@ import { FrutihorticulturaModule } from './frutihorticultura/frutihorticultura.m
 import { TamboModule } from './tambo/tambo.module';
 import { AvicolaModule } from './avicola/avicola.module';
 import { YerbaModule } from './yerba/yerba.module';
+import { CalculosModule } from './calculos/calculos.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { YerbaModule } from './yerba/yerba.module';
     TamboModule,
     AvicolaModule,
     YerbaModule,
+    CalculosModule,
   ],
   controllers: [AppController],
   providers: [

@@ -24,6 +24,7 @@ import {
   Building2,
   Shield,
   ChevronDown,
+  Calculator,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 import { useState } from 'react';
@@ -60,6 +61,7 @@ const navItems: NavItem[] = [
   { to: (id) => `/org/${id}/produccion`, label: 'Producción', icon: ChartNoAxesCombined, modulo: null },
   { to: (id) => `/org/${id}/reportes`, label: 'Reportes', icon: FileBarChart2, modulo: 'Reportes' },
   { to: (id) => `/org/${id}/clima`, label: 'Clima', icon: CloudSun, modulo: 'Clima' },
+  { to: (id) => `/org/${id}/calculos`, label: 'Cálculos', icon: Calculator, modulo: 'Cálculos' },
 ];
 
 interface SidebarProps {

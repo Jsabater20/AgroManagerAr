@@ -44,6 +44,20 @@ export class ActividadesController {
     return await this.actividadesService.crear(orgIdNum, dto, userId);
   }
 
+  @Post(':orgId/actividades/desde-calculo')
+  @UseGuards(IsOwnerGuard)
+  async crearDesdeCalculo(
+    @Param('orgId') orgId: string,
+    @Body() dto: CreateActividadDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.actividadesService.crearDesdeCalculo(
+      parseInt(orgId),
+      dto,
+      req.user?.id || 0,
+    );
+  }
+
   // ─── LISTAR ACTIVIDADES ───────────────────────────────────────────────
 
   @Get(':orgId/actividades')

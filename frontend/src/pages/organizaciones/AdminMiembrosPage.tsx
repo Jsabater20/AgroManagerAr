@@ -45,6 +45,7 @@ const MODULOS_DISPONIBLES = [
   'Finanzas',
   'Reportes',
   'Clima',
+  'Cálculos',
 ];
 
 export default function AdminMiembrosPage() {

@@ -53,6 +53,17 @@ export const createActividad = async (
   return data;
 };
 
+export const createActividadDesdeCalculo = async (
+  organizacionId: number,
+  payload: CreateActividadPayload,
+) => {
+  const { data } = await api.post(
+    `/organizaciones/${organizacionId}/actividades/desde-calculo`,
+    payload,
+  );
+  return data;
+};
+
 // Listar actividades
 export const listActividades = async (
   organizacionId: number,

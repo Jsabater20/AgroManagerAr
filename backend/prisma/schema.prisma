@@ -58,6 +58,7 @@ model Usuario {
   referidosComoReferente         Referido[]                @relation("referenteReferido")
   referidoRecibido               Referido?                 @relation("referidoReferido")
   notificaciones                 Notificacion[]
+  calculosGuardados              CalculoGuardado[]
 }
 
 model Referido {
@@ -553,9 +554,30 @@ model Organizacion {
   galponesAvicolas        GalponAvicola[]
   registrosAvicolas       RegistroAvicolaDiario[]
   cuadrosYerba            CuadroYerba[]
+  calculosGuardados       CalculoGuardado[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
+}
+
+model CalculoGuardado {
+  id             Int          @id @default(autoincrement())
+  organizacionId Int
+  usuarioId      Int
+  tipo           TipoCalculo
+  titulo         String
+  campoId        Int?
+  loteId         Int?
+  maquinariaId   Int?
+  datos          Json
+  resultado      Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@index([organizacionId, tipo, createdAt])
+  @@index([usuarioId, createdAt])
 }
 
 model OrganizacionActividadProductiva {
@@ -1042,6 +1064,15 @@ enum RepetirTarea {
   SEMANAL
   QUINCENAL
   MENSUAL
+}
+
+enum TipoCalculo {
+  APLICACION
+  SIEMBRA
+  FERTILIZACION
+  MAQUINARIA
+  GANADERIA
+  ECONOMICO
 }
 
 enum TipoMaquinaria {

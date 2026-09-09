@@ -65,6 +65,14 @@ import TamboPage from './pages/tambo/TamboPage';
 import AvicolaPage from './pages/avicola/AvicolaPage';
 import YerbaPage from './pages/yerba/YerbaPage';
 import ProduccionPage from './pages/produccion/ProduccionPage';
+import CalculosPage from './pages/calculos/CalculosPage';
+import AplicacionesCalculatorPage from './pages/calculos/AplicacionesCalculatorPage';
+import SiembraCalculatorPage from './pages/calculos/SiembraCalculatorPage';
+import FertilizacionCalculatorPage from './pages/calculos/FertilizacionCalculatorPage';
+import MaquinariaCalculatorPage from './pages/calculos/MaquinariaCalculatorPage';
+import GanaderiaCalculatorPage from './pages/calculos/GanaderiaCalculatorPage';
+import EconomicosCalculatorPage from './pages/calculos/EconomicosCalculatorPage';
+import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -153,6 +161,14 @@ export default function App() {
               <Route path="/org/:orgId/avicola" element={<AvicolaPage />} />
               <Route path="/org/:orgId/yerba" element={<YerbaPage />} />
               <Route path="/org/:orgId/produccion" element={<ProduccionPage />} />
+              <Route path="/org/:orgId/calculos" element={<CalculosPage />} />
+              <Route path="/org/:orgId/calculos/aplicaciones" element={<AplicacionesCalculatorPage />} />
+              <Route path="/org/:orgId/calculos/siembra" element={<SiembraCalculatorPage />} />
+              <Route path="/org/:orgId/calculos/fertilizacion" element={<FertilizacionCalculatorPage />} />
+              <Route path="/org/:orgId/calculos/maquinaria" element={<MaquinariaCalculatorPage />} />
+              <Route path="/org/:orgId/calculos/ganaderia" element={<GanaderiaCalculatorPage />} />
+              <Route path="/org/:orgId/calculos/economicos" element={<EconomicosCalculatorPage />} />
+              <Route path="/org/:orgId/calculos/historial" element={<HistorialCalculosPage />} />
               <Route path="/org/:orgId/siembras" element={<SiembrasPage />} />
               <Route path="/org/:orgId/insumos" element={<InsumosPage />} />
               <Route path="/org/:orgId/ganado" element={<GanadoPage />} />

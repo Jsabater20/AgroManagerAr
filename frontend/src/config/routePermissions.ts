@@ -18,6 +18,7 @@ export const ROUTE_PERMISSIONS: Record<string, RolType[]> = {
   '/rentabilidad': ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'],
   '/produccion': ['OWNER'],
   '/clima': ['OWNER', 'ADMIN', 'OPERARIO', 'ASESOR'],
+  '/calculos': ['OWNER', 'ADMIN', 'OPERARIO'],
   '/precios': ['OWNER', 'ADMIN', 'ASESOR', 'CONTADOR'],
   '/admin': ['OWNER'],
   '/organizaciones/:orgId/auditoria': ['OWNER', 'ADMIN'],

@@ -33,6 +33,7 @@ const MODULOS_DISPONIBLES = [
   'Finanzas',
   'Reportes',
   'Clima',
+  'Cálculos',
 ];
 
 const DURACION_INVITACION_DIAS = 7;

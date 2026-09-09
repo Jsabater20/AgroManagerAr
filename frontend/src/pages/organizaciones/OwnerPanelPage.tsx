@@ -42,6 +42,7 @@ const MODULOS_DISPONIBLES = [
   'Finanzas',
   'Reportes',
   'Clima',
+  'Cálculos',
 ];
 
 type MiembroPanel = {
