@@ -87,6 +87,7 @@ export class DemoService implements OnModuleInit {
         galponCount,
         cultivoFrutiCount,
         cuadroYerbaCount,
+        calculoCount,
       ] =
         await Promise.all([
           this.prisma.campo.count({ where: { usuarioId: demo.id } }),
@@ -106,6 +107,7 @@ export class DemoService implements OnModuleInit {
           this.prisma.galponAvicola.count({ where: { organizacionId: demoOrg.id } }),
           this.prisma.cultivoFrutihorticola.count({ where: { organizacionId: demoOrg.id } }),
           this.prisma.cuadroYerba.count({ where: { organizacionId: demoOrg.id } }),
+          this.prisma.calculoGuardado.count({ where: { organizacionId: demoOrg.id } }),
         ]);
       const campoSinGps = await this.prisma.campo.findFirst({
         where: { usuarioId: demo.id, latitud: null },
@@ -122,6 +124,7 @@ export class DemoService implements OnModuleInit {
         galponCount < 1 ||
         cultivoFrutiCount < 1 ||
         cuadroYerbaCount < 1 ||
+        calculoCount < 6 ||
         campoSinGps
       ) {
         this.logger.log('Demo incompleta — ejecutando reset...');
@@ -165,6 +168,9 @@ export class DemoService implements OnModuleInit {
     const demoOrgId = orgDemo.id;
 
     await this.prisma.evidencia.deleteMany({
+      where: { organizacionId: demoOrgId },
+    });
+    await this.prisma.calculoGuardado.deleteMany({
       where: { organizacionId: demoOrgId },
     });
 
@@ -294,6 +300,148 @@ export class DemoService implements OnModuleInit {
     await this.seedDemoData(uid, demoOrgId);
     await this.sembrarProduccionDemo(uid, demoOrgId);
     await this.prepararMiembrosDemo(uid, demoOrgId);
+    await this.sembrarCalculosDemo(uid, demoOrgId);
+  }
+
+  private async sembrarCalculosDemo(usuarioId: number, organizacionId: number) {
+    const [campo, maquinaria] = await Promise.all([
+      this.prisma.campo.findFirst({
+        where: { organizacionId },
+        orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          nombre: true,
+          hectareas: true,
+          lotes: {
+            orderBy: { id: 'asc' },
+            take: 1,
+            select: { id: true, nombre: true, hectareas: true },
+          },
+        },
+      }),
+      this.prisma.maquinaria.findFirst({
+        where: { organizacionId },
+        orderBy: { id: 'asc' },
+        select: { id: true, nombre: true },
+      }),
+    ]);
+
+    if (!campo) return;
+
+    const lote = campo.lotes[0];
+    const superficieHa = lote?.hectareas ?? campo.hectareas;
+    const datosUbicacion = {
+      campoNombre: campo.nombre,
+      loteNombre: lote?.nombre,
+      superficieHa,
+    };
+    const calculos: Prisma.CalculoGuardadoCreateManyInput[] = [
+      {
+        organizacionId,
+        usuarioId,
+        tipo: 'APLICACION',
+        titulo: `AplicaciÃ³n de herbicida en ${lote?.nombre ?? campo.nombre}`,
+        campoId: campo.id,
+        loteId: lote?.id,
+        datos: {
+          ...datosUbicacion,
+          dosisLitrosPorHa: 2.5,
+          volumenAguaLitrosPorHa: 100,
+        } as Prisma.InputJsonValue,
+        resultado: {
+          productoLitros: superficieHa * 2.5,
+          aguaLitros: superficieHa * 100,
+        } as Prisma.InputJsonValue,
+      },
+      {
+        organizacionId,
+        usuarioId,
+        tipo: 'SIEMBRA',
+        titulo: `Siembra estimada para ${lote?.nombre ?? campo.nombre}`,
+        campoId: campo.id,
+        loteId: lote?.id,
+        datos: {
+          ...datosUbicacion,
+          densidadDeseadaPorHa: 280000,
+          poderGerminativo: 92,
+          pesoMilSemillasGramos: 165,
+        } as Prisma.InputJsonValue,
+        resultado: {
+          semillasPorHa: 304348,
+          semillasTotales: Math.round(superficieHa * 304348),
+          kilosEstimados: Math.round(superficieHa * 50.22 * 100) / 100,
+        } as Prisma.InputJsonValue,
+      },
+      {
+        organizacionId,
+        usuarioId,
+        tipo: 'FERTILIZACION',
+        titulo: `FertilizaciÃ³n de ${lote?.nombre ?? campo.nombre}`,
+        campoId: campo.id,
+        loteId: lote?.id,
+        datos: {
+          ...datosUbicacion,
+          fertilizante: 'Urea granulada',
+          dosisKgPorHa: 120,
+        } as Prisma.InputJsonValue,
+        resultado: { fertilizanteKg: superficieHa * 120 } as Prisma.InputJsonValue,
+      },
+      {
+        organizacionId,
+        usuarioId,
+        tipo: 'GANADERIA',
+        titulo: `Carga animal de ${campo.nombre}`,
+        campoId: campo.id,
+        loteId: lote?.id,
+        datos: { ...datosUbicacion, cantidadAnimales: 86 } as Prisma.InputJsonValue,
+        resultado: { cargaAnimal: Math.round((86 / superficieHa) * 100) / 100 } as Prisma.InputJsonValue,
+      },
+      {
+        organizacionId,
+        usuarioId,
+        tipo: 'ECONOMICO',
+        titulo: `Margen estimado de ${lote?.nombre ?? campo.nombre}`,
+        campoId: campo.id,
+        loteId: lote?.id,
+        datos: {
+          ...datosUbicacion,
+          cultivo: 'MaÃ­z',
+          rendimientoKgHa: 8200,
+          precioPorKg: 245,
+          costoPorHa: 1080000,
+        } as Prisma.InputJsonValue,
+        resultado: {
+          ingresoEsperado: superficieHa * 8200 * 245,
+          costoTotal: superficieHa * 1080000,
+          margenBruto: superficieHa * (8200 * 245 - 1080000),
+          margenPorHa: 928000,
+          puntoEquilibrioKgHa: 4408.16,
+        } as Prisma.InputJsonValue,
+      },
+    ];
+
+    if (maquinaria) {
+      calculos.splice(3, 0, {
+        organizacionId,
+        usuarioId,
+        tipo: 'MAQUINARIA',
+        titulo: `Costo operativo de ${maquinaria.nombre}`,
+        maquinariaId: maquinaria.id,
+        datos: {
+          superficieHa,
+          consumoLitrosPorHa: 12.5,
+          precioCombustiblePorLitro: 1450,
+          maquinariaNombre: maquinaria.nombre,
+        } as Prisma.InputJsonValue,
+        resultado: {
+          combustibleLitros: superficieHa * 12.5,
+          costoCombustible: superficieHa * 12.5 * 1450,
+          costoPorHa: 18125,
+        } as Prisma.InputJsonValue,
+      });
+    }
+
+    await this.prisma.calculoGuardado.createMany({ data: calculos });
   }
 
   private async sembrarProduccionDemo(usuarioId: number, organizacionId: number) {
@@ -542,6 +690,22 @@ export class DemoService implements OnModuleInit {
 
     await this.prisma.actividadMiembro.createMany({
       data: [
+        {
+          organizacionId,
+          usuarioOrganizacionId: miembros.get('campo')!,
+          creadoPorId: ownerId,
+          titulo: 'AplicaciÃ³n programada en ' + campo.nombre,
+          descripcion:
+            'Trabajo preparado desde CÃ¡lculos: aplicar 2,5 L/ha de producto con 100 L/ha de agua. Registrar la ejecuciÃ³n al finalizar.',
+          recursoTipo: 'CAMPO',
+          recursoId: campo.id,
+          contexto: 'Campo: ' + campo.nombre,
+          fechaInicio: fecha(1),
+          fechaEstimadaFin: fecha(2),
+          estado: 'PENDIENTE',
+          prioridad: 'ALTA',
+          activo: true,
+        },
         {
           organizacionId,
           usuarioOrganizacionId: miembros.get('campo')!,
@@ -1820,7 +1984,7 @@ export class DemoService implements OnModuleInit {
 
   private async asegurarDemoEmpresa() {
     const contexto = await this.prepararDemoEmpresa();
-    const [campos, actividades, ordenes, galpones, cultivosFrutihorticolas, cuadrosYerba] = await Promise.all([
+    const [campos, actividades, ordenes, galpones, cultivosFrutihorticolas, cuadrosYerba, calculos] = await Promise.all([
       this.prisma.campo.count({
         where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
       }),
@@ -1839,6 +2003,9 @@ export class DemoService implements OnModuleInit {
       this.prisma.cuadroYerba.count({
         where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
       }),
+      this.prisma.calculoGuardado.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
     ]);
 
     if (
@@ -1847,7 +2014,8 @@ export class DemoService implements OnModuleInit {
       ordenes < 6 ||
       galpones < 1 ||
       cultivosFrutihorticolas < 1 ||
-      cuadrosYerba < 1
+      cuadrosYerba < 1 ||
+      calculos < 18
     ) {
       this.logger.log('Demo Empresa incompleta — ejecutando reset...');
       await this.reiniciarDemoEmpresa(contexto);
@@ -2100,6 +2268,11 @@ export class DemoService implements OnModuleInit {
     }
     await this.sembrarProduccionDemoEmpresa(contexto.ownerId, contexto.organizaciones);
     await this.crearActividadesDemoEmpresa(contexto.ownerId, contexto.organizaciones);
+    await Promise.all(
+      contexto.organizaciones.map((organizacion) =>
+        this.sembrarCalculosDemo(contexto.ownerId, organizacion.id),
+      ),
+    );
   }
 
   private async limpiarDemoEmpresaData(ownerId: number, organizacionesIds: number[]) {
@@ -2132,6 +2305,9 @@ export class DemoService implements OnModuleInit {
       where: { evidencia: { organizacionId: { in: organizacionesIds } } },
     });
     await this.prisma.evidencia.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.calculoGuardado.deleteMany({
       where: { organizacionId: { in: organizacionesIds } },
     });
     await this.prisma.cosechaFrutihorticola.deleteMany({
@@ -2350,6 +2526,22 @@ export class DemoService implements OnModuleInit {
       if (!asignado) return [];
       const contexto = campo ? 'Campo: ' + campo.nombre : organizacion.nombre;
       return [
+        {
+          organizacionId: organizacion.id,
+          usuarioOrganizacionId: asignado.id,
+          creadoPorId: ownerId,
+          titulo: 'AplicaciÃ³n programada desde CÃ¡lculos',
+          descripcion:
+            'Preparar el equipo y realizar la aplicaciÃ³n estimada. Al finalizar, registrar la actividad y sus observaciones.',
+          recursoTipo: 'CAMPO',
+          recursoId: campo?.id,
+          contexto,
+          fechaInicio: fecha(0),
+          fechaEstimadaFin: fecha(indice + 2),
+          estado: 'PENDIENTE',
+          prioridad: 'ALTA',
+          activo: true,
+        },
         {
           organizacionId: organizacion.id,
           usuarioOrganizacionId: asignado.id,
