@@ -10,6 +10,7 @@ import { useThemeStore } from '../../store/theme.store';
 import AiChat from '../ui/AiChat';
 import DemoBanner from '../ui/DemoBanner';
 import PageBackButton from './PageBackButton';
+import ResponsablesEquipo from '../equipo/ResponsablesEquipo';
 import { useAuthStore } from '../../store/auth.store';
 
 export default function Layout() {
@@ -87,6 +88,7 @@ export default function Layout() {
       {/* Contenido centrado */}
       <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '2rem 24px' }}>
         <PageBackButton />
+        <ResponsablesEquipo />
         <Outlet />
       </main>
 

@@ -9,6 +9,20 @@ export type ActividadProductiva =
   | 'FRUTIHORTICOLA'
   | 'YERBA';
 
+export interface ResponsableEquipo {
+  usuarioOrganizacionId: number;
+  nombre: string;
+  apellido: string;
+  roles: string;
+}
+
+export interface ResponsablesEquipoOrganizacion {
+  modulo: string | null;
+  miembrosModulo: ResponsableEquipo[];
+  porCampo: Record<string, ResponsableEquipo[]>;
+  porRecurso: Record<string, ResponsableEquipo[]>;
+}
+
 export const organizacionesApi = {
   // Obtener todas las organizaciones del usuario
   obtenerTodas: () =>
@@ -35,6 +49,9 @@ export const organizacionesApi = {
 
   obtenerMiembroActual: (orgId: number) =>
     api.get<MiembroOrganizacion>(`/organizaciones/${orgId}/miembros/actual`).then((r) => r.data),
+
+  obtenerResponsablesEquipo: (orgId: number, modulo: string) =>
+    api.get<ResponsablesEquipoOrganizacion>(`/organizaciones/${orgId}/equipo/responsables`, { params: { modulo } }).then((r) => r.data),
 
   obtenerUsoMiembros: (orgId: number) =>
     api.get(`/organizaciones/${orgId}/miembros/uso`).then((r) => r.data),

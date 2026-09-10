@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 import { maquinariasApi } from '../../api/maquinarias.api';
 import { camposApi } from '../../api/campos.api';
 import type { CreateMaquinariaDto, EstadoMaquinaria, TipoMaquinaria } from '../../api/types';
+import { ResponsablesRecurso } from '../../components/equipo/ResponsablesEquipo';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -245,6 +246,14 @@ export default function MaquinariasPage() {
                       </span></p>
                     )}
                   </div>
+
+                  <ResponsablesRecurso
+                    organizacionId={Number(orgId)}
+                    modulo="Maquinarias"
+                    recursoTipo="MAQUINARIA"
+                    recursoId={m.id}
+                    campoId={m.campoId}
+                  />
 
                   {/* Alertas */}
                   {(seguroAlert || vtvAlert) && (

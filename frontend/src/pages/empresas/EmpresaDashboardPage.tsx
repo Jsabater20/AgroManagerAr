@@ -12,13 +12,14 @@ import {
   Download,
   ShieldCheck,
   CalendarDays,
+  ChevronRight,
   MessageCircle,
   Plus,
   Save,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { empresasApi } from '../../api/empresas.api';
+import { empresasApi, type MiembroConsolidadoEmpresa } from '../../api/empresas.api';
 import type { ActividadProductiva } from '../../api/organizaciones.api';
 import { WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 
@@ -35,6 +36,11 @@ export default function EmpresaDashboardPage() {
   const organizacionesQuery = useQuery({
     queryKey: ['empresa-organizaciones', id],
     queryFn: () => empresasApi.obtenerOrganizaciones(id),
+    enabled: Number.isInteger(id) && id > 0,
+  });
+  const miembrosQuery = useQuery({
+    queryKey: ['empresa-miembros-consolidados', id],
+    queryFn: () => empresasApi.obtenerMiembrosConsolidados(id),
     enabled: Number.isInteger(id) && id > 0,
   });
 
@@ -57,20 +63,122 @@ export default function EmpresaDashboardPage() {
         100,
       )
     : 0;
+  const miembrosPorEstablecimiento = establecimientos.reduce(
+    (acumulado, establecimiento) => {
+      acumulado.set(
+        establecimiento.id,
+        (miembrosQuery.data ?? []).filter((miembro) =>
+          miembro.establecimientos.some((asignacion) => asignacion.id === establecimiento.id),
+        ),
+      );
+      return acumulado;
+    },
+    new globalThis.Map<number, NonNullable<typeof miembrosQuery.data>>(),
+  );
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6">
       <div className="rounded-3xl bg-gradient-to-r from-emerald-900 to-emerald-700 p-7 text-white shadow-lg">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-200">Dashboard empresarial</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-200">Tu empresa, paso a paso</p>
             <h1 className="mt-2 text-3xl font-bold">{dashboard.empresa.nombre}</h1>
             <p className="mt-2 text-emerald-100">
-              {dashboard.empresa.establecimientos} de {dashboard.empresa.limiteEstablecimientos} establecimientos habilitados
+              Elegí un establecimiento para trabajar en su información diaria o mirá el resumen de toda la empresa.
             </p>
           </div>
           <Building2 size={34} className="text-emerald-200" />
         </div>
       </div>
+
+      <section className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 sm:p-6">
+        <div className="max-w-2xl">
+          <p className="text-sm font-bold text-emerald-800">Para empezar, seguí este orden</p>
+          <h2 className="mt-1 text-xl font-bold text-slate-900">Todo está separado por establecimiento</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            Cada establecimiento conserva sus propios campos, equipo, personas y tareas. El resumen general solo junta la información para que puedas tomar decisiones con una visión completa.
+          </p>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <GuideStep number="1" title="Elegí dónde trabajar" detail="Ingresá al establecimiento que querés gestionar." />
+          <GuideStep number="2" title="Conocé al equipo" detail="Ve quién tiene acceso y qué tareas está realizando." />
+          <GuideStep number="3" title="Consultá el resumen" detail="Revisá toda la empresa sin mezclar los datos." />
+        </div>
+      </section>
+
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-emerald-700">1. Establecimientos</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">Elegí a cuál querés ingresar</h2>
+            <p className="mt-1 text-sm text-slate-500">Abrir uno no modifica la información de los demás.</p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-600">
+            {establecimientos.length} disponibles
+          </span>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {establecimientos.map((organizacion) => (
+            <Link
+              key={organizacion.id}
+              to={`/org/${organizacion.id}/dashboard`}
+              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><Map size={21} /></span>
+                <ChevronRight className="text-slate-400 transition group-hover:translate-x-1 group-hover:text-emerald-700" size={20} />
+              </div>
+              <h3 className="mt-4 text-lg font-bold text-slate-900">{organizacion.nombre}</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                {formatNumber(organizacion.hectareas)} ha · {organizacion.actividadPrincipal ? etiquetaActividad(organizacion.actividadPrincipal) : 'Perfil productivo sin definir'}
+              </p>
+              <span className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-emerald-700">Ingresar al establecimiento <ChevronRight size={16} /></span>
+            </Link>
+          ))}
+        </div>
+        {establecimientos.length === 0 && <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">No hay establecimientos autorizados todavía.</p>}
+      </section>
+
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-emerald-700">2. Equipo por establecimiento</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">Personas que trabajan en cada lugar</h2>
+            <p className="mt-1 text-sm text-slate-500">Así sabés a quién consultar o asignar una tarea.</p>
+          </div>
+          <Link to={`/empresas/${id}/miembros`} className="text-sm font-bold text-emerald-700 hover:text-emerald-800">Ver todo el equipo →</Link>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {establecimientos.map((organizacion) => {
+            const miembros = miembrosPorEstablecimiento.get(organizacion.id) ?? [];
+            return (
+              <article key={organizacion.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-bold text-slate-900">{organizacion.nombre}</h3>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{miembros.length} con acceso</span>
+                </div>
+                {miembrosQuery.isLoading ? (
+                  <p className="mt-4 text-sm text-slate-500">Cargando equipo...</p>
+                ) : miembros.length ? (
+                  <div className="mt-4 space-y-3">
+                    {miembros.slice(0, 3).map((miembro) => (
+                      <div key={miembro.usuario.id} className="flex items-center gap-3">
+                        <Avatar nombre={miembro.usuario.nombre} apellido={miembro.usuario.apellido} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-800">{miembro.usuario.nombre} {miembro.usuario.apellido}</p>
+                          <p className="truncate text-xs text-slate-500">{rolEnEstablecimiento(miembro, organizacion.id)} · {miembro.trabajosActivos} trabajos activos</p>
+                        </div>
+                      </div>
+                    ))}
+                    {miembros.length > 3 && <p className="text-xs font-semibold text-emerald-700">Y {miembros.length - 3} personas más</p>}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-slate-500">Todavía no hay personas asignadas a este establecimiento.</p>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.3fr_.7fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -129,7 +237,9 @@ export default function EmpresaDashboardPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-bold text-slate-900">Resumen operativo</h2>
+        <p className="text-sm font-bold text-emerald-700">3. Resumen general</p>
+        <h2 className="mt-1 text-xl font-bold text-slate-900">Toda la empresa, en un solo lugar</h2>
+        <p className="mt-1 text-sm text-slate-500">Usá estos datos para tener una vista rápida antes de entrar al detalle.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Metric icon={Map} label="Superficie" value={`${formatNumber(dashboard.resumen.superficieHa)} ha`} detail={`${dashboard.resumen.campos} campos`} />
           <Metric icon={PawPrint} label="Animales" value={formatNumber(dashboard.resumen.animales)} detail="Registrados" />
@@ -228,6 +338,33 @@ function etiquetaActividad(actividad: ActividadProductiva) {
     ACTIVIDADES_PRODUCTIVAS.find((item) => item.value === actividad)?.label ??
     actividad
   );
+}
+
+function GuideStep({ number, title, detail }: { number: string; title: string; detail: string }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-emerald-100 bg-white p-4">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">{number}</span>
+      <div>
+        <p className="text-sm font-bold text-slate-900">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ nombre, apellido }: { nombre: string; apellido: string }) {
+  return <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">{`${nombre[0] ?? ''}${apellido[0] ?? ''}`}</span>;
+}
+
+function rolEnEstablecimiento(miembro: MiembroConsolidadoEmpresa, organizacionId: number) {
+  const roles = miembro.establecimientos.find((establecimiento) => establecimiento.id === organizacionId)?.roles;
+  if (!roles) return 'Miembro';
+  return roles
+    .replace(/[\[\]"]/g, '')
+    .replaceAll(',', ' · ')
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (letra) => letra.toUpperCase()) || 'Miembro';
 }
 
 function CrearEstablecimientoModal({

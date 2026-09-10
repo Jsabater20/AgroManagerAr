@@ -239,6 +239,71 @@ export class OrganizationsService {
     })));
   }
 
+  async obtenerResponsablesEquipo(organizacionId: number, modulo?: string) {
+    const miembros = await this.prisma.usuarioOrganizacion.findMany({
+      where: { organizacionId, activo: true },
+      include: {
+        usuario: {
+          select: { id: true, nombre: true, apellido: true },
+        },
+        AsignacionCampo: {
+          where: { activo: true },
+          select: { campoId: true },
+        },
+        asignaciones: {
+          select: { recursoTipo: true, recursoId: true },
+        },
+        VisibilidadModulo: {
+          where: { activo: true },
+          select: { moduloNombre: true },
+        },
+      },
+      orderBy: { usuario: { nombre: 'asc' } },
+    });
+
+    const porCampo: Record<string, Array<{
+      usuarioOrganizacionId: number;
+      nombre: string;
+      apellido: string;
+      roles: string;
+    }>> = {};
+    const porRecurso: Record<string, Array<{
+      usuarioOrganizacionId: number;
+      nombre: string;
+      apellido: string;
+      roles: string;
+    }>> = {};
+    const resumenMiembro = (miembro: (typeof miembros)[number]) => ({
+      usuarioOrganizacionId: miembro.id,
+      nombre: miembro.usuario.nombre,
+      apellido: miembro.usuario.apellido,
+      roles: miembro.roles,
+    });
+
+    for (const miembro of miembros) {
+      const resumen = resumenMiembro(miembro);
+      for (const asignacion of miembro.AsignacionCampo) {
+        (porCampo[String(asignacion.campoId)] ??= []).push(resumen);
+      }
+      for (const asignacion of miembro.asignaciones) {
+        const clave = `${asignacion.recursoTipo}:${asignacion.recursoId}`;
+        (porRecurso[clave] ??= []).push(resumen);
+      }
+    }
+
+    const miembrosModulo = modulo
+      ? miembros
+          .filter((miembro) =>
+            miembro.VisibilidadModulo.some(
+              (visibilidad) => visibilidad.moduloNombre === modulo,
+            ),
+          )
+          .map(resumenMiembro)
+      : [];
+
+    return { modulo: modulo ?? null, miembrosModulo, porCampo, porRecurso };
+  }
+
   // ─── PANEL DEL OWNER ───────────────────────────────────────────────────────
 
   async obtenerMiembroActual(

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Map, Plus, Loader2, ChevronRight, Tractor, User } from 'lucide-react';
+import { Map, Plus, Loader2, ChevronRight, Tractor } from 'lucide-react';
 import { camposApi } from '../../api/campos.api';
 import NuevoCampoWizard from './NuevoCampoWizard';
 import EmptyState from '../../components/EmptyState';
+import { ResponsablesRecurso } from '../../components/equipo/ResponsablesEquipo';
 
 interface Campo {
   id: number;
@@ -14,10 +15,6 @@ interface Campo {
   hectareas: number;
   lotes: any[];
   usuarioId?: number;
-  usuario?: {
-    nombre: string;
-    apellido: string;
-  };
 }
 
 export default function CamposPage() {
@@ -80,13 +77,13 @@ export default function CamposPage() {
                 <p className="text-sm text-gray-500 mt-0.5">{campo.ubicacion}</p>
               )}
 
-              {/* Persona asignada */}
-              {campo.usuario && (
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
-                  <User size={14} className="text-emerald-600" />
-                  <span>{campo.usuario.nombre} {campo.usuario.apellido}</span>
-                </div>
-              )}
+              <ResponsablesRecurso
+                organizacionId={Number(orgId)}
+                modulo="Campos"
+                recursoTipo="CAMPO"
+                recursoId={campo.id}
+                campoId={campo.id}
+              />
 
               <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
                 <span className="text-sm text-gray-600">

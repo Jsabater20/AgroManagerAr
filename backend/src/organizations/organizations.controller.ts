@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -67,6 +68,18 @@ export class OrganizationsController {
     return await this.organizacionesService.obtenerMiembroActual(
       parseInt(orgId),
       req.user?.id || 0,
+    );
+  }
+
+  @Get(':orgId/equipo/responsables')
+  @UseGuards(OrganizationGuard)
+  async obtenerResponsablesEquipo(
+    @Param('orgId') orgId: string,
+    @Query('modulo') modulo?: string,
+  ) {
+    return this.organizacionesService.obtenerResponsablesEquipo(
+      parseInt(orgId),
+      modulo,
     );
   }
 
