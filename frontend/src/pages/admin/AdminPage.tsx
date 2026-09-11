@@ -6,10 +6,11 @@ import {
   deleteUser,
   otorgarBeneficioPro,
   revocarBeneficioPro,
+  cargarEjemplosSuperadmin,
 } from '../../api/users.api';
 import { useAuthStore } from '../../store/auth.store';
 import { Link, Navigate } from 'react-router-dom';
-import { Trash2, AlertCircle, Building2, Lock, Gift } from 'lucide-react';
+import { Trash2, AlertCircle, Building2, Lock, Gift, Database } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────
@@ -31,6 +32,8 @@ export default function AdminPage() {
   const [motivoBeneficio, setMotivoBeneficio] = useState('Beneficio promocional');
   const [planError, setPlanError] = useState('');
   const [msg, setMsg] = useState('');
+  const [mostrarEjemplos, setMostrarEjemplos] = useState(false);
+  const [organizacionEjemplosId, setOrganizacionEjemplosId] = useState<number | ''>('');
 
   if (usuario?.rolGlobal !== 'SUPERADMIN') {
     return <Navigate to="/" replace />;
@@ -88,6 +91,15 @@ export default function AdminPage() {
     onError: () => toast.error('No se pudo revocar el beneficio.'),
   });
 
+  const mutEjemplos = useMutation({
+    mutationFn: (organizacionId: number) => cargarEjemplosSuperadmin(organizacionId),
+    onSuccess: (respuesta) => {
+      setMostrarEjemplos(false);
+      flash(respuesta.mensaje);
+    },
+    onError: () => toast.error('No se pudieron cargar los ejemplos.'),
+  });
+
   const currentUser = users.find((u) => u.id === planModal);
   const usuarioBeneficio = users.find((u) => u.id === beneficioModal);
   const organizacionesDelUsuarioBeneficio = (usuarioBeneficio?.vinculosOrganizacion ?? [])
@@ -97,6 +109,14 @@ export default function AdminPage() {
   );
   const isDemoAccount = currentUser?.email === DEMO_EMAIL;
   const isSuperadminOwner = currentUser && SUPERADMIN_OWNER_EMAILS.includes(currentUser.email.toLowerCase());
+  const misOrganizaciones = (usuario?.organizaciones ?? []).filter(
+    (organizacion) => organizacion.propietarioId === usuario?.id,
+  );
+
+  const abrirEjemplos = () => {
+    setOrganizacionEjemplosId(misOrganizaciones[0]?.id ?? '');
+    setMostrarEjemplos(true);
+  };
 
   const handlePlanChange = (plan: 'FREE' | 'PRO') => {
     if (!currentUser) return;
@@ -143,6 +163,16 @@ export default function AdminPage() {
             <Building2 size={16} />
             Empresas
           </Link>
+          {misOrganizaciones.length > 0 && (
+            <button
+              type="button"
+              onClick={abrirEjemplos}
+              className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-100"
+            >
+              <Database size={16} />
+              Cargar ejemplos
+            </button>
+          )}
           <span className="text-sm bg-green-50 text-green-700 px-3 py-1 rounded-lg font-medium">
             {users.length} usuarios
           </span>
@@ -153,6 +183,46 @@ export default function AdminPage() {
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
           <div className="w-2 h-2 bg-green-600 rounded-full" />
           {msg}
+        </div>
+      )}
+
+      {mostrarEjemplos && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-violet-100 p-2.5 text-violet-700"><Database size={22} /></span>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Cargar datos de ejemplo</h2>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  Se crearán ejemplos de campos, lotes, cultivos, insumos, ganado, tareas, maquinaria, finanzas, producción y cálculos. No se elimina información existente.
+                </p>
+              </div>
+            </div>
+            <label className="mt-5 block text-sm font-semibold text-slate-700">
+              Organización donde querés ver los ejemplos
+              <select
+                value={organizacionEjemplosId}
+                onChange={(event) => setOrganizacionEjemplosId(Number(event.target.value) || '')}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+              >
+                <option value="">Seleccioná una organización</option>
+                {misOrganizaciones.map((organizacion) => <option key={organizacion.id} value={organizacion.id}>{organizacion.nombre}</option>)}
+              </select>
+            </label>
+            <p className="mt-3 text-xs text-slate-500">La carga se permite una sola vez por organización para evitar duplicados.</p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setMostrarEjemplos(false)} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+              <button
+                type="button"
+                disabled={!organizacionEjemplosId || mutEjemplos.isPending}
+                onClick={() => organizacionEjemplosId && mutEjemplos.mutate(organizacionEjemplosId)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Database size={16} />
+                {mutEjemplos.isPending ? 'Cargando ejemplos...' : 'Confirmar carga'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

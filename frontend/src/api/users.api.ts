@@ -150,3 +150,6 @@ export const revocarBeneficioPro = (id: number): Promise<{ id: number }> =>
 
 export const deleteUser = (id: number): Promise<{ ok: boolean }> =>
   api.delete<{ ok: boolean }>(`/users/admin/${id}`).then((r) => r.data);
+
+export const cargarEjemplosSuperadmin = (organizacionId: number): Promise<{ creado: boolean; mensaje: string }> =>
+  api.post('/users/admin/ejemplos', { organizacionId }).then((r) => r.data);

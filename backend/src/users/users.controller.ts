@@ -23,6 +23,7 @@ import {
   ConfirmarFotoPerfilDto,
   ActualizarEncuadreFotoPerfilDto,
 } from './dto/users.dto';
+import { SembrarEjemplosSuperadminDto } from './dto/sembrar-ejemplos-superadmin.dto';
 
 interface AuthRequest {
   user: { id: number; email: string; nombre: string; rol: string };
@@ -131,5 +132,13 @@ export class UsersController {
   @Post('admin/seed-demo')
   seedDemo(@Request() req: AuthRequest) {
     return this.usersService.seedDemoData(req.user.id);
+  }
+
+  @Post('admin/ejemplos')
+  sembrarEjemplosSuperadmin(
+    @Request() req: AuthRequest,
+    @Body() dto: SembrarEjemplosSuperadminDto,
+  ) {
+    return this.usersService.sembrarEjemplosSuperadmin(req.user.id, dto.organizacionId);
   }
 }

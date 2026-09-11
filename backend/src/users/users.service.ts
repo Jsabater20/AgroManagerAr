@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { isProtectedProAccount } from '../auth/system-accounts';
 import { R2StorageService } from '../storage/r2-storage.service';
+import { DemoService } from '../demo/demo.service';
 import {
   UpdateProfileDto,
   ChangePasswordDto,
@@ -25,6 +26,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private r2StorageService: R2StorageService,
+    private demoService: DemoService,
   ) {}
 
   async getProfile(usuarioId: number) {
@@ -583,6 +585,10 @@ export class UsersService {
     await this.prisma.campania.deleteMany({ where: { usuarioId: uid } });
 
     return { ok: true };
+  }
+
+  async sembrarEjemplosSuperadmin(adminId: number, organizacionId: number) {
+    return this.demoService.sembrarEjemplosSuperadmin(adminId, organizacionId);
   }
 
   private async obtenerFotoPerfilUrl(storageKey?: string | null) {

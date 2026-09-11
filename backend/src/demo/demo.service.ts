@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ActividadProductiva, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -303,10 +303,91 @@ export class DemoService implements OnModuleInit {
     await this.sembrarCalculosDemo(uid, demoOrgId);
   }
 
-  private async sembrarCalculosDemo(usuarioId: number, organizacionId: number) {
+  async sembrarEjemplosSuperadmin(usuarioId: number, organizacionId: number) {
+    const [usuario, organizacion, yaCargado] = await Promise.all([
+      this.prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { rolGlobal: true },
+      }),
+      this.prisma.organizacion.findFirst({
+        where: { id: organizacionId, propietarioId: usuarioId },
+        select: { id: true, nombre: true },
+      }),
+      this.prisma.auditoriaLog.findFirst({
+        where: {
+          usuarioId,
+          organizacionId,
+          accion: 'EJEMPLOS_SUPERADMIN_CARGADOS',
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    if (usuario?.rolGlobal !== 'SUPERADMIN') {
+      throw new ForbiddenException('Solo SUPERADMIN puede cargar ejemplos.');
+    }
+    if (!organizacion) {
+      throw new BadRequestException('Solo podés cargar ejemplos en una organización propia.');
+    }
+    if (yaCargado) {
+      return {
+        creado: false,
+        mensaje: 'Los ejemplos ya fueron cargados en esta organización.',
+      };
+    }
+
+    const tiposCultivo = [
+      { nombre: 'Soja', descripcion: 'Glycine max' },
+      { nombre: 'Maíz', descripcion: 'Zea mays' },
+      { nombre: 'Trigo', descripcion: 'Triticum aestivum' },
+      { nombre: 'Girasol', descripcion: 'Helianthus annuus' },
+    ];
+    await Promise.all(
+      tiposCultivo.map((tipo) =>
+        this.prisma.tipoCultivo.upsert({
+          where: { nombre: tipo.nombre },
+          update: {},
+          create: tipo,
+        }),
+      ),
+    );
+
+    await this.seedDemoData(usuarioId, organizacionId);
+    const campoEjemplo = await this.prisma.campo.findFirst({
+      where: { organizacionId, nombre: 'La Esperanza' },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    await this.sembrarProduccionDemo(usuarioId, organizacionId, campoEjemplo?.id);
+    await this.sembrarCalculosDemo(usuarioId, organizacionId, campoEjemplo?.id);
+    await this.prisma.auditoriaLog.create({
+      data: {
+        usuarioId,
+        organizacionId,
+        accion: 'EJEMPLOS_SUPERADMIN_CARGADOS',
+        entidad: 'Organizacion',
+        entidadId: organizacion.id,
+        cambios: JSON.stringify({
+          origen: 'panel_superadmin',
+          descripcion: 'Datos de muestra cargados sin eliminar información existente.',
+        }),
+      },
+    });
+
+    return {
+      creado: true,
+      mensaje: `Ejemplos cargados en ${organizacion.nombre}.`,
+    };
+  }
+
+  private async sembrarCalculosDemo(
+    usuarioId: number,
+    organizacionId: number,
+    campoId?: number,
+  ) {
     const [campo, maquinaria] = await Promise.all([
       this.prisma.campo.findFirst({
-        where: { organizacionId },
+        where: { organizacionId, ...(campoId ? { id: campoId } : {}) },
         orderBy: { id: 'asc' },
         select: {
           id: true,
@@ -444,9 +525,13 @@ export class DemoService implements OnModuleInit {
     await this.prisma.calculoGuardado.createMany({ data: calculos });
   }
 
-  private async sembrarProduccionDemo(usuarioId: number, organizacionId: number) {
+  private async sembrarProduccionDemo(
+    usuarioId: number,
+    organizacionId: number,
+    campoId?: number,
+  ) {
     const campo = await this.prisma.campo.findFirst({
-      where: { organizacionId },
+      where: { organizacionId, ...(campoId ? { id: campoId } : {}) },
       select: { id: true, lotes: { select: { id: true }, take: 1 } },
       orderBy: { id: 'asc' },
     });
