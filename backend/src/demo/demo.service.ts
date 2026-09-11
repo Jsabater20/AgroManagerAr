@@ -7,6 +7,8 @@ import { DEMO_EMAIL, DEMO_EMPRESA_EMAIL } from '../auth/system-accounts';
 
 export { DEMO_EMAIL } from '../auth/system-accounts';
 
+const SUPERADMIN_SHOWCASE_EMAIL = 'joaquinsabater@agromanagerar.com';
+
 @Injectable()
 export class DemoService implements OnModuleInit {
   private readonly logger = new Logger(DemoService.name);
@@ -16,6 +18,11 @@ export class DemoService implements OnModuleInit {
   /** Al iniciar: resetea la demo si falta algún dato clave (ej. maquinarias vacías) */
   async onModuleInit() {
     try {
+      try {
+        await this.asegurarEjemplosSuperadmin();
+      } catch (error) {
+        this.logger.error('No se pudieron cargar los ejemplos del superadmin.', error);
+      }
       await this.asegurarDemoEmpresa();
 
       const demo = await this.prisma.usuario.findUnique({
@@ -133,6 +140,30 @@ export class DemoService implements OnModuleInit {
       }
     } catch (e) {
       this.logger.error('Error en onModuleInit demo:', e);
+    }
+  }
+
+  private async asegurarEjemplosSuperadmin() {
+    const superadmin = await this.prisma.usuario.findUnique({
+      where: { email: SUPERADMIN_SHOWCASE_EMAIL },
+      select: { id: true, rolGlobal: true },
+    });
+    if (superadmin?.rolGlobal !== 'SUPERADMIN') return;
+
+    const organizaciones = await this.prisma.organizacion.findMany({
+      where: { propietarioId: superadmin.id },
+      orderBy: { createdAt: 'asc' },
+      take: 2,
+      select: { id: true },
+    });
+    if (organizaciones.length !== 1) return;
+
+    const resultado = await this.sembrarEjemplosSuperadmin(
+      superadmin.id,
+      organizaciones[0].id,
+    );
+    if (resultado.creado) {
+      this.logger.log('Ejemplos cargados en la organización del superadmin.');
     }
   }
 
