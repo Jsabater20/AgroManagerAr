@@ -611,7 +611,7 @@ function KpiCard({ icon: Icon, color, label, value, sub, to, alert }: {
 }) {
   const c = COLOR_MAP[color] ?? COLOR_MAP.blue;
   return (
-    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] border border-gray-100 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all group relative overflow-hidden">
+    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-[0_5px_16px_rgba(23,41,31,0.08)] border border-gray-200 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all group relative overflow-hidden">
       {alert && <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/5 rounded-bl-full" />}
       <div className={`inline-flex p-2.5 rounded-xl ${c.bg} ring-4 ${c.ring} mb-4`}>
         <Icon size={20} className={c.icon} />
@@ -627,7 +627,7 @@ function FinCard({ label, value, icon: Icon, color, bg }: {
   label: string; value: number; icon: typeof DollarSign; color: string; bg: string;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] border border-gray-100 dark:border-gray-700/40 flex items-center gap-4">
+    <div className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-[0_5px_16px_rgba(23,41,31,0.08)] border border-gray-200 dark:border-gray-700/40 flex items-center gap-4">
       <div className={`p-3 rounded-xl ${bg}`}>
         <Icon size={20} className={color} />
       </div>
@@ -645,7 +645,7 @@ function QuickStat({ label, value, unit, to, big }: {
   label: string; value: number; unit: string; to: string; big?: boolean;
 }) {
   return (
-    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-xl p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)] border border-gray-100 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all">
+    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-xl p-4 shadow-[0_5px_16px_rgba(23,41,31,0.08)] border border-gray-200 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all">
       <p className={`font-bold text-gray-900 dark:text-white leading-none ${big ? 'text-2xl' : 'text-xl'}`}>
         {value.toLocaleString('es-AR')}
       </p>

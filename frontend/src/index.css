@@ -24,7 +24,7 @@
 
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #f4f7f5;
+    background-color: #eaf1ed;
     color: #172033;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -63,6 +63,17 @@ html:not(.dark) {
 
   & .hover\:bg-gray-50:hover { background-color: #f2f7f4; }
   & .hover\:bg-gray-100:hover { background-color: #e8f0eb; }
+
+  & .dashboard-shell .bg-white {
+    border-color: #c4d2ca;
+    box-shadow: 0 5px 16px rgba(23, 41, 31, 0.08);
+  }
+
+  & .dashboard-shell .border-gray-100 { border-color: #c4d2ca; }
+  & .dashboard-shell a.bg-white:hover {
+    border-color: #78a98a;
+    box-shadow: 0 9px 22px rgba(23, 85, 51, 0.13);
+  }
 }
 
 /* ── Global dark-mode surface overrides ──────────────────────────────────── */

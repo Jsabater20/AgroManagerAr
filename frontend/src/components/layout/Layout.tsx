@@ -26,7 +26,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f7f5] dark:bg-gray-950">
+    <div className="min-h-screen bg-[#eaf1ed] dark:bg-gray-950">
       <DemoBanner />
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {showOnboarding && <OnboardingWizard onClose={dismissOnboarding} />}
