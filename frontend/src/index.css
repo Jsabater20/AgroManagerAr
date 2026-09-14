@@ -24,8 +24,8 @@
 
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #edf2ed;
-    color: #111827;
+    background-color: #f4f7f5;
+    color: #172033;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -46,7 +46,23 @@
 
 /* ── Light-mode: suavizar bg-gray-50 con tinte sage ─────────────────────── */
 @theme {
-  --color-gray-50: #f0f5f1;
+  --color-gray-50: #f7faf8;
+}
+
+/* ── Light-mode: mayor contraste y jerarquía visual ─────────────────────── */
+html:not(.dark) {
+  & .bg-white { background-color: #ffffff; }
+  & .border-gray-100 { border-color: #dbe5df; }
+  & .border-gray-200 { border-color: #cad8d0; }
+
+  & .text-gray-400 { color: #64748b; }
+  & .text-gray-500 { color: #52616f; }
+  & .text-gray-600 { color: #3f4d5a; }
+  & .text-gray-700 { color: #263544; }
+  & .text-gray-900 { color: #172033; }
+
+  & .hover\:bg-gray-50:hover { background-color: #f2f7f4; }
+  & .hover\:bg-gray-100:hover { background-color: #e8f0eb; }
 }
 
 /* ── Global dark-mode surface overrides ──────────────────────────────────── */

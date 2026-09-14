@@ -142,7 +142,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-shell space-y-6">
       {/* Header banner */}
       <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-slate-800 via-slate-700 to-emerald-800 shadow-lg">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(52,211,153,0.15),transparent_60%)]" />
@@ -212,7 +212,7 @@ export default function DashboardPage() {
               <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Wheat size={16} className="text-green-500" /> Producción anual
               </h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Kg cosechados por mes</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">Kg cosechados por mes</p>
             </div>
             <Link to={`/org/${orgId}/reportes`} className="text-xs text-green-700 font-medium flex items-center gap-1">
               Detalle <ArrowRight size={11} />
@@ -245,7 +245,7 @@ export default function DashboardPage() {
               <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <DollarSign size={16} className="text-blue-500" /> Finanzas por mes
               </h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Ingresos vs egresos</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">Ingresos vs egresos</p>
             </div>
             <Link to={`/org/${orgId}/finanzas`} className="text-xs text-green-700 font-medium flex items-center gap-1">
               Ver finanzas <ArrowRight size={11} />
@@ -611,14 +611,14 @@ function KpiCard({ icon: Icon, color, label, value, sub, to, alert }: {
 }) {
   const c = COLOR_MAP[color] ?? COLOR_MAP.blue;
   return (
-    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all group relative overflow-hidden">
+    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] border border-gray-100 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all group relative overflow-hidden">
       {alert && <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/5 rounded-bl-full" />}
       <div className={`inline-flex p-2.5 rounded-xl ${c.bg} ring-4 ${c.ring} mb-4`}>
         <Icon size={20} className={c.icon} />
       </div>
       <p className="text-3xl font-bold text-gray-900 dark:text-white leading-none">{value.toLocaleString('es-AR')}</p>
       <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-1.5 group-hover:text-green-500 transition-colors">{label}</p>
-      <p className={`text-xs mt-0.5 font-medium ${alert ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>{sub}</p>
+      <p className={`text-xs mt-0.5 font-medium ${alert ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-500'}`}>{sub}</p>
     </Link>
   );
 }
@@ -627,12 +627,12 @@ function FinCard({ label, value, icon: Icon, color, bg }: {
   label: string; value: number; icon: typeof DollarSign; color: string; bg: string;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700/40 flex items-center gap-4">
+    <div className="bg-white dark:bg-gray-800/70 rounded-2xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] border border-gray-100 dark:border-gray-700/40 flex items-center gap-4">
       <div className={`p-3 rounded-xl ${bg}`}>
         <Icon size={20} className={color} />
       </div>
       <div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 font-medium mb-0.5">{label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-500 font-medium mb-0.5">{label}</p>
         <p className={`text-xl font-bold ${color}`}>
           ${Math.abs(value).toLocaleString('es-AR')}
         </p>
@@ -645,7 +645,7 @@ function QuickStat({ label, value, unit, to, big }: {
   label: string; value: number; unit: string; to: string; big?: boolean;
 }) {
   return (
-    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all">
+    <Link to={to} className="bg-white dark:bg-gray-800/70 rounded-xl p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)] border border-gray-100 dark:border-gray-700/40 hover:shadow-md hover:-translate-y-0.5 transition-all">
       <p className={`font-bold text-gray-900 dark:text-white leading-none ${big ? 'text-2xl' : 'text-xl'}`}>
         {value.toLocaleString('es-AR')}
       </p>
