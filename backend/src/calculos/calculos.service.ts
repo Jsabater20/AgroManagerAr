@@ -63,14 +63,30 @@ export class CalculosService {
       );
     }
 
-    await this.memberAccessService.requireModule(
+    const acceso = await this.memberAccessService.requireModule(
       usuarioId,
       organizacionId,
       'Maquinarias',
     );
 
+    const maquinariasAsignadas = acceso.esOwner
+      ? []
+      : await this.prisma.asignacionRecurso.findMany({
+          where: {
+            organizacionId,
+            usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+            recursoTipo: 'MAQUINARIA',
+          },
+          select: { recursoId: true },
+        });
+
     return this.prisma.maquinaria.findMany({
-      where: { organizacionId },
+      where: {
+        organizacionId,
+        ...(acceso.esOwner
+          ? {}
+          : { id: { in: maquinariasAsignadas.map((item) => item.recursoId) } }),
+      },
       select: {
         id: true,
         nombre: true,
@@ -154,7 +170,7 @@ export class CalculosService {
     organizacionId: number,
   ) {
     await this.requireProAndCalculosModule(usuarioId, organizacionId);
-    await this.validarRecursos(dto, usuarioId, organizacionId);
+    const campoId = await this.validarRecursos(dto, usuarioId, organizacionId);
 
     return this.prisma.calculoGuardado.create({
       data: {
@@ -162,7 +178,7 @@ export class CalculosService {
         usuarioId,
         tipo: dto.tipo,
         titulo: dto.titulo.trim(),
-        campoId: dto.campoId,
+        campoId,
         loteId: dto.loteId,
         maquinariaId: dto.maquinariaId,
         datos: dto.datos as Prisma.InputJsonValue,
@@ -192,7 +208,7 @@ export class CalculosService {
     dto: GuardarCalculoDto,
     usuarioId: number,
     organizacionId: number,
-  ) {
+  ): Promise<number | undefined> {
     let campoId = dto.campoId;
 
     if (dto.loteId) {
@@ -218,7 +234,7 @@ export class CalculosService {
     }
 
     if (dto.maquinariaId) {
-      await this.memberAccessService.requireModule(
+      const acceso = await this.memberAccessService.requireModule(
         usuarioId,
         organizacionId,
         'Maquinarias',
@@ -232,6 +248,26 @@ export class CalculosService {
           'La maquinaria no pertenece a esta organización.',
         );
       }
+
+      if (!acceso.esOwner) {
+        const asignacion = await this.prisma.asignacionRecurso.findFirst({
+          where: {
+            organizacionId,
+            usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+            recursoTipo: 'MAQUINARIA',
+            recursoId: dto.maquinariaId,
+          },
+          select: { id: true },
+        });
+
+        if (!asignacion) {
+          throw new ForbiddenException(
+            'No tenes permiso sobre esta maquinaria.',
+          );
+        }
+      }
     }
+
+    return campoId;
   }
 }
