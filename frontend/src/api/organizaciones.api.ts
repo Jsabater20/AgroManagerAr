@@ -61,8 +61,14 @@ export const organizacionesApi = {
     api.get<InvitacionOrganizacion[]>(`/organizaciones/${orgId}/invitaciones`).then((r) => r.data),
 
   // Invitar un nuevo miembro
-  invitarMiembro: (orgId: number, dto: { email: string; rol: string; mensaje?: string }) =>
+  invitarMiembro: (orgId: number, dto: { email: string; rol: string; mensaje?: string; cargo?: string; cargoPersonalizado?: string; responsableId?: number }) =>
     api.post(`/organizaciones/${orgId}/miembros/invitar`, dto).then((r) => r.data),
+
+  actualizarEstructuraEquipo: (
+    orgId: number,
+    usuarioOrgId: number,
+    dto: { cargo: string; cargoPersonalizado?: string; responsableId?: number | null; puedeGestionarEquipo: boolean },
+  ) => api.patch(`/organizaciones/${orgId}/miembros/${usuarioOrgId}/estructura`, dto).then((r) => r.data),
 
   // Aceptar una invitación (endpoint público con JWT)
   aceptarInvitacion: (token: string) =>

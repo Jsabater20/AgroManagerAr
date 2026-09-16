@@ -83,7 +83,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     (organizacion) =>
       organizacion.id === currentOrgIdNumber && organizacion.propietarioId === usuario.id,
   ) ?? false;
-  const canManageMembers = isSuperAdmin || isOwner;
+  const canManageMembers = isOwner;
 
   const miembroActualQuery = useQuery({
     queryKey: ['miembro-actual', currentOrgIdNumber],
@@ -97,6 +97,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       .filter((modulo) => modulo.activo)
       .map((modulo) => modulo.moduloNombre),
   );
+  const canManageOwnTeam = canManageMembers || !!miembroActualQuery.data?.puedeGestionarEquipo;
   const visibleNavItems = !hasOrganizationContext
     ? []
     : canManageMembers
@@ -114,12 +115,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     navigate('/login');
   };
 
-  const memberSubitems = [
+  const memberSubitems = canManageMembers ? [
     { label: 'Resumen del equipo', to: `/org/${currentOrgId}/miembros` },
     { label: '1. Invitar persona', to: `/org/${currentOrgId}/miembros/invitar` },
     { label: '2. Configurar accesos', to: `/org/${currentOrgId}/miembros/administracion` },
     { label: '3. Asignar trabajo', to: `/org/${currentOrgId}/miembros/asignar-trabajo` },
     { label: 'Ver seguimiento', to: `/org/${currentOrgId}/miembros/trabajos` },
+  ] : [
+    { label: 'Mi equipo', to: `/org/${currentOrgId}/miembros` },
+    { label: 'Incorporar integrante', to: `/org/${currentOrgId}/miembros/invitar` },
   ];
 
   return (
@@ -181,7 +185,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </NavLink>
         ))}
 
-        {hasOrganizationContext && canManageMembers && (
+        {hasOrganizationContext && canManageOwnTeam && (
           <div className="pt-1">
             <button
               type="button"

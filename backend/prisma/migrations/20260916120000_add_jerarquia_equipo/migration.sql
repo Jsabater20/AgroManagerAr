@@ -1,0 +1,41 @@
+CREATE TYPE "CargoEquipo" AS ENUM (
+  'ADMINISTRACION_GENERAL',
+  'ENCARGADO_ESTABLECIMIENTO',
+  'ENCARGADO_AGRICOLA',
+  'ENCARGADO_GANADERO',
+  'ENCARGADO_TAMBO',
+  'ENCARGADO_AVICOLA',
+  'ENCARGADO_FRUTIHORTICOLA',
+  'ASESOR_AGRONOMICO',
+  'VETERINARIO',
+  'ENCARGADO_MAQUINARIA',
+  'MECANICO_MANTENIMIENTO',
+  'OPERADOR_MAQUINARIA',
+  'OPERARIO_RURAL',
+  'INSUMOS_DEPOSITO',
+  'CONTABILIDAD',
+  'FINANZAS_PAGOS',
+  'LOGISTICA_TRANSPORTE',
+  'COMERCIALIZACION',
+  'CONTRATISTA_EXTERNO',
+  'OTRO'
+);
+
+ALTER TABLE "UsuarioOrganizacion"
+  ADD COLUMN "cargo" "CargoEquipo" NOT NULL DEFAULT 'OPERARIO_RURAL',
+  ADD COLUMN "cargoPersonalizado" TEXT,
+  ADD COLUMN "responsableId" INTEGER,
+  ADD COLUMN "puedeGestionarEquipo" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "InvitacionOrganizacion"
+  ADD COLUMN "cargo" "CargoEquipo" NOT NULL DEFAULT 'OPERARIO_RURAL',
+  ADD COLUMN "cargoPersonalizado" TEXT,
+  ADD COLUMN "responsableId" INTEGER;
+
+CREATE INDEX "UsuarioOrganizacion_organizacionId_responsableId_idx"
+  ON "UsuarioOrganizacion"("organizacionId", "responsableId");
+
+ALTER TABLE "UsuarioOrganizacion"
+  ADD CONSTRAINT "UsuarioOrganizacion_responsableId_fkey"
+  FOREIGN KEY ("responsableId") REFERENCES "UsuarioOrganizacion"("id")
+  ON DELETE SET NULL ON UPDATE CASCADE;

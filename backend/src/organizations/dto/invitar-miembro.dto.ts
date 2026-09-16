@@ -1,4 +1,5 @@
-import { IsEmail, IsString, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsString, IsEnum, IsOptional, IsInt, MaxLength, Min } from 'class-validator';
+import { CargoEquipo } from '@prisma/client';
 
 export class InvitarMiembroDto {
   @IsEmail()
@@ -11,4 +12,18 @@ export class InvitarMiembroDto {
   @IsString()
   @IsOptional()
   mensaje?: string;
+
+  @IsEnum(CargoEquipo)
+  @IsOptional()
+  cargo?: CargoEquipo;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(80)
+  cargoPersonalizado?: string;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  responsableId?: number;
 }

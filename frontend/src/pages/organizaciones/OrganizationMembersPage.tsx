@@ -15,6 +15,8 @@ import toast from 'react-hot-toast';
 import { organizacionesApi } from '../../api/organizaciones.api';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
 import { ROLES_DISPONIBLES } from '../../constants/roles';
+import { CARGOS_EQUIPO, nombreCargo, type CargoEquipo } from '../../constants/cargosEquipo';
+import { usePermissions } from '../../hooks/usePermissions';
 import type {
   MiembroOrganizacion,
   InvitacionOrganizacion,
@@ -44,8 +46,12 @@ export default function OrganizationMembersPage() {
   const navigate = useNavigate();
   const [emailInput, setEmailInput] = useState('');
   const [roleInput, setRoleInput] = useState<RolOrganizacion>('OPERARIO');
+  const [cargoInput, setCargoInput] = useState<CargoEquipo>('OPERARIO_RURAL');
+  const [cargoPersonalizadoInput, setCargoPersonalizadoInput] = useState('');
+  const [responsableInput, setResponsableInput] = useState('');
   const [mensajeInput, setMensajeInput] = useState('');
   const queryClient = useQueryClient();
+  const { isOwner } = usePermissions();
 
   const orgIdNum = orgId ? parseInt(orgId) : 0;
 
@@ -64,18 +70,26 @@ export default function OrganizationMembersPage() {
     enabled: !!orgIdNum,
   });
 
+  const miembroActualQuery = useQuery({
+    queryKey: ['miembro-actual', orgIdNum],
+    queryFn: () => organizacionesApi.obtenerMiembroActual(orgIdNum),
+    enabled: !!orgIdNum && !isOwner,
+    retry: false,
+  });
+  const puedeGestionarEquipo = isOwner || !!miembroActualQuery.data?.puedeGestionarEquipo;
+
   // Query: Invitaciones pendientes
   const { data: invitaciones = [], isLoading: invitacionesLoading } =
     useQuery({
       queryKey: ['invitaciones', orgIdNum],
       queryFn: () => organizacionesApi.obtenerInvitaciones(orgIdNum),
-      enabled: !!orgIdNum,
+      enabled: !!orgIdNum && puedeGestionarEquipo,
     });
 
   const usoMiembrosQuery = useQuery({
     queryKey: ['miembros-uso', orgIdNum],
     queryFn: () => organizacionesApi.obtenerUsoMiembros(orgIdNum),
-    enabled: !!orgIdNum,
+    enabled: !!orgIdNum && isOwner,
   });
   const usoMiembros = usoMiembrosQuery.data as
     | {
@@ -91,12 +105,15 @@ export default function OrganizationMembersPage() {
 
   // Mutation: Invitar miembro
   const inviteMutation = useMutation({
-    mutationFn: (dto: { email: string; rol: string; mensaje?: string }) =>
+    mutationFn: (dto: { email: string; rol: string; mensaje?: string; cargo?: string; cargoPersonalizado?: string; responsableId?: number }) =>
       organizacionesApi.invitarMiembro(orgIdNum, dto),
     onSuccess: () => {
       toast.success('Invitación enviada');
       setEmailInput('');
       setRoleInput('OPERARIO');
+      setCargoInput('OPERARIO_RURAL');
+      setCargoPersonalizadoInput('');
+      setResponsableInput('');
       setMensajeInput('');
       queryClient.invalidateQueries({ queryKey: ['invitaciones', orgIdNum] });
       queryClient.invalidateQueries({ queryKey: ['miembros-uso', orgIdNum] });
@@ -105,6 +122,16 @@ export default function OrganizationMembersPage() {
       const error = err as { response?: { data?: { message?: string } } } | null;
       toast.error(error?.response?.data?.message || 'Error al invitar');
     },
+  });
+
+  const actualizarEstructuraMutation = useMutation({
+    mutationFn: ({ usuarioOrgId, dto }: { usuarioOrgId: number; dto: { cargo: string; cargoPersonalizado?: string; responsableId?: number | null; puedeGestionarEquipo: boolean } }) =>
+      organizacionesApi.actualizarEstructuraEquipo(orgIdNum, usuarioOrgId, dto),
+    onSuccess: () => {
+      toast.success('Estructura del equipo actualizada');
+      queryClient.invalidateQueries({ queryKey: ['miembros', orgIdNum] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || 'No se pudo actualizar la estructura'),
   });
 
   // Mutation: Eliminar miembro
@@ -178,6 +205,9 @@ export default function OrganizationMembersPage() {
       email: emailInput.trim(),
       rol: roleInput,
       mensaje: mensajeInput.trim() || undefined,
+      cargo: cargoInput,
+      cargoPersonalizado: cargoInput === 'OTRO' ? cargoPersonalizadoInput.trim() || undefined : undefined,
+      responsableId: isOwner && responsableInput ? Number(responsableInput) : undefined,
     });
   };
 
@@ -273,6 +303,56 @@ export default function OrganizationMembersPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Función dentro del establecimiento
+              </label>
+              <select
+                value={cargoInput}
+                onChange={(event) => setCargoInput(event.target.value as CargoEquipo)}
+                className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium cursor-pointer"
+              >
+                {CARGOS_EQUIPO.map((cargo) => (
+                  <option key={cargo.value} value={cargo.value}>{cargo.label}</option>
+                ))}
+              </select>
+              {cargoInput === 'OTRO' && (
+                <input
+                  value={cargoPersonalizadoInput}
+                  onChange={(event) => setCargoPersonalizadoInput(event.target.value)}
+                  placeholder="Ej. Responsable de riego"
+                  maxLength={80}
+                  className="mt-2 w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                />
+              )}
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">El cargo describe su función. Los accesos se configuran después.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Responsable directo
+              </label>
+              {isOwner ? (
+                <select
+                  value={responsableInput}
+                  onChange={(event) => setResponsableInput(event.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium cursor-pointer"
+                >
+                  <option value="">Sin asignar por ahora</option>
+                  {miembros.filter((miembro) => miembro.puedeGestionarEquipo).map((miembro) => (
+                    <option key={miembro.id} value={miembro.id}>{miembro.usuario.nombre} {miembro.usuario.apellido} · {nombreCargo(miembro.cargo, miembro.cargoPersonalizado)}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                  La persona quedará incorporada a tu equipo. El owner podrá reorganizarla cuando lo necesite.
+                </div>
+              )}
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Cada integrante trabaja dentro de un equipo del mismo establecimiento.</p>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Mensaje para la invitación <span className="text-gray-400">(opcional)</span>
@@ -291,7 +371,7 @@ export default function OrganizationMembersPage() {
           <div className="flex gap-3 justify-end">
             <button
               type="submit"
-              disabled={inviteMutation.isPending || miembrosAlLimite}
+              disabled={inviteMutation.isPending || miembrosAlLimite || !puedeGestionarEquipo}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-md"
             >
               {inviteMutation.isPending ? (
@@ -432,7 +512,7 @@ export default function OrganizationMembersPage() {
                       {miembro.activo ? 'Activo' : 'Inactivo'}
                     </span>
 
-                    <button
+                    {isOwner && <button
                       onClick={() =>
                         changeStateMutation.mutate({
                           usuarioOrgId: miembro.id,
@@ -450,9 +530,9 @@ export default function OrganizationMembersPage() {
                       ) : (
                         <X size={16} />
                       )}
-                    </button>
+                    </button>}
 
-                    <button
+                    {isOwner && <button
                       onClick={() =>
                         deleteMutation.mutate(miembro.id)
                       }
@@ -461,11 +541,26 @@ export default function OrganizationMembersPage() {
                       title="Eliminar miembro"
                     >
                       <Trash2 size={16} />
-                    </button>
+                    </button>}
                   </div>
                 </div>
 
                 <div className="space-y-2 text-sm">
+                  <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/60 sm:grid-cols-3">
+                    <div><span className="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Función</span><span className="mt-1 block font-semibold text-slate-900 dark:text-white">{nombreCargo(miembro.cargo, miembro.cargoPersonalizado)}</span></div>
+                    <div><span className="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Responsable</span><span className="mt-1 block font-semibold text-slate-900 dark:text-white">{miembro.responsable ? `${miembro.responsable.nombre} ${miembro.responsable.apellido}` : 'Owner / sin asignar'}</span></div>
+                    <div><span className="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Equipo a cargo</span><span className="mt-1 block font-semibold text-slate-900 dark:text-white">{miembro.puedeGestionarEquipo ? `${miembro.personasACargo} integrante${miembro.personasACargo === 1 ? '' : 's'}` : 'No gestiona equipo'}</span></div>
+                  </div>
+
+                  {isOwner && (
+                    <EstructuraEquipoForm
+                      miembro={miembro}
+                      miembros={miembros}
+                      guardando={actualizarEstructuraMutation.isPending}
+                      onGuardar={(dto) => actualizarEstructuraMutation.mutate({ usuarioOrgId: miembro.id, dto })}
+                    />
+                  )}
+
                   <div>
                     <span className="text-gray-600 dark:text-gray-400 font-medium">
                       Roles:{' '}
@@ -506,5 +601,66 @@ export default function OrganizationMembersPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function EstructuraEquipoForm({
+  miembro,
+  miembros,
+  guardando,
+  onGuardar,
+}: {
+  miembro: MiembroOrganizacion;
+  miembros: MiembroOrganizacion[];
+  guardando: boolean;
+  onGuardar: (dto: { cargo: string; cargoPersonalizado?: string; responsableId?: number | null; puedeGestionarEquipo: boolean }) => void;
+}) {
+  const [cargo, setCargo] = useState<CargoEquipo>(miembro.cargo as CargoEquipo);
+  const [cargoPersonalizado, setCargoPersonalizado] = useState(miembro.cargoPersonalizado || '');
+  const [responsableId, setResponsableId] = useState(miembro.responsable?.id ? String(miembro.responsable.id) : '');
+  const [puedeGestionarEquipo, setPuedeGestionarEquipo] = useState(miembro.puedeGestionarEquipo);
+
+  useEffect(() => {
+    setCargo(miembro.cargo as CargoEquipo);
+    setCargoPersonalizado(miembro.cargoPersonalizado || '');
+    setResponsableId(miembro.responsable?.id ? String(miembro.responsable.id) : '');
+    setPuedeGestionarEquipo(miembro.puedeGestionarEquipo);
+  }, [miembro]);
+
+  return (
+    <form
+      className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-500/30 dark:bg-emerald-500/10"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onGuardar({
+          cargo,
+          cargoPersonalizado: cargo === 'OTRO' ? cargoPersonalizado.trim() || undefined : undefined,
+          responsableId: responsableId ? Number(responsableId) : null,
+          puedeGestionarEquipo,
+        });
+      }}
+    >
+      <p className="text-sm font-bold text-emerald-950 dark:text-emerald-100">Organización del equipo</p>
+      <p className="mt-1 text-xs text-emerald-900/80 dark:text-emerald-100/80">Solo el owner define cargos, responsables y quién puede incorporar integrantes.</p>
+      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">Cargo
+          <select value={cargo} onChange={(event) => setCargo(event.target.value as CargoEquipo)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white">
+            {CARGOS_EQUIPO.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">Responsable directo
+          <select value={responsableId} onChange={(event) => setResponsableId(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white">
+            <option value="">Owner / sin asignar</option>
+            {miembros.filter((persona) => persona.id !== miembro.id && persona.puedeGestionarEquipo).map((persona) => <option key={persona.id} value={persona.id}>{persona.usuario.nombre} {persona.usuario.apellido}</option>)}
+          </select>
+        </label>
+        <label className="flex items-end gap-2 pb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <input type="checkbox" checked={puedeGestionarEquipo} onChange={(event) => setPuedeGestionarEquipo(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+          Puede invitar integrantes a su equipo
+        </label>
+      </div>
+      {cargo === 'OTRO' && <input value={cargoPersonalizado} onChange={(event) => setCargoPersonalizado(event.target.value)} maxLength={80} placeholder="Nombre del cargo" className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />}
+      <button type="submit" disabled={guardando} className="mt-3 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-800 disabled:opacity-50">{guardando ? 'Guardando...' : 'Guardar estructura'}</button>
+    </form>
   );
 }

@@ -617,6 +617,10 @@ model UsuarioOrganizacion {
   id                  Int                 @id @default(autoincrement())
   usuarioId           Int
   organizacionId      Int
+  cargo               CargoEquipo         @default(OPERARIO_RURAL)
+  cargoPersonalizado  String?
+  responsableId       Int?
+  puedeGestionarEquipo Boolean             @default(false)
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   roles               String              @default("[]")
@@ -627,12 +631,15 @@ model UsuarioOrganizacion {
   asignaciones        AsignacionRecurso[]
   organizacion        Organizacion        @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   usuario             Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  responsable         UsuarioOrganizacion? @relation("jerarquia_equipo", fields: [responsableId], references: [id], onDelete: SetNull)
+  equipoACargo        UsuarioOrganizacion[] @relation("jerarquia_equipo")
   VisibilidadModulo   VisibilidadModulo[]
   actividades         ActividadMiembro[]
 
   @@unique([usuarioId, organizacionId])
   @@index([usuarioId])
   @@index([organizacionId])
+  @@index([organizacionId, responsableId])
 }
 
 model AsignacionRecurso {
@@ -660,6 +667,9 @@ model InvitacionOrganizacion {
   token          String           @unique
   estado         EstadoInvitacion @default(PENDIENTE)
   mensaje        String?
+  cargo          CargoEquipo      @default(OPERARIO_RURAL)
+  cargoPersonalizado String?
+  responsableId  Int?
   expiresAt      DateTime
   aceptadoEn     DateTime?
   usuarioId      Int?
@@ -948,6 +958,29 @@ enum EstadoSiembra {
   EN_CURSO
   COSECHADA
   PERDIDA
+}
+
+enum CargoEquipo {
+  ADMINISTRACION_GENERAL
+  ENCARGADO_ESTABLECIMIENTO
+  ENCARGADO_AGRICOLA
+  ENCARGADO_GANADERO
+  ENCARGADO_TAMBO
+  ENCARGADO_AVICOLA
+  ENCARGADO_FRUTIHORTICOLA
+  ASESOR_AGRONOMICO
+  VETERINARIO
+  ENCARGADO_MAQUINARIA
+  MECANICO_MANTENIMIENTO
+  OPERADOR_MAQUINARIA
+  OPERARIO_RURAL
+  INSUMOS_DEPOSITO
+  CONTABILIDAD
+  FINANZAS_PAGOS
+  LOGISTICA_TRANSPORTE
+  COMERCIALIZACION
+  CONTRATISTA_EXTERNO
+  OTRO
 }
 
 enum SistemaFrutihorticola {

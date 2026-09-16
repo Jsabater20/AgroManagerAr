@@ -20,6 +20,7 @@ import { IsOwnerGuard } from './guards/is-owner.guard';
 import { OrganizationGuard } from './organization.guard';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
 import { ActualizarActividadProductivaDto } from './dto/actualizar-actividad-productiva.dto';
+import { ActualizarEstructuraEquipoDto } from './dto/actualizar-estructura-equipo.dto';
 
 interface AuthRequest extends Request {
   user?: { id: number; email: string };
@@ -96,20 +97,41 @@ export class OrganizationsController {
   }
 
   @Get(':orgId/miembros')
-  @UseGuards(IsOwnerGuard)
-  async obtenerMiembros(@Param('orgId') orgId: string) {
-    return await this.organizacionesService.obtenerMiembros(parseInt(orgId));
+  @UseGuards(OrganizationGuard)
+  async obtenerMiembros(@Param('orgId') orgId: string, @Request() req: AuthRequest) {
+    return await this.organizacionesService.obtenerMiembros(
+      parseInt(orgId),
+      req.user?.id || 0,
+    );
   }
 
   @Post(':orgId/miembros/invitar')
-  @UseGuards(IsOwnerGuard)
+  @UseGuards(OrganizationGuard)
   async invitarMiembro(
     @Param('orgId') orgId: string,
     @Body() dto: InvitarMiembroDto,
+    @Request() req: AuthRequest,
   ) {
     return await this.organizacionesService.invitarMiembro(
       parseInt(orgId),
       dto,
+      req.user?.id || 0,
+    );
+  }
+
+  @Patch(':orgId/miembros/:usuarioOrgId/estructura')
+  @UseGuards(IsOwnerGuard)
+  async actualizarEstructuraEquipo(
+    @Param('orgId') orgId: string,
+    @Param('usuarioOrgId') usuarioOrgId: string,
+    @Body() dto: ActualizarEstructuraEquipoDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.organizacionesService.actualizarEstructuraEquipo(
+      parseInt(orgId),
+      parseInt(usuarioOrgId),
+      dto,
+      req.user?.id || 0,
     );
   }
 
@@ -143,33 +165,40 @@ export class OrganizationsController {
   // ─── INVITACIONES ─────────────────────────────────────────────────────────
 
   @Get(':orgId/invitaciones')
-  @UseGuards(IsOwnerGuard)
-  async obtenerInvitaciones(@Param('orgId') orgId: string) {
-    return await this.organizacionesService.obtenerInvitaciones(parseInt(orgId));
+  @UseGuards(OrganizationGuard)
+  async obtenerInvitaciones(@Param('orgId') orgId: string, @Request() req: AuthRequest) {
+    return await this.organizacionesService.obtenerInvitaciones(
+      parseInt(orgId),
+      req.user?.id || 0,
+    );
   }
 
   @Post(':orgId/invitaciones/:invitacionId/reenviar')
-  @UseGuards(IsOwnerGuard)
+  @UseGuards(OrganizationGuard)
   async reenviarInvitacion(
     @Param('orgId') orgId: string,
     @Param('invitacionId') invitacionId: string,
+    @Request() req: AuthRequest,
   ) {
     await this.organizacionesService.reenviarInvitacion(
       parseInt(orgId),
       parseInt(invitacionId),
+      req.user?.id || 0,
     );
     return { mensaje: 'Invitación reenviada' };
   }
 
   @Delete(':orgId/invitaciones/:invitacionId')
-  @UseGuards(IsOwnerGuard)
+  @UseGuards(OrganizationGuard)
   async cancelarInvitacion(
     @Param('orgId') orgId: string,
     @Param('invitacionId') invitacionId: string,
+    @Request() req: AuthRequest,
   ) {
     await this.organizacionesService.cancelarInvitacion(
       parseInt(orgId),
       parseInt(invitacionId),
+      req.user?.id || 0,
     );
     return { mensaje: 'Invitación cancelada' };
   }

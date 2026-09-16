@@ -25,6 +25,11 @@ export interface MiembroOrganizacion {
   };
   roles: string[];
   activo: boolean;
+  cargo: string;
+  cargoPersonalizado?: string | null;
+  puedeGestionarEquipo: boolean;
+  responsable?: { id: number; nombre: string; apellido: string } | null;
+  personasACargo: number;
   campos: Array<{ id: number; nombre: string }>;
   modulos: Array<{ moduloNombre: string; activo: boolean }>;
 }

@@ -1,17 +1,26 @@
 import { ArrowRight, BriefcaseBusiness, ShieldCheck, UserPlus, UsersRound } from 'lucide-react';
 import { Link, Navigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { usePermissions } from '../../hooks/usePermissions';
+import { organizacionesApi } from '../../api/organizaciones.api';
 
 export default function MiembrosInicioPage() {
   const { orgId } = useParams<{ orgId: string }>();
-  const { isLoading, isMember, isOwner, isSuperAdmin } = usePermissions();
+  const { isLoading, isMember, isOwner } = usePermissions();
   const orgIdNum = Number(orgId || 0);
-  const puedeGestionar = isOwner || isSuperAdmin;
+  const puedeGestionar = isOwner;
+  const miembroActualQuery = useQuery({
+    queryKey: ['miembro-actual', orgIdNum],
+    queryFn: () => organizacionesApi.obtenerMiembroActual(orgIdNum),
+    enabled: !!orgIdNum && !puedeGestionar,
+    retry: false,
+  });
+  const esEncargado = !!miembroActualQuery.data?.puedeGestionarEquipo;
 
   if (isLoading) return <PageState message="Cargando equipo..." />;
   if (!orgIdNum || (!puedeGestionar && !isMember)) return <Navigate to="/" replace />;
 
-  if (!puedeGestionar) {
+  if (!puedeGestionar && !esEncargado) {
     return (
       <main className="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
         <header>
@@ -31,6 +40,30 @@ export default function MiembrosInicioPage() {
           </span>
           <ArrowRight className="text-emerald-700 dark:text-emerald-300" size={20} />
         </Link>
+      </main>
+    );
+  }
+
+  if (esEncargado && !puedeGestionar) {
+    return (
+      <main className="mx-auto max-w-4xl space-y-6 p-4 md:p-6">
+        <header className="max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Mi equipo</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">Coordiná a las personas a tu cargo</h1>
+          <p className="mt-3 leading-relaxed text-slate-600 dark:text-slate-300">Podés incorporar integrantes para este establecimiento. El owner mantiene el control de accesos, cargos, recursos y la estructura general.</p>
+        </header>
+        <section className="grid gap-4 md:grid-cols-2">
+          <Link to={'/org/' + orgIdNum + '/miembros/invitar'} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 transition hover:border-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+            <UserPlus className="text-emerald-700 dark:text-emerald-300" size={22} />
+            <h2 className="mt-4 font-bold text-emerald-950 dark:text-emerald-100">Incorporar integrante</h2>
+            <p className="mt-2 text-sm text-emerald-900/80 dark:text-emerald-100/80">La persona recibe una invitación y queda asociada a tu equipo.</p>
+          </Link>
+          <Link to={'/org/' + orgIdNum + '/tareas'} className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-900">
+            <BriefcaseBusiness className="text-slate-700 dark:text-slate-200" size={22} />
+            <h2 className="mt-4 font-bold text-slate-900 dark:text-white">Ver tareas</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Consultá los trabajos que tenés habilitados en este establecimiento.</p>
+          </Link>
+        </section>
       </main>
     );
   }

@@ -17,9 +17,11 @@ import { MiembroPanelDto, ActivityCountDto } from './dto/miembro-panel.dto';
 import { RecursoAsignableDto } from './dto/recurso-asignable.dto';
 import { CambiarRolOwnerDto } from './dto/cambiar-rol-owner.dto';
 import { ActualizarActividadProductivaDto } from './dto/actualizar-actividad-productiva.dto';
+import { ActualizarEstructuraEquipoDto } from './dto/actualizar-estructura-equipo.dto';
 import { MailerService } from '../mailer/mailer.service';
 import { PlanService } from '../plan/plan.service';
 import { R2StorageService } from '../storage/r2-storage.service';
+import { CargoEquipo } from '@prisma/client';
 
 const MODULOS_DISPONIBLES = [
   'Dashboard',
@@ -65,6 +67,31 @@ export class OrganizationsService {
         'Solo el propietario puede realizar esta acción',
       );
     }
+  }
+
+  private async obtenerGestionEquipo(orgId: number, userId: number): Promise<{
+    esOwner: boolean;
+    miembroId?: number;
+  }> {
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: orgId },
+      select: { propietarioId: true },
+    });
+    if (!organizacion) {
+      throw new NotFoundException('Organización no encontrada');
+    }
+    if (organizacion.propietarioId === userId) {
+      return { esOwner: true };
+    }
+
+    const miembro = await this.prisma.usuarioOrganizacion.findUnique({
+      where: { usuarioId_organizacionId: { usuarioId: userId, organizacionId: orgId } },
+      select: { id: true, activo: true, puedeGestionarEquipo: true },
+    });
+    if (!miembro?.activo || !miembro.puedeGestionarEquipo) {
+      throw new ForbiddenException('No tenés permiso para gestionar este equipo');
+    }
+    return { esOwner: false, miembroId: miembro.id };
   }
 
   // ─── ORGANIZACIONES ───────────────────────────────────────────────────────
@@ -188,9 +215,22 @@ export class OrganizationsService {
 
   // ─── MIEMBROS ─────────────────────────────────────────────────────────────
 
-  async obtenerMiembros(organizacionId: number): Promise<MiembroResponseDto[]> {
+  async obtenerMiembros(
+    organizacionId: number,
+    usuarioId: number,
+  ): Promise<MiembroResponseDto[]> {
+    const gestion = await this.obtenerGestionEquipo(organizacionId, usuarioId);
     const miembros = await this.prisma.usuarioOrganizacion.findMany({
-      where: { organizacionId, activo: true },
+      where: gestion.esOwner
+        ? { organizacionId, activo: true }
+        : {
+            organizacionId,
+            activo: true,
+            OR: [
+              { id: gestion.miembroId },
+              { responsableId: gestion.miembroId },
+            ],
+          },
       include: {
         usuario: {
           select: {
@@ -211,6 +251,13 @@ export class OrganizationsService {
         VisibilidadModulo: {
           select: { moduloNombre: true, activo: true },
         },
+        responsable: {
+          select: {
+            id: true,
+            usuario: { select: { nombre: true, apellido: true } },
+          },
+        },
+        _count: { select: { equipoACargo: { where: { activo: true } } } },
       },
     });
 
@@ -228,6 +275,17 @@ export class OrganizationsService {
       email: m.usuario.email,
       rol: m.roles,
       activo: m.activo,
+      cargo: m.cargo,
+      cargoPersonalizado: m.cargoPersonalizado,
+      puedeGestionarEquipo: m.puedeGestionarEquipo,
+      responsable: m.responsable
+        ? {
+            id: m.responsable.id,
+            nombre: m.responsable.usuario.nombre,
+            apellido: m.responsable.usuario.apellido,
+          }
+        : null,
+      personasACargo: m._count.equipoACargo,
       fechaIncorporacion: m.fechaInvitacion?.toISOString() || new Date().toISOString(),
       usuario: m.usuario,
       roles: m.roles ? [m.roles] : [],
@@ -237,6 +295,62 @@ export class OrganizationsService {
       })),
       modulos: m.VisibilidadModulo,
     })));
+  }
+
+  async actualizarEstructuraEquipo(
+    organizacionId: number,
+    usuarioOrgId: number,
+    dto: ActualizarEstructuraEquipoDto,
+    usuarioId: number,
+  ) {
+    await this.validarOwner(organizacionId, usuarioId);
+    const miembro = await this.prisma.usuarioOrganizacion.findFirst({
+      where: { id: usuarioOrgId, organizacionId },
+      select: { id: true },
+    });
+    if (!miembro) {
+      throw new NotFoundException('Miembro de la organización no encontrado');
+    }
+
+    if (dto.responsableId) {
+      if (dto.responsableId === usuarioOrgId) {
+        throw new BadRequestException('Una persona no puede ser responsable de sí misma');
+      }
+      const responsable = await this.prisma.usuarioOrganizacion.findFirst({
+        where: {
+          id: dto.responsableId,
+          organizacionId,
+          activo: true,
+          puedeGestionarEquipo: true,
+        },
+        select: { id: true },
+      });
+      if (!responsable) {
+        throw new BadRequestException('Seleccioná un encargado activo de este establecimiento');
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      if (!dto.puedeGestionarEquipo) {
+        await tx.usuarioOrganizacion.updateMany({
+          where: { organizacionId, responsableId: usuarioOrgId },
+          data: { responsableId: null },
+        });
+      }
+
+      return tx.usuarioOrganizacion.update({
+        where: { id: usuarioOrgId },
+        data: {
+          cargo: dto.cargo,
+          cargoPersonalizado:
+            dto.cargo === CargoEquipo.OTRO
+              ? dto.cargoPersonalizado?.trim() || null
+              : null,
+          responsableId: dto.responsableId ?? null,
+          puedeGestionarEquipo: dto.puedeGestionarEquipo,
+        },
+      });
+    });
   }
 
   async obtenerResponsablesEquipo(organizacionId: number, modulo?: string) {
@@ -334,6 +448,13 @@ export class OrganizationsService {
         VisibilidadModulo: {
           select: { moduloNombre: true, activo: true },
         },
+        responsable: {
+          select: {
+            id: true,
+            usuario: { select: { nombre: true, apellido: true } },
+          },
+        },
+        _count: { select: { equipoACargo: { where: { activo: true } } } },
       },
     });
 
@@ -387,6 +508,17 @@ export class OrganizationsService {
       usuario: miembro.usuario,
       roles: miembro.roles ? [miembro.roles] : [],
       activo: miembro.activo,
+      cargo: miembro.cargo,
+      cargoPersonalizado: miembro.cargoPersonalizado,
+      puedeGestionarEquipo: miembro.puedeGestionarEquipo,
+      responsable: miembro.responsable
+        ? {
+            id: miembro.responsable.id,
+            nombre: miembro.responsable.usuario.nombre,
+            apellido: miembro.responsable.usuario.apellido,
+          }
+        : null,
+      personasACargo: miembro._count.equipoACargo,
       campos: miembro.AsignacionCampo.map((asignacion) => ({
         id: asignacion.Campo.id,
         nombre: asignacion.Campo.nombre,
@@ -724,7 +856,30 @@ export class OrganizationsService {
   async invitarMiembro(
     organizacionId: number,
     dto: InvitarMiembroDto,
+    usuarioId: number,
   ): Promise<InvitacionResponseDto> {
+    const gestion = await this.obtenerGestionEquipo(organizacionId, usuarioId);
+    if (!gestion.esOwner && dto.rol && dto.rol !== 'OPERARIO') {
+      throw new ForbiddenException('El encargado solo puede invitar integrantes operativos para su equipo');
+    }
+
+    let responsableId = gestion.esOwner ? dto.responsableId : gestion.miembroId;
+    if (responsableId) {
+      const responsable = await this.prisma.usuarioOrganizacion.findFirst({
+        where: {
+          id: responsableId,
+          organizacionId,
+          activo: true,
+          puedeGestionarEquipo: true,
+        },
+        select: { id: true },
+      });
+      if (!responsable) {
+        throw new BadRequestException('Seleccioná un encargado activo de este establecimiento');
+      }
+      responsableId = responsable.id;
+    }
+
     await this.planService.checkMiembrosLimit(organizacionId);
 
     // Verificar que el email no está ya en la organización
@@ -762,6 +917,12 @@ export class OrganizationsService {
         estado: 'PENDIENTE',
         expiresAt,
         mensaje: dto.mensaje || null,
+        cargo: dto.cargo ?? CargoEquipo.OPERARIO_RURAL,
+        cargoPersonalizado:
+          dto.cargo === CargoEquipo.OTRO
+            ? dto.cargoPersonalizado?.trim() || null
+            : null,
+        responsableId: responsableId ?? null,
       },
     });
 
@@ -841,11 +1002,26 @@ export class OrganizationsService {
         },
       });
 
+      const responsable = invitacion.responsableId
+        ? await tx.usuarioOrganizacion.findFirst({
+            where: {
+              id: invitacion.responsableId,
+              organizacionId: invitacion.organizacionId,
+              activo: true,
+              puedeGestionarEquipo: true,
+            },
+            select: { id: true },
+          })
+        : null;
+
       const miembro = await tx.usuarioOrganizacion.create({
         data: {
           usuarioId: userId,
           organizacionId: invitacion.organizacionId,
           roles: invitacion.rol,
+          cargo: invitacion.cargo,
+          cargoPersonalizado: invitacion.cargoPersonalizado,
+          responsableId: responsable?.id ?? null,
           activo: true,
           fechaInvitacion: new Date(),
         },
@@ -869,9 +1045,15 @@ export class OrganizationsService {
 
   async obtenerInvitaciones(
     organizacionId: number,
+    usuarioId: number,
   ): Promise<InvitacionResponseDto[]> {
+    const gestion = await this.obtenerGestionEquipo(organizacionId, usuarioId);
     const invitaciones = await this.prisma.invitacionOrganizacion.findMany({
-      where: { organizacionId, estado: 'PENDIENTE' },
+      where: {
+        organizacionId,
+        estado: 'PENDIENTE',
+        ...(gestion.esOwner ? {} : { responsableId: gestion.miembroId }),
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -890,13 +1072,18 @@ export class OrganizationsService {
   async reenviarInvitacion(
     organizacionId: number,
     invitacionId: number,
+    usuarioId: number,
   ): Promise<{ success: boolean; message: string }> {
+    const gestion = await this.obtenerGestionEquipo(organizacionId, usuarioId);
     const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
       where: { id: invitacionId },
     });
 
     if (!invitacion || invitacion.organizacionId !== organizacionId) {
       throw new NotFoundException('Invitación no encontrada');
+    }
+    if (!gestion.esOwner && invitacion.responsableId !== gestion.miembroId) {
+      throw new ForbiddenException('Solo podés reenviar invitaciones de tu equipo');
     }
 
     if (invitacion.estado !== 'PENDIENTE') {
@@ -937,13 +1124,18 @@ export class OrganizationsService {
   async cancelarInvitacion(
     organizacionId: number,
     invitacionId: number,
+    usuarioId: number,
   ): Promise<{ success: boolean; message: string }> {
+    const gestion = await this.obtenerGestionEquipo(organizacionId, usuarioId);
     const invitacion = await this.prisma.invitacionOrganizacion.findUnique({
       where: { id: invitacionId },
     });
 
     if (!invitacion || invitacion.organizacionId !== organizacionId) {
       throw new NotFoundException('Invitación no encontrada');
+    }
+    if (!gestion.esOwner && invitacion.responsableId !== gestion.miembroId) {
+      throw new ForbiddenException('Solo podés cancelar invitaciones de tu equipo');
     }
 
     await this.prisma.invitacionOrganizacion.update({
