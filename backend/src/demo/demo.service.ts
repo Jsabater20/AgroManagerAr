@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { ActividadProductiva, Prisma } from '@prisma/client';
+import { ActividadProductiva, CargoEquipo, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { DEMO_EMAIL, DEMO_EMPRESA_EMAIL } from '../auth/system-accounts';
@@ -2286,7 +2286,7 @@ export class DemoService implements OnModuleInit {
       },
     });
 
-    await this.prepararEquipoDemoEmpresa(empresa.id, organizaciones.map((organizacion) => organizacion.id));
+    await this.prepararEquipoJerarquicoDemoEmpresa(empresa.id, organizaciones.map((organizacion) => organizacion.id));
     return { ownerId: owner.id, organizaciones };
   }
 
@@ -2369,6 +2369,125 @@ export class DemoService implements OnModuleInit {
           update: {},
           create: { usuarioEmpresaId: miembroEmpresa.id, organizacionId },
         });
+      }
+    }
+  }
+
+  private async prepararEquipoJerarquicoDemoEmpresa(empresaId: number, organizacionesIds: number[]) {
+    const organizacion = (indice: number) => {
+      const organizacionId = organizacionesIds[indice];
+      return organizacionId === undefined ? [] : [organizacionId];
+    };
+    const integrantes = [
+      {
+        clave: 'sofia', email: 'sofia.demoempresa@agromanager.ar', nombre: 'Sofía', apellido: 'Fernández',
+        rolEmpresa: 'GERENTE_ESTABLECIMIENTO', roles: JSON.stringify(['ADMIN']), organizaciones: organizacion(0),
+        cargo: CargoEquipo.ENCARGADO_TAMBO, puedeGestionarEquipo: true, responsableClave: null, perteneceAEmpresa: true,
+      },
+      {
+        clave: 'martin', email: 'martin.demoempresa@agromanager.ar', nombre: 'Martín', apellido: 'Gómez',
+        rolEmpresa: 'GERENTE_ESTABLECIMIENTO', roles: JSON.stringify(['ADMIN']), organizaciones: organizacion(1),
+        cargo: CargoEquipo.ENCARGADO_GANADERO, puedeGestionarEquipo: true, responsableClave: null, perteneceAEmpresa: true,
+      },
+      {
+        clave: 'pedro', email: 'pedro.demoempresa@agromanager.ar', nombre: 'Pedro', apellido: 'Benítez',
+        rolEmpresa: 'GERENTE_ESTABLECIMIENTO', roles: JSON.stringify(['ADMIN']), organizaciones: organizacion(2),
+        cargo: CargoEquipo.ENCARGADO_FRUTIHORTICOLA, puedeGestionarEquipo: true, responsableClave: null, perteneceAEmpresa: true,
+      },
+      {
+        clave: 'lucia', email: 'lucia.demoempresa@agromanager.ar', nombre: 'Lucía', apellido: 'Ramos',
+        rolEmpresa: 'RESPONSABLE_FINANCIERO', roles: JSON.stringify(['CONTADOR']), organizaciones: organizacionesIds,
+        cargo: CargoEquipo.FINANZAS_PAGOS, puedeGestionarEquipo: false, responsableClave: null, perteneceAEmpresa: true,
+      },
+      {
+        clave: 'nicolas', email: 'nicolas.tambo.demoempresa@agromanager.ar', nombre: 'Nicolás', apellido: 'Sosa',
+        rolEmpresa: 'SUPERVISOR', roles: JSON.stringify(['OPERARIO']), organizaciones: organizacion(0),
+        cargo: CargoEquipo.OPERARIO_RURAL, puedeGestionarEquipo: false, responsableClave: 'sofia', perteneceAEmpresa: false,
+      },
+      {
+        clave: 'carla', email: 'carla.avicola.demoempresa@agromanager.ar', nombre: 'Carla', apellido: 'Molina',
+        rolEmpresa: 'SUPERVISOR', roles: JSON.stringify(['OPERARIO']), organizaciones: organizacion(0),
+        cargo: CargoEquipo.ENCARGADO_AVICOLA, puedeGestionarEquipo: false, responsableClave: 'sofia', perteneceAEmpresa: false,
+      },
+      {
+        clave: 'tomas', email: 'tomas.campo.demoempresa@agromanager.ar', nombre: 'Tomás', apellido: 'Acosta',
+        rolEmpresa: 'SUPERVISOR', roles: JSON.stringify(['OPERARIO']), organizaciones: organizacion(1),
+        cargo: CargoEquipo.OPERADOR_MAQUINARIA, puedeGestionarEquipo: false, responsableClave: 'martin', perteneceAEmpresa: false,
+      },
+      {
+        clave: 'elena', email: 'elena.mecanica.demoempresa@agromanager.ar', nombre: 'Elena', apellido: 'Roldán',
+        rolEmpresa: 'SUPERVISOR', roles: JSON.stringify(['OPERARIO']), organizaciones: organizacion(1),
+        cargo: CargoEquipo.MECANICO_MANTENIMIENTO, puedeGestionarEquipo: false, responsableClave: 'martin', perteneceAEmpresa: false,
+      },
+      {
+        clave: 'rocio', email: 'rocio.huerta.demoempresa@agromanager.ar', nombre: 'Rocío', apellido: 'Vega',
+        rolEmpresa: 'SUPERVISOR', roles: JSON.stringify(['OPERARIO']), organizaciones: organizacion(2),
+        cargo: CargoEquipo.OPERARIO_RURAL, puedeGestionarEquipo: false, responsableClave: 'pedro', perteneceAEmpresa: false,
+      },
+      {
+        clave: 'diego', email: 'diego.riego.demoempresa@agromanager.ar', nombre: 'Diego', apellido: 'López',
+        rolEmpresa: 'SUPERVISOR', roles: JSON.stringify(['OPERARIO']), organizaciones: organizacion(2),
+        cargo: CargoEquipo.INSUMOS_DEPOSITO, puedeGestionarEquipo: false, responsableClave: 'pedro', perteneceAEmpresa: false,
+      },
+    ];
+    const password = await bcrypt.hash('EquipoDemo1234', 10);
+    const miembrosPorClave = new Map<string, Map<number, number>>();
+
+    for (const integrante of integrantes) {
+      const usuario = await this.prisma.usuario.upsert({
+        where: { email: integrante.email },
+        update: {
+          nombre: integrante.nombre, apellido: integrante.apellido, password, plan: 'PRO',
+          planExpira: new Date('2035-12-31'), emailVerificado: true,
+        },
+        create: {
+          email: integrante.email, nombre: integrante.nombre, apellido: integrante.apellido, password,
+          rol: 'OPERADOR', plan: 'PRO', planExpira: new Date('2035-12-31'), emailVerificado: true,
+        },
+      });
+      const miembroEmpresa = integrante.perteneceAEmpresa
+        ? await this.prisma.usuarioEmpresa.upsert({
+            where: { empresaId_usuarioId: { empresaId, usuarioId: usuario.id } },
+            update: { rol: integrante.rolEmpresa as any, activo: true, accesoTodasOrganizaciones: false },
+            create: { empresaId, usuarioId: usuario.id, rol: integrante.rolEmpresa as any, activo: true, accesoTodasOrganizaciones: false },
+          })
+        : null;
+      const miembrosPorOrganizacion = new Map<number, number>();
+
+      for (const organizacionId of integrante.organizaciones) {
+        const miembro = await this.prisma.usuarioOrganizacion.upsert({
+          where: { usuarioId_organizacionId: { usuarioId: usuario.id, organizacionId } },
+          update: {
+            roles: integrante.roles, activo: true, cargo: integrante.cargo, cargoPersonalizado: null,
+            puedeGestionarEquipo: integrante.puedeGestionarEquipo,
+          },
+          create: {
+            usuarioId: usuario.id, organizacionId, roles: integrante.roles, activo: true,
+            cargo: integrante.cargo, puedeGestionarEquipo: integrante.puedeGestionarEquipo,
+          },
+        });
+        miembrosPorOrganizacion.set(organizacionId, miembro.id);
+        if (miembroEmpresa) {
+          await this.prisma.usuarioEmpresaOrganizacion.upsert({
+            where: { usuarioEmpresaId_organizacionId: { usuarioEmpresaId: miembroEmpresa.id, organizacionId } },
+            update: {},
+            create: { usuarioEmpresaId: miembroEmpresa.id, organizacionId },
+          });
+        }
+      }
+      miembrosPorClave.set(integrante.clave, miembrosPorOrganizacion);
+    }
+
+    for (const integrante of integrantes) {
+      if (!integrante.responsableClave) continue;
+      const miembros = miembrosPorClave.get(integrante.clave);
+      const responsables = miembrosPorClave.get(integrante.responsableClave);
+      if (!miembros || !responsables) continue;
+      for (const [organizacionId, miembroId] of miembros) {
+        const responsableId = responsables.get(organizacionId);
+        if (responsableId) {
+          await this.prisma.usuarioOrganizacion.update({ where: { id: miembroId }, data: { responsableId } });
+        }
       }
     }
   }
