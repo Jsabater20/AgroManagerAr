@@ -360,6 +360,12 @@ export class OrganizationsService {
         usuario: {
           select: { id: true, nombre: true, apellido: true },
         },
+        responsable: {
+          select: {
+            id: true,
+            usuario: { select: { nombre: true, apellido: true } },
+          },
+        },
         AsignacionCampo: {
           where: { activo: true },
           select: { campoId: true },
@@ -375,23 +381,33 @@ export class OrganizationsService {
       orderBy: { usuario: { nombre: 'asc' } },
     });
 
-    const porCampo: Record<string, Array<{
+    type ResumenEquipo = {
       usuarioOrganizacionId: number;
       nombre: string;
       apellido: string;
       roles: string;
-    }>> = {};
-    const porRecurso: Record<string, Array<{
-      usuarioOrganizacionId: number;
-      nombre: string;
-      apellido: string;
-      roles: string;
-    }>> = {};
+      cargo: CargoEquipo;
+      cargoPersonalizado: string | null;
+      puedeGestionarEquipo: boolean;
+      responsable: { id: number; nombre: string; apellido: string } | null;
+    };
+    const porCampo: Record<string, ResumenEquipo[]> = {};
+    const porRecurso: Record<string, ResumenEquipo[]> = {};
     const resumenMiembro = (miembro: (typeof miembros)[number]) => ({
       usuarioOrganizacionId: miembro.id,
       nombre: miembro.usuario.nombre,
       apellido: miembro.usuario.apellido,
       roles: miembro.roles,
+      cargo: miembro.cargo,
+      cargoPersonalizado: miembro.cargoPersonalizado,
+      puedeGestionarEquipo: miembro.puedeGestionarEquipo,
+      responsable: miembro.responsable
+        ? {
+            id: miembro.responsable.id,
+            nombre: miembro.responsable.usuario.nombre,
+            apellido: miembro.responsable.usuario.apellido,
+          }
+        : null,
     });
 
     for (const miembro of miembros) {
@@ -414,6 +430,16 @@ export class OrganizationsService {
           )
           .map(resumenMiembro)
       : [];
+
+    const ordenarEquipo = (equipo: ResumenEquipo[]) =>
+      equipo.sort(
+        (primero, segundo) =>
+          Number(segundo.puedeGestionarEquipo) - Number(primero.puedeGestionarEquipo) ||
+          primero.nombre.localeCompare(segundo.nombre, 'es'),
+      );
+    Object.values(porCampo).forEach(ordenarEquipo);
+    Object.values(porRecurso).forEach(ordenarEquipo);
+    ordenarEquipo(miembrosModulo);
 
     return { modulo: modulo ?? null, miembrosModulo, porCampo, porRecurso };
   }

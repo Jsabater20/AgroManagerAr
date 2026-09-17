@@ -2136,11 +2136,14 @@ export class DemoService implements OnModuleInit {
       this.logger.log('Demo Empresa incompleta — ejecutando reset...');
       await this.reiniciarDemoEmpresa(contexto);
     }
+    await this.asignarCamposEquipoDemoEmpresa(contexto.organizaciones);
+    await this.sembrarAuditoriaEquipoDemoEmpresa(contexto.organizaciones);
   }
 
   async resetDemoEmpresaData() {
     const contexto = await this.prepararDemoEmpresa();
     await this.reiniciarDemoEmpresa(contexto);
+    await this.asignarCamposEquipoDemoEmpresa(contexto.organizaciones);
   }
 
   private async prepararDemoEmpresa() {
@@ -2492,6 +2495,121 @@ export class DemoService implements OnModuleInit {
     }
   }
 
+  private async asignarCamposEquipoDemoEmpresa(
+    organizaciones: Array<{ id: number; nombre: string }>,
+  ) {
+    const correosPorEstablecimiento = [
+      [
+        'sofia.demoempresa@agromanager.ar',
+        'nicolas.tambo.demoempresa@agromanager.ar',
+        'carla.avicola.demoempresa@agromanager.ar',
+      ],
+      [
+        'martin.demoempresa@agromanager.ar',
+        'tomas.campo.demoempresa@agromanager.ar',
+        'elena.mecanica.demoempresa@agromanager.ar',
+      ],
+      [
+        'pedro.demoempresa@agromanager.ar',
+        'rocio.huerta.demoempresa@agromanager.ar',
+        'diego.riego.demoempresa@agromanager.ar',
+      ],
+    ];
+
+    for (const [indice, organizacion] of organizaciones.entries()) {
+      const correos = correosPorEstablecimiento[indice] ?? [];
+      const campo = await this.prisma.campo.findFirst({
+        where: { organizacionId: organizacion.id },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+      });
+      if (!campo || !correos.length) continue;
+
+      const miembros = await this.prisma.usuarioOrganizacion.findMany({
+        where: {
+          organizacionId: organizacion.id,
+          activo: true,
+          usuario: { email: { in: correos } },
+        },
+        select: { id: true },
+      });
+      await Promise.all(
+        miembros.map((miembro) =>
+          this.prisma.asignacionCampo.upsert({
+            where: {
+              usuarioOrganizacionId_campoId: {
+                usuarioOrganizacionId: miembro.id,
+                campoId: campo.id,
+              },
+            },
+            update: { activo: true },
+            create: { usuarioOrganizacionId: miembro.id, campoId: campo.id, activo: true },
+          }),
+        ),
+      );
+    }
+  }
+
+  private async sembrarAuditoriaEquipoDemoEmpresa(
+    organizaciones: Array<{ id: number; nombre: string }>,
+  ) {
+    const [campos, usuarios] = await Promise.all([
+      this.prisma.campo.findMany({
+        where: { organizacionId: { in: organizaciones.map((organizacion) => organizacion.id) } },
+        select: { id: true, nombre: true, organizacionId: true },
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.usuario.findMany({
+        where: {
+          email: {
+            in: [
+              'sofia.demoempresa@agromanager.ar',
+              'martin.demoempresa@agromanager.ar',
+              'pedro.demoempresa@agromanager.ar',
+            ],
+          },
+        },
+        select: { id: true, email: true },
+      }),
+    ]);
+    const existentes = await this.prisma.auditoriaLog.findMany({
+      where: {
+        accion: 'modificar_campo',
+        entidad: 'Campo',
+        entidadId: { in: campos.map((campo) => campo.id) },
+      },
+      select: { entidadId: true },
+    });
+    const camposConHistorial = new Set(existentes.map((registro) => registro.entidadId));
+    const responsables = [
+      { email: 'sofia.demoempresa@agromanager.ar', mensaje: 'Actualizó el parte operativo de tambo' },
+      { email: 'martin.demoempresa@agromanager.ar', mensaje: 'Actualizó el estado operativo del campo' },
+      { email: 'pedro.demoempresa@agromanager.ar', mensaje: 'Actualizó el seguimiento del cultivo' },
+    ];
+    const ahora = new Date();
+    const registros = organizaciones.flatMap((organizacion, indice) => {
+      const campo = campos.find((item) => item.organizacionId === organizacion.id);
+      const responsable = responsables[indice];
+      const usuario = usuarios.find((item) => item.email === responsable?.email);
+      if (!campo || !responsable || !usuario || camposConHistorial.has(campo.id)) return [];
+      const fecha = new Date(ahora);
+      fecha.setDate(fecha.getDate() - (indice + 1));
+      return [{
+        usuarioId: usuario.id,
+        organizacionId: organizacion.id,
+        accion: 'modificar_campo',
+        entidad: 'Campo',
+        entidadId: campo.id,
+        cambios: JSON.stringify({ resumen: responsable.mensaje, campo: campo.nombre }),
+        createdAt: fecha,
+      }];
+    });
+
+    if (registros.length) {
+      await this.prisma.auditoriaLog.createMany({ data: registros });
+    }
+  }
+
   private async reiniciarDemoEmpresa(contexto: {
     ownerId: number;
     organizaciones: Array<{ id: number; nombre: string }>;
@@ -2503,6 +2621,7 @@ export class DemoService implements OnModuleInit {
     }
     await this.sembrarProduccionDemoEmpresa(contexto.ownerId, contexto.organizaciones);
     await this.crearActividadesDemoEmpresa(contexto.ownerId, contexto.organizaciones);
+    await this.sembrarAuditoriaEquipoDemoEmpresa(contexto.organizaciones);
     await Promise.all(
       contexto.organizaciones.map((organizacion) =>
         this.sembrarCalculosDemo(contexto.ownerId, organizacion.id),

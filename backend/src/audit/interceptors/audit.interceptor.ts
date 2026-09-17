@@ -24,7 +24,8 @@ export class AuditInterceptor implements NestInterceptor {
 
     const request = context.switchToHttp().getRequest();
     const { sub: usuarioId } = request.user || {};
-    const organizacionId = parseInt(request.query.organizacionId);
+    const rawOrganizacionId = request.organizacionId ?? request.query?.organizacionId;
+    const organizacionId = rawOrganizacionId ? parseInt(String(rawOrganizacionId), 10) : undefined;
     const { ipAddress, userAgent } = this.auditService.extraerMetadatos(request);
 
     return next.handle().pipe(
@@ -32,7 +33,7 @@ export class AuditInterceptor implements NestInterceptor {
         try {
           const logData: AuditLogData = {
             usuarioId,
-            organizacionId,
+            organizacionId: Number.isNaN(organizacionId) ? undefined : organizacionId,
             accion: metadata.accion,
             entidad: metadata.entidad,
             entidadId: response?.id || null,

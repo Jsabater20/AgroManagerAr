@@ -13,15 +13,23 @@ export class AuditController {
     @Param('organizacionId') organizacionId: string,
     @Query('limite') limite: string = '100',
     @Query('offset') offset: string = '0',
+    @Query('entidad') entidad?: string,
+    @Query('entidadId') entidadId?: string,
   ) {
+    const filtros = {
+      entidad,
+      entidadId: entidadId ? parseInt(entidadId, 10) : undefined,
+    };
     const registros = await this.auditService.obtenerPorOrganizacion(
       parseInt(organizacionId),
       parseInt(limite),
       parseInt(offset),
+      filtros,
     );
 
     const total = await this.auditService.contarPorOrganizacion(
       parseInt(organizacionId),
+      filtros,
     );
 
     return {

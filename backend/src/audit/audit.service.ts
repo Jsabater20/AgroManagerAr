@@ -56,9 +56,14 @@ export class AuditService {
     organizacionId: number,
     limite = 100,
     offset = 0,
+    filtros?: { entidad?: string; entidadId?: number },
   ) {
     return this.prisma.auditoriaLog.findMany({
-      where: { organizacionId },
+      where: {
+        organizacionId,
+        ...(filtros?.entidad ? { entidad: filtros.entidad } : {}),
+        ...(filtros?.entidadId ? { entidadId: filtros.entidadId } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       take: limite,
       skip: offset,
@@ -76,9 +81,16 @@ export class AuditService {
   }
 
   // Contar registros de auditoría
-  async contarPorOrganizacion(organizacionId: number) {
+  async contarPorOrganizacion(
+    organizacionId: number,
+    filtros?: { entidad?: string; entidadId?: number },
+  ) {
     return this.prisma.auditoriaLog.count({
-      where: { organizacionId },
+      where: {
+        organizacionId,
+        ...(filtros?.entidad ? { entidad: filtros.entidad } : {}),
+        ...(filtros?.entidadId ? { entidadId: filtros.entidadId } : {}),
+      },
     });
   }
 

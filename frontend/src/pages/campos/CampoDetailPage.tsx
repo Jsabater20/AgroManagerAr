@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import { camposApi } from '../../api/campos.api';
 import type { CreateLoteDto, CreateCampoDto } from '../../api/types';
 import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
+import { ResponsablesRecurso } from '../../components/equipo/ResponsablesEquipo';
+import { ActividadCampoReciente } from '../../components/equipo/ActividadCampoReciente';
 
 const emptyLote: CreateLoteDto = { nombre: '', hectareas: 0 };
 
@@ -125,6 +127,18 @@ export default function CampoDetailPage() {
         <StatCard label="Lotes" value={String(campo.lotes?.length ?? 0)} />
         {campo.propietario && <StatCard label="Propietario" value={campo.propietario} />}
       </div>
+
+      <ResponsablesRecurso
+        organizacionId={Number(orgId)}
+        modulo="Campos"
+        recursoTipo="CAMPO"
+        recursoId={campoId}
+        campoId={campoId}
+        detalle
+        nombreRecurso={campo.nombre}
+      />
+
+      <ActividadCampoReciente organizacionId={Number(orgId)} campoId={campoId} />
 
       {/* Lotes */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">

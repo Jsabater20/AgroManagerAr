@@ -14,6 +14,10 @@ export interface ResponsableEquipo {
   nombre: string;
   apellido: string;
   roles: string;
+  cargo: string;
+  cargoPersonalizado?: string | null;
+  puedeGestionarEquipo: boolean;
+  responsable?: { id: number; nombre: string; apellido: string } | null;
 }
 
 export interface ResponsablesEquipoOrganizacion {
