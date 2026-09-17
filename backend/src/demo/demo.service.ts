@@ -138,6 +138,7 @@ export class DemoService implements OnModuleInit {
         await this.resetDemoData();
         this.logger.log('Reset inicial demo completado.');
       }
+      await this.actualizarJerarquiaMiembrosDemo(demoOrg.id);
     } catch (e) {
       this.logger.error('Error en onModuleInit demo:', e);
     }
@@ -673,6 +674,66 @@ export class DemoService implements OnModuleInit {
     });
   }
 
+  private async actualizarJerarquiaMiembrosDemo(organizacionId: number) {
+    const [campo, miembros] = await Promise.all([
+      this.prisma.campo.findFirst({
+        where: { organizacionId },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.usuarioOrganizacion.findMany({
+        where: {
+          organizacionId,
+          usuario: {
+            email: {
+              in: [
+                'mateo.campo.demo@agromanagerar.com',
+                'camila.maquinaria.demo@agromanagerar.com',
+                'lucas.finanzas.demo@agromanagerar.com',
+              ],
+            },
+          },
+        },
+        select: { id: true, usuario: { select: { email: true } } },
+      }),
+    ]);
+    const miembroPorEmail = new Map(miembros.map((miembro) => [miembro.usuario.email, miembro.id]));
+    const encargadoId = miembroPorEmail.get('mateo.campo.demo@agromanagerar.com');
+    const operadoraId = miembroPorEmail.get('camila.maquinaria.demo@agromanagerar.com');
+    const finanzasId = miembroPorEmail.get('lucas.finanzas.demo@agromanagerar.com');
+
+    await Promise.all([
+      encargadoId
+        ? this.prisma.usuarioOrganizacion.update({
+            where: { id: encargadoId },
+            data: { cargo: CargoEquipo.ENCARGADO_AGRICOLA, cargoPersonalizado: null, responsableId: null, puedeGestionarEquipo: true },
+          })
+        : Promise.resolve(),
+      operadoraId
+        ? this.prisma.usuarioOrganizacion.update({
+            where: { id: operadoraId },
+            data: { cargo: CargoEquipo.OPERADOR_MAQUINARIA, cargoPersonalizado: null, responsableId: encargadoId ?? null, puedeGestionarEquipo: false },
+          })
+        : Promise.resolve(),
+      finanzasId
+        ? this.prisma.usuarioOrganizacion.update({
+            where: { id: finanzasId },
+            data: { cargo: CargoEquipo.FINANZAS_PAGOS, cargoPersonalizado: null, responsableId: null, puedeGestionarEquipo: false },
+          })
+        : Promise.resolve(),
+    ]);
+
+    if (campo && encargadoId && operadoraId) {
+      await Promise.all([encargadoId, operadoraId].map((usuarioOrganizacionId) =>
+        this.prisma.asignacionCampo.upsert({
+          where: { usuarioOrganizacionId_campoId: { usuarioOrganizacionId, campoId: campo.id } },
+          update: { activo: true },
+          create: { usuarioOrganizacionId, campoId: campo.id, activo: true },
+        }),
+      ));
+    }
+  }
+
   private async prepararMiembrosDemo(ownerId: number, organizacionId: number) {
     const [campo, maquinaria] = await Promise.all([
       this.prisma.campo.findFirst({
@@ -699,6 +760,8 @@ export class DemoService implements OnModuleInit {
         apellido: 'González',
         roles: JSON.stringify(['OPERARIO']),
         modulos: ['Dashboard', 'Campos', 'Tareas', 'Clima'],
+        cargo: CargoEquipo.ENCARGADO_AGRICOLA,
+        puedeGestionarEquipo: true,
       },
       {
         clave: 'maquinaria',
@@ -706,7 +769,9 @@ export class DemoService implements OnModuleInit {
         nombre: 'Camila',
         apellido: 'Pérez',
         roles: JSON.stringify(['OPERARIO']),
-        modulos: ['Dashboard', 'Maquinarias', 'Tareas'],
+        modulos: ['Dashboard', 'Campos', 'Maquinarias', 'Tareas'],
+        cargo: CargoEquipo.OPERADOR_MAQUINARIA,
+        puedeGestionarEquipo: false,
       },
       {
         clave: 'finanzas',
@@ -715,6 +780,8 @@ export class DemoService implements OnModuleInit {
         apellido: 'Martínez',
         roles: JSON.stringify(['CONTADOR']),
         modulos: ['Dashboard', 'Finanzas'],
+        cargo: CargoEquipo.FINANZAS_PAGOS,
+        puedeGestionarEquipo: false,
       },
     ] as const;
 
@@ -748,12 +815,20 @@ export class DemoService implements OnModuleInit {
         where: {
           usuarioId_organizacionId: { usuarioId: usuario.id, organizacionId },
         },
-        update: { roles: integrante.roles, activo: true },
+        update: {
+          roles: integrante.roles,
+          activo: true,
+          cargo: integrante.cargo,
+          cargoPersonalizado: null,
+          puedeGestionarEquipo: integrante.puedeGestionarEquipo,
+        },
         create: {
           usuarioId: usuario.id,
           organizacionId,
           roles: integrante.roles,
           activo: true,
+          cargo: integrante.cargo,
+          puedeGestionarEquipo: integrante.puedeGestionarEquipo,
         },
       });
 
@@ -777,7 +852,7 @@ export class DemoService implements OnModuleInit {
         })),
       });
 
-      if (integrante.clave === 'campo') {
+      if (integrante.clave === 'campo' || integrante.clave === 'maquinaria') {
         await this.prisma.asignacionCampo.create({
           data: { usuarioOrganizacionId: miembro.id, campoId: campo.id },
         });
@@ -797,6 +872,11 @@ export class DemoService implements OnModuleInit {
 
       miembros.set(integrante.clave, miembro.id);
     }
+
+    await this.prisma.usuarioOrganizacion.update({
+      where: { id: miembros.get('maquinaria')! },
+      data: { responsableId: miembros.get('campo')! },
+    });
 
     const fecha = (dias: number) => {
       const valor = new Date();
