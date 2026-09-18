@@ -17,6 +17,8 @@ import {
   Camera,
   Building2,
   BarChart3,
+  Calculator,
+  ClipboardCheck,
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
@@ -44,6 +46,7 @@ const PRO_FEATURES = [
   'Evidencias y observaciones completas de actividades',
   'Campañas agrícolas',
   'AgroBot IA',
+  'Cálculos guardados y vinculados a tu operación',
   'Analytics avanzados + rentabilidad',
   'Alertas climáticas',
   'Exportar CSV/PDF',
@@ -430,6 +433,68 @@ export default function HomePage() {
       </section>
 
       <TeamSection />
+
+      <section className="overflow-hidden bg-emerald-950 px-4 py-24 text-white">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-300">Cálculos productivos</p>
+            <h2 className="max-w-xl text-3xl font-bold leading-tight md:text-4xl">Dejá de hacer cuentas importantes en una hoja suelta.</h2>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-emerald-50/80">
+              Calculá fertilización, siembra, aplicaciones, maquinaria, ganadería y márgenes. Con Pro, cada resultado queda conectado a la información real de tu establecimiento.
+            </p>
+
+            <div className="mt-8 space-y-4">
+              {[
+                { icon: Calculator, title: 'Empezá con cálculos manuales', description: 'Probá cantidades, dosis y costos en minutos, sin fórmulas complicadas.' },
+                { icon: Sprout, title: 'Usá los datos de tu campo', description: 'En Pro elegís campos, lotes, maquinaria y costos ya registrados para calcular con información real.' },
+                { icon: ClipboardCheck, title: 'Convertí una decisión en trabajo', description: 'Guardá el resultado y creá una actividad para que el equipo la ejecute y deje registro.' },
+              ].map(({ icon: Icon, title, description }) => (
+                <div key={title} className="flex gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-300/20"><Icon size={19} /></span>
+                  <div>
+                    <h3 className="font-semibold text-white">{title}</h3>
+                    <p className="mt-0.5 text-sm leading-relaxed text-emerald-100/70">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Link to="/precios" className="mt-9 inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300">
+              <Zap size={18} />
+              Ver todo lo que incluye Pro
+              <ArrowRight size={17} />
+            </Link>
+          </div>
+
+          <div className="rounded-3xl border border-emerald-300/15 bg-slate-950/50 p-5 shadow-2xl shadow-black/30 sm:p-7">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-5">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500 text-white"><Calculator size={21} /></span>
+              <div>
+                <p className="font-semibold text-white">Cálculo de fertilización</p>
+                <p className="text-xs text-emerald-100/60">Lote Norte · 48 ha</p>
+              </div>
+              <span className="ml-auto rounded-full bg-emerald-400/15 px-2.5 py-1 text-xs font-bold text-emerald-300">Pro</span>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {[
+                ['48 ha', 'Superficie'],
+                ['5.760 kg', 'Fertilizante'],
+                ['$ 1.238.400', 'Costo estimado'],
+                ['120 kg/ha', 'Dosis aplicada'],
+              ].map(([valor, etiqueta]) => (
+                <div key={etiqueta} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-lg font-bold text-white">{valor}</p>
+                  <p className="mt-1 text-xs text-emerald-100/60">{etiqueta}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3">
+              <p className="text-sm font-semibold text-emerald-200">Resultado guardado y listo para asignar</p>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-100/70">Creá el trabajo de fertilización para el responsable del lote sin volver a cargar los datos.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── SCREENSHOTS ──────────────────────────────────────────── */}
       <section className="py-24 px-4 bg-gray-950 text-white">
