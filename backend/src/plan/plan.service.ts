@@ -10,6 +10,13 @@ const LIMITES_FREE = {
   animales: 20,
   siembras: 10,
   maquinarias: 5,
+  galponesAvicolas: 1,
+  registrosAvicolas: 30,
+  registrosOrdene: 30,
+  cultivosFrutihorticolas: 3,
+  cosechasFrutihorticolasPorCultivo: 10,
+  cuadrosYerba: 1,
+  cosechasYerbaPorCuadro: 10,
   miembrosAdicionales: 1,
   actividadesActivas: 3,
 };
@@ -201,6 +208,79 @@ export class PlanService {
     if (count >= LIMITES_FREE.maquinarias) {
       throw new ForbiddenException(
         `Plan Free: máximo ${LIMITES_FREE.maquinarias} maquinarias. Actualizá a Pro para agregar más.`,
+      );
+    }
+  }
+
+  async checkGalponesAvicolasLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.galponAvicola.count({ where: { organizacionId } });
+    if (count >= LIMITES_FREE.galponesAvicolas) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.galponesAvicolas} galpón avícola. Actualizá a Pro para agregar más.`,
+      );
+    }
+  }
+
+  async checkRegistrosAvicolasLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.registroAvicolaDiario.count({ where: { organizacionId } });
+    if (count >= LIMITES_FREE.registrosAvicolas) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.registrosAvicolas} registros avícolas. Actualizá a Pro para seguir cargando información.`,
+      );
+    }
+  }
+
+  async checkRegistrosOrdeneLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.registroOrdene.count({ where: { organizacionId } });
+    if (count >= LIMITES_FREE.registrosOrdene) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.registrosOrdene} registros de ordeñe. Actualizá a Pro para seguir cargando información.`,
+      );
+    }
+  }
+
+  async checkCultivosFrutihorticolasLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.cultivoFrutihorticola.count({ where: { organizacionId } });
+    if (count >= LIMITES_FREE.cultivosFrutihorticolas) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.cultivosFrutihorticolas} cultivos frutihortícolas. Actualizá a Pro para agregar más.`,
+      );
+    }
+  }
+
+  async checkCosechasFrutihorticolasLimit(
+    organizacionId: number,
+    cultivoId: number,
+  ) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.cosechaFrutihorticola.count({ where: { cultivoId } });
+    if (count >= LIMITES_FREE.cosechasFrutihorticolasPorCultivo) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.cosechasFrutihorticolasPorCultivo} cosechas por cultivo. Actualizá a Pro para registrar más.`,
+      );
+    }
+  }
+
+  async checkCuadrosYerbaLimit(organizacionId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.cuadroYerba.count({ where: { organizacionId } });
+    if (count >= LIMITES_FREE.cuadrosYerba) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.cuadrosYerba} cuadro de yerba. Actualizá a Pro para agregar más.`,
+      );
+    }
+  }
+
+  async checkCosechasYerbaLimit(organizacionId: number, cuadroId: number) {
+    if (await this.isOrgPro(organizacionId)) return;
+    const count = await this.prisma.cosechaYerba.count({ where: { cuadroId } });
+    if (count >= LIMITES_FREE.cosechasYerbaPorCuadro) {
+      throw new ForbiddenException(
+        `Plan Free: máximo ${LIMITES_FREE.cosechasYerbaPorCuadro} cosechas por cuadro. Actualizá a Pro para registrar más.`,
       );
     }
   }

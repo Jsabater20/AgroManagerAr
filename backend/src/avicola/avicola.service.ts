@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
+import { PlanService } from '../plan/plan.service';
 import { CreateGalponAvicolaDto, CreateRegistroAvicolaDto } from './dto/avicola.dto';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class AvicolaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly memberAccessService: MemberAccessService,
+    private readonly planService: PlanService,
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number) {
@@ -54,6 +56,7 @@ export class AvicolaService {
 
   async createGalpon(dto: CreateGalponAvicolaDto, usuarioId: number, organizacionId: number) {
     await this.requireAccess(usuarioId, organizacionId);
+    await this.planService.checkGalponesAvicolasLimit(organizacionId);
     return this.prisma.galponAvicola.create({
       data: {
         organizacionId,
@@ -89,6 +92,7 @@ export class AvicolaService {
       throw new ConflictException('Ya cargaste el registro de este galpón para esa fecha');
     }
 
+    await this.planService.checkRegistrosAvicolasLimit(organizacionId);
     return this.prisma.registroAvicolaDiario.create({
       data: {
         organizacionId,

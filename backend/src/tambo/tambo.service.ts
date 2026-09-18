@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
+import { PlanService } from '../plan/plan.service';
 import { CreateRegistroOrdeneDto } from './dto/tambo.dto';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class TamboService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly memberAccessService: MemberAccessService,
+    private readonly planService: PlanService,
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number) {
@@ -60,6 +62,7 @@ export class TamboService {
     organizacionId: number,
   ) {
     await this.requireAccess(usuarioId, organizacionId);
+    await this.planService.checkRegistrosOrdeneLimit(organizacionId);
     if (dto.animalId) {
       const animal = await this.prisma.animal.findFirst({
         where: {

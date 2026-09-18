@@ -1,11 +1,16 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
+import { PlanService } from '../plan/plan.service';
 import { CreateCosechaYerbaDto, CreateCuadroYerbaDto } from './dto/yerba.dto';
 
 @Injectable()
 export class YerbaService {
-  constructor(private readonly prisma: PrismaService, private readonly memberAccessService: MemberAccessService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly memberAccessService: MemberAccessService,
+    private readonly planService: PlanService,
+  ) {}
 
   async findAll(usuarioId: number, organizacionId: number) {
     const acceso = await this.requireAccess(usuarioId, organizacionId);
@@ -32,11 +37,13 @@ export class YerbaService {
   async createCuadro(dto: CreateCuadroYerbaDto, usuarioId: number, organizacionId: number) {
     await this.requireAccess(usuarioId, organizacionId);
     await this.validarUbicacion(dto.campoId, dto.loteId, usuarioId, organizacionId);
+    await this.planService.checkCuadrosYerbaLimit(organizacionId);
     return this.prisma.cuadroYerba.create({ data: { organizacionId, usuarioId, campoId: dto.campoId, loteId: dto.loteId, nombre: dto.nombre.trim(), superficieHa: dto.superficieHa, edadPlantacion: dto.edadPlantacion, observaciones: dto.observaciones?.trim() || null }, include: { campo: { select: { id: true, nombre: true } }, lote: { select: { id: true, nombre: true } }, cosechas: true } });
   }
 
   async createCosecha(cuadroId: number, dto: CreateCosechaYerbaDto, usuarioId: number, organizacionId: number) {
     await this.findOne(cuadroId, usuarioId, organizacionId);
+    await this.planService.checkCosechasYerbaLimit(organizacionId, cuadroId);
     return this.prisma.cosechaYerba.create({ data: { cuadroId, usuarioId, fechaCosecha: new Date(dto.fechaCosecha), kgHojaVerde: dto.kgHojaVerde, kgCanchada: dto.kgCanchada, jornales: dto.jornales, observaciones: dto.observaciones?.trim() || null } });
   }
 

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
+import { PlanService } from '../plan/plan.service';
 import {
   CreateCosechaFrutihorticolaDto,
   CreateCultivoFrutihorticolaDto,
@@ -17,6 +18,7 @@ export class FrutihorticulturaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly memberAccessService: MemberAccessService,
+    private readonly planService: PlanService,
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number) {
@@ -80,6 +82,7 @@ export class FrutihorticulturaService {
       usuarioId,
       organizacionId,
     );
+    await this.planService.checkCultivosFrutihorticolasLimit(organizacionId);
 
     return this.prisma.cultivoFrutihorticola.create({
       data: {
@@ -142,6 +145,10 @@ export class FrutihorticulturaService {
     organizacionId: number,
   ) {
     await this.findOne(cultivoId, usuarioId, organizacionId);
+    await this.planService.checkCosechasFrutihorticolasLimit(
+      organizacionId,
+      cultivoId,
+    );
     const totalKg =
       (dto.kgPrimera ?? 0) + (dto.kgSegunda ?? 0) + (dto.kgDescarte ?? 0);
     if (totalKg <= 0) {
