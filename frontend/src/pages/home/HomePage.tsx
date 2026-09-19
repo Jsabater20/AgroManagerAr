@@ -17,12 +17,17 @@ import {
   Camera,
   Building2,
   BarChart3,
+  Calculator,
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
 import TeamSection from '../../components/marketing/TeamSection';
+import FertilizerCalculatorPreview from '../../components/marketing/FertilizerCalculatorPreview';
+import ActivityExplorer from '../../components/marketing/ActivityExplorer';
+import WorkflowTour from '../../components/marketing/WorkflowTour';
+import PlanSimulator from '../../components/marketing/PlanSimulator';
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -52,6 +57,13 @@ const PRO_FEATURES = [
 ];
 
 /* ─── FEATURE CARDS ──────────────────────────────────────────────── */
+const HOME_EXPLORER_LINKS = [
+  { href: '#calculadora', label: 'Calculá insumos', detail: 'Probá una estimación', icon: Calculator },
+  { href: '#actividades', label: 'Elegí tu actividad', detail: 'Conocé el módulo ideal', icon: Sprout },
+  { href: '#recorrido', label: 'Mirá cómo funciona', detail: 'Seguí el paso a paso', icon: CheckCircle2 },
+  { href: '#planes', label: 'Encontrá tu plan', detail: 'Recibí una recomendación', icon: Zap },
+];
+
 const FEATURES = [
   {
     icon: Bot,
@@ -387,6 +399,20 @@ export default function HomePage() {
       </section>
 
       {/* ── FEATURES ─────────────────────────────────────────────── */}
+      <nav aria-label="Explorá AgroManager AR" className="relative z-10 -mt-7 px-4">
+        <div className="mx-auto grid max-w-5xl gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-4">
+          {HOME_EXPLORER_LINKS.map(({ href, label, detail, icon: Icon }) => (
+            <a key={href} href={href} className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white"><Icon size={18} /></span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-slate-900">{label}</span>
+                <span className="mt-0.5 block truncate text-xs text-slate-500">{detail}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      </nav>
+
       <section className="py-24 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
@@ -430,6 +456,14 @@ export default function HomePage() {
       </section>
 
       <TeamSection />
+
+      <FertilizerCalculatorPreview />
+
+      <ActivityExplorer />
+
+      <WorkflowTour />
+
+      <PlanSimulator />
 
       {/* ── SCREENSHOTS ──────────────────────────────────────────── */}
       <section className="py-24 px-4 bg-gray-950 text-white">
