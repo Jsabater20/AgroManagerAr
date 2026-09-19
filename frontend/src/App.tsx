@@ -60,6 +60,7 @@ import EmpresaProduccionPage from './pages/empresas/EmpresaProduccionPage';
 import EmpresaEstadoPage from './pages/empresas/EmpresaEstadoPage';
 import DemoEmpresaEntryPage from './pages/empresas/DemoEmpresaEntryPage';
 import DemoEmpresaWelcomePage from './pages/empresas/DemoEmpresaWelcomePage';
+import DemoPersonalEntryPage from './pages/demo/DemoPersonalEntryPage';
 import FrutihorticulturaPage from './pages/frutihorticultura/FrutihorticulturaPage';
 import TamboPage from './pages/tambo/TamboPage';
 import AvicolaPage from './pages/avicola/AvicolaPage';
@@ -138,6 +139,7 @@ export default function App() {
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/demo" element={<DemoPersonalEntryPage />} />
           <Route path="/demo/empresa" element={<DemoEmpresaEntryPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/aceptar-invitacion" element={<AceptarInvitacionPage />} />

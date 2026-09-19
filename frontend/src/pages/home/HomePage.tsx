@@ -564,7 +564,7 @@ export default function HomePage() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/demo/empresa"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300"
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 font-bold text-emerald-900 shadow-lg shadow-black/20 transition hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-950"
               >
                 <Building2 size={19} />
                 Ver Demo Empresa
@@ -573,7 +573,7 @@ export default function HomePage() {
                 href={EMPRESA_STANDARD_PAYMENT_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300"
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-950"
               >
                 <Building2 size={19} />
                 Contratar hasta 3
@@ -582,7 +582,7 @@ export default function HomePage() {
                 href={WHATSAPP_BUSINESS_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold text-white transition hover:border-emerald-300/60 hover:bg-white/15"
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-white/35 bg-slate-900/70 px-5 py-3 font-bold text-white shadow-lg shadow-black/15 transition hover:border-emerald-200 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-950"
               >
                 <WhatsAppIcon size={19} />
                 Más de 3: cotizar
@@ -758,18 +758,26 @@ export default function HomePage() {
             Creá una cuenta Free para empezar o recorré la Demo Empresa y conocé cómo se gestiona una operación con varios establecimientos.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+          <div className="grid gap-3 mb-8 sm:grid-cols-3">
             <Link
               to="/register"
-              className="bg-green-500 hover:bg-green-400 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-lg shadow-green-900/40 flex items-center gap-2 w-full sm:w-auto justify-center text-base"
+              className="bg-green-500 hover:bg-green-400 text-white font-bold px-6 py-4 rounded-xl transition-all shadow-lg shadow-green-900/40 flex items-center gap-2 justify-center text-base"
             >
               Crear cuenta gratis
               <ArrowRight size={18} />
             </Link>
             <Link
-              to="/demo/empresa"
-              className="border border-white/20 hover:border-white/40 text-white font-semibold px-8 py-4 rounded-xl transition-all text-base hover:bg-white/5 w-full sm:w-auto text-center"
+              to="/demo"
+              className="bg-white hover:bg-slate-100 text-slate-900 font-bold px-6 py-4 rounded-xl transition-all shadow-lg shadow-black/20 flex items-center gap-2 justify-center text-base"
             >
+              <Sprout size={18} className="text-emerald-700" />
+              Probar Demo
+            </Link>
+            <Link
+              to="/demo/empresa"
+              className="border border-emerald-300/70 bg-emerald-400/10 hover:bg-emerald-400/20 text-white font-bold px-6 py-4 rounded-xl transition-all text-base flex items-center gap-2 justify-center"
+            >
+              <Building2 size={18} className="text-emerald-300" />
               Ver Demo Empresa
             </Link>
           </div>
@@ -777,6 +785,7 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-500">
             {[
               'Plan Free incluido',
+              'Demo personal con datos',
               'Demo Empresa guiada',
               'Sin tarjeta de crédito',
               '100% argentino',
