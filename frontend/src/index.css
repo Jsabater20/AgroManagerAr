@@ -13,6 +13,7 @@
 
   html {
     color-scheme: light;
+    scroll-behavior: smooth;
     --chart-grid: #e5e7eb;
     --chart-tick: #6b7280;
   }
