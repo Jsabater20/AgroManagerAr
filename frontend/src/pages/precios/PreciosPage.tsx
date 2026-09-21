@@ -274,7 +274,7 @@ export default function PreciosPage() {
         <div className="relative rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white shadow-lg shadow-emerald-950/20">
           <div className="flex flex-col gap-6">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300 px-3 py-1 text-xs font-bold text-emerald-950"><Building2 size={13} /> PARA GRUPOS AGROPECUARIOS</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-500 px-3 py-1 text-xs font-bold text-white"><Building2 size={13} /> PARA GRUPOS AGROPECUARIOS</span>
               <h2 className="mt-4 text-2xl font-bold">Plan Empresa</h2>
               <p className="mt-2 max-w-2xl text-emerald-100">Para empresas agropecuarias y grupos con múltiples establecimientos.</p>
               <p className="mt-4 text-3xl font-bold">$69.990 <span className="text-base font-normal text-emerald-200">/ mes</span></p>
@@ -285,7 +285,7 @@ export default function PreciosPage() {
                 href={EMPRESA_STANDARD_PAYMENT_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="order-2 rounded-xl bg-emerald-400 px-5 py-3 text-center text-sm font-bold text-emerald-950 transition hover:bg-emerald-300"
+                className="order-2 rounded-xl bg-emerald-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-emerald-400"
               >
                 2. Pagar plan hasta 3
               </a>

@@ -767,7 +767,7 @@ export default function HomePage() {
             <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-7 text-white shadow-lg shadow-emerald-950/20">
               <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-400/10" />
               <div className="relative">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300 px-3 py-1 text-xs font-bold text-emerald-950"><Building2 size={13} /> PARA EMPRESAS</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-500 px-3 py-1 text-xs font-bold text-white"><Building2 size={13} /> PARA EMPRESAS</span>
                 <h3 className="mt-4 text-xl font-bold">Empresa</h3>
                 <p className="mt-1 text-4xl font-black">
                   $69.990{' '}

@@ -189,21 +189,21 @@ export default function ContactoPage() {
               </p>
             </div>
 
-            <div className="bg-[#ecfdf3] rounded-2xl p-6 border border-green-100">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 dark:!border-emerald-800 dark:!bg-emerald-950">
               <div className="flex items-center gap-3 mb-3">
                 <div className="bg-[#25D366] w-9 h-9 rounded-xl flex items-center justify-center text-white">
                   <WhatsAppIcon size={20} />
                 </div>
-                <h3 className="font-semibold text-gray-900">WhatsApp Business</h3>
+                <h3 className="font-semibold text-slate-950 dark:!text-emerald-50">WhatsApp Business</h3>
               </div>
-              <p className="text-sm text-green-800 leading-relaxed mb-4">
+              <p className="mb-4 text-sm leading-relaxed text-emerald-900 dark:!text-emerald-100">
                 Escribinos para consultas comerciales, soporte o para conocer AgroManager AR.
               </p>
               <a
                 href={WHATSAPP_BUSINESS_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#1fbd5a]"
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#1fbd5a] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-emerald-950"
               >
                 <WhatsAppIcon size={17} />
                 Abrir WhatsApp
