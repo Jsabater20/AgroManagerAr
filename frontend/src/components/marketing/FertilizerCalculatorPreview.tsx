@@ -80,7 +80,7 @@ export default function FertilizerCalculatorPreview() {
           <div className="mt-5 rounded-2xl bg-emerald-50 p-4">
             <p className="text-sm font-bold text-emerald-900">Con Pro llevás este cálculo a tu operación.</p>
             <p className="mt-1 text-xs leading-relaxed text-emerald-800">Seleccioná un campo o lote registrado, guardá el resultado y creá una actividad para la persona responsable.</p>
-            <Link to="/precios" className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:text-emerald-800">
+            <Link to="/planes" className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:text-emerald-800">
               Conocer Cálculos Pro <ArrowRight size={15} />
             </Link>
           </div>

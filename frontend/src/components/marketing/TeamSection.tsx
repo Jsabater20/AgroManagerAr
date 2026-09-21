@@ -109,7 +109,7 @@ export default function TeamSection() {
               <ArrowRight size={18} />
             </Link>
             <Link
-              to="/precios"
+              to="/planes"
               className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-5 py-3 font-semibold text-gray-700 transition hover:border-emerald-200 hover:text-emerald-800"
             >
               Ver planes y límites

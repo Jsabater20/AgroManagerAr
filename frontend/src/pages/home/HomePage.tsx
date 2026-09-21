@@ -24,11 +24,6 @@ import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
-import TeamSection from '../../components/marketing/TeamSection';
-import FertilizerCalculatorPreview from '../../components/marketing/FertilizerCalculatorPreview';
-import ActivityExplorer from '../../components/marketing/ActivityExplorer';
-import WorkflowTour from '../../components/marketing/WorkflowTour';
-import PlanSimulator from '../../components/marketing/PlanSimulator';
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -60,10 +55,10 @@ const PRO_FEATURES = [
 
 /* ─── FEATURE CARDS ──────────────────────────────────────────────── */
 const HOME_EXPLORER_LINKS = [
-  { href: '#calculadora', label: 'Calculá insumos', detail: 'Probá una estimación', icon: Calculator },
-  { href: '#actividades', label: 'Elegí tu actividad', detail: 'Conocé el módulo ideal', icon: Sprout },
-  { href: '#recorrido', label: 'Mirá cómo funciona', detail: 'Seguí el paso a paso', icon: CheckCircle2 },
-  { href: '#planes', label: 'Encontrá tu plan', detail: 'Recibí una recomendación', icon: Zap },
+  { href: '/funcionalidades#calculadora', label: 'Calculá insumos', detail: 'Probá una estimación', icon: Calculator },
+  { href: '/funcionalidades#actividades', label: 'Elegí tu actividad', detail: 'Conocé el módulo ideal', icon: Sprout },
+  { href: '/funcionalidades#recorrido', label: 'Mirá cómo funciona', detail: 'Seguí el paso a paso', icon: CheckCircle2 },
+  { href: '/planes', label: 'Encontrá tu plan', detail: 'Recibí una recomendación', icon: Zap },
 ];
 
 const FEATURES = [
@@ -457,8 +452,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <TeamSection />
-
       <section className="overflow-hidden bg-emerald-950 px-4 py-24 text-white">
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
           <div>
@@ -484,7 +477,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            <Link to="/precios" className="mt-9 inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300">
+            <Link to="/planes" className="mt-9 inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-emerald-950 transition hover:bg-emerald-300">
               <Zap size={18} />
               Ver todo lo que incluye Pro
               <ArrowRight size={17} />
@@ -520,14 +513,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <FertilizerCalculatorPreview />
-
-      <ActivityExplorer />
-
-      <WorkflowTour />
-
-      <PlanSimulator />
-
       {/* ── SCREENSHOTS ──────────────────────────────────────────── */}
       <section className="py-24 px-4 bg-gray-950 text-white">
         <div className="max-w-5xl mx-auto">
@@ -699,10 +684,10 @@ export default function HomePage() {
       </section>
 
       <section className="py-24 px-4 bg-white">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <p className="text-green-600 font-bold text-xs uppercase tracking-widest mb-3">
-              Precios
+              Planes
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Empezá gratis. Escalá cuando crezcas.
@@ -712,7 +697,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* Free */}
             <div className="border-2 border-gray-200 rounded-2xl p-7">
               <h3 className="text-xl font-bold text-gray-900 mb-1">Free</h3>
@@ -770,18 +755,49 @@ export default function HomePage() {
                 ))}
               </ul>
               <Link
-                to="/precios"
+                to="/planes"
                 className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-colors"
               >
                 <Zap size={16} />
                 Ver plan Pro
               </Link>
             </div>
+
+            {/* Empresa */}
+            <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-7 text-white shadow-lg shadow-emerald-950/20">
+              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-400/10" />
+              <div className="relative">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300 px-3 py-1 text-xs font-bold text-emerald-950"><Building2 size={13} /> PARA EMPRESAS</span>
+                <h3 className="mt-4 text-xl font-bold">Empresa</h3>
+                <p className="mt-1 text-4xl font-black">
+                  $69.990{' '}
+                  <span className="text-base font-normal text-emerald-200">ARS / mes</span>
+                </p>
+                <p className="mt-3 text-sm font-medium leading-relaxed text-emerald-100">Para grupos agropecuarios con hasta 3 establecimientos.</p>
+                <ul className="mt-6 space-y-3">
+                  {[
+                    'Todo el plan Pro incluido',
+                    'Hasta 3 establecimientos',
+                    'Equipos y permisos por establecimiento',
+                    'Dashboard y reportes consolidados',
+                  ].map((feature) => (
+                    <li key={feature} className="flex items-start gap-2.5 text-sm text-emerald-50">
+                      <Check size={16} className="mt-0.5 shrink-0 text-emerald-300" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/para-empresas" className="mt-7 flex items-center justify-center gap-2 rounded-xl bg-white py-3 font-bold text-emerald-900 transition hover:bg-emerald-50">
+                  Conocer Plan Empresa
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
           </div>
 
           <p className="text-center text-sm text-gray-400 mt-6">
             ¿Necesitás más info?{' '}
-            <Link to="/precios" className="text-green-600 hover:underline font-medium">
+            <Link to="/planes" className="text-green-600 hover:underline font-medium">
               Ver comparativa completa →
             </Link>
           </p>

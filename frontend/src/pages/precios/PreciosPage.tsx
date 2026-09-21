@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, X, Zap, Sprout, AlertCircle, MessageCircle } from 'lucide-react';
+import { Building2, Check, X, Zap, Sprout, AlertCircle, MessageCircle } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth.store';
@@ -8,6 +8,7 @@ import { getPlanInfo, cancelarSuscripcion, crearCheckout } from '../../api/plan.
 import { getProfile } from '../../api/users.api';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
+import PlanSimulator from '../../components/marketing/PlanSimulator';
 import { WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
 
@@ -141,11 +142,13 @@ export default function PreciosPage() {
       <div className="max-w-5xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Planes AgroManager AR</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">Planes y suscripciones</h1>
         <p className="text-gray-500 text-lg">
           Empezá gratis. Escalá cuando tu campo crezca.
         </p>
       </div>
+
+      {!token && <PlanSimulator />}
 
       {/* Current plan badge */}
       {planInfo && (
@@ -162,7 +165,7 @@ export default function PreciosPage() {
       )}
 
       {/* Plans grid */}
-      <div className="grid md:grid-cols-2 gap-6 mb-10">
+      <div className="grid gap-6 mb-10 lg:grid-cols-3">
         {/* Free */}
         <div className={`rounded-2xl border-2 p-6 ${!isPro ? 'border-green-500 bg-white' : 'border-gray-200 bg-white shadow-sm'}`}>
           <div className="flex items-center justify-between mb-1">
@@ -268,16 +271,16 @@ export default function PreciosPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white md:col-span-2">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+        <div className="relative rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white shadow-lg shadow-emerald-950/20">
+          <div className="flex flex-col gap-6">
             <div>
-              <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-emerald-950">PARA GRUPOS AGROPECUARIOS</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300 px-3 py-1 text-xs font-bold text-emerald-950"><Building2 size={13} /> PARA GRUPOS AGROPECUARIOS</span>
               <h2 className="mt-4 text-2xl font-bold">Plan Empresa</h2>
               <p className="mt-2 max-w-2xl text-emerald-100">Para empresas agropecuarias y grupos con múltiples establecimientos.</p>
               <p className="mt-4 text-3xl font-bold">$69.990 <span className="text-base font-normal text-emerald-200">/ mes</span></p>
               <p className="mt-1 text-sm text-emerald-200">Plan estándar para hasta 3 establecimientos. Desde el cuarto, cotización personalizada.</p>
             </div>
-            <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:flex-col">
+            <div className="flex flex-col gap-2">
               <a
                 href={EMPRESA_STANDARD_PAYMENT_URL}
                 target="_blank"
@@ -303,7 +306,7 @@ export default function PreciosPage() {
               </a>
             </div>
           </div>
-          <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-3 text-sm">
             {['Todo Pro incluido', 'Dashboard consolidado', 'Personal y permisos avanzados', 'Auditoria y exportaciones'].map((beneficio) => (
               <span key={beneficio} className="flex items-center gap-2 text-emerald-100"><Check size={16} className="text-emerald-300" />{beneficio}</span>
             ))}

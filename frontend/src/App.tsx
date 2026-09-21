@@ -11,6 +11,8 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/home/HomePage';
 import ContactoPage from './pages/contacto/ContactoPage';
 import SobreNosotrosPage from './pages/sobre-nosotros/SobreNosotrosPage';
+import FuncionalidadesPage from './pages/funcionalidades/FuncionalidadesPage';
+import EmpresasPublicPage from './pages/empresas/EmpresasPublicPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import AceptarInvitacionPage from './pages/auth/AceptarInvitacionPage';
@@ -135,7 +137,10 @@ export default function App() {
         <Toaster position="top-right" />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/precios" element={<PreciosPage />} />
+          <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
+          <Route path="/planes" element={<PreciosPage />} />
+          <Route path="/precios" element={<Navigate to="/planes" replace />} />
+          <Route path="/para-empresas" element={<EmpresasPublicPage />} />
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
           <Route path="/login" element={<LoginPage />} />

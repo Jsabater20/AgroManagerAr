@@ -21,8 +21,14 @@ export default function PublicFooter() {
             <Link to="/" className="hover:text-gray-800 transition-colors">
               Inicio
             </Link>
-            <Link to="/precios" className="hover:text-gray-800 transition-colors">
-              Precios
+            <Link to="/funcionalidades" className="hover:text-gray-800 transition-colors">
+              Funcionalidades
+            </Link>
+            <Link to="/planes" className="hover:text-gray-800 transition-colors">
+              Planes
+            </Link>
+            <Link to="/para-empresas" className="hover:text-gray-800 transition-colors">
+              Empresas
             </Link>
             <Link to="/contacto" className="hover:text-gray-800 transition-colors">
               Contacto

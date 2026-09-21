@@ -31,7 +31,7 @@ const RECOMMENDATIONS: Record<PlanKey, Recommendation> = {
     description: 'Te conviene para crecer sin límites y usar la gestión completa de la producción y el equipo.',
     benefits: ['Campos, miembros y trabajos ilimitados', 'Cálculos, reportes y rentabilidad', 'Permisos e historial completo del equipo', 'Evidencias fotográficas y observaciones'],
     actionLabel: 'Ver Plan Pro',
-    actionTo: '/precios',
+    actionTo: '/planes',
   },
   EMPRESA: {
     plan: 'EMPRESA',
@@ -39,7 +39,7 @@ const RECOMMENDATIONS: Record<PlanKey, Recommendation> = {
     description: 'Es la alternativa indicada si gestionás varios establecimientos y necesitás mantener cada operación separada.',
     benefits: ['Hasta 3 establecimientos incluidos', 'Datos y equipos separados por organización', 'Dashboard consolidado para personas autorizadas', 'Auditoría y exportaciones consolidadas'],
     actionLabel: 'Conocer Plan Empresa',
-    actionTo: '/precios',
+    actionTo: '/planes',
   },
 };
 

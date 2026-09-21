@@ -4,7 +4,9 @@ import { Sprout, Menu, X } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Inicio' },
-  { href: '/precios', label: 'Precios' },
+  { href: '/funcionalidades', label: 'Funcionalidades' },
+  { href: '/planes', label: 'Planes' },
+  { href: '/para-empresas', label: 'Empresas' },
   { href: '/contacto', label: 'Contacto' },
   { href: '/sobre-nosotros', label: 'Sobre nosotros' },
 ];
@@ -25,7 +27,7 @@ export default function PublicNav() {
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-5">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -42,7 +44,7 @@ export default function PublicNav() {
         </div>
 
         {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           <Link
             to="/login"
             className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
@@ -59,7 +61,7 @@ export default function PublicNav() {
 
         {/* Mobile toggle */}
         <button
-          className="md:hidden p-2 text-gray-700"
+          className="lg:hidden p-2 text-gray-700"
           onClick={() => setOpen(!open)}
           aria-label="Menú"
         >
@@ -69,7 +71,7 @@ export default function PublicNav() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-3">
+        <div className="lg:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-3">
           {links.map((l) => (
             <Link
               key={l.href}
