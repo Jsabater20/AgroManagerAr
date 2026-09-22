@@ -47,6 +47,10 @@ export class SiembrasService {
         lote: { include: { campo: true } },
         tipoCultivo: true,
         cosechas: { orderBy: { fechaCosecha: 'desc' } },
+        aplicaciones: {
+          include: { insumo: true },
+          orderBy: { fecha: 'desc' },
+        },
       },
       orderBy: { fechaSiembra: 'desc' },
     });
