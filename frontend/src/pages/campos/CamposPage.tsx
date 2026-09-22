@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Map, Plus, Loader2, ChevronRight, Tractor } from 'lucide-react';
 import { camposApi } from '../../api/campos.api';
+import { listarEvidencias } from '../../api/evidencias.api';
 import NuevoCampoWizard from './NuevoCampoWizard';
 import EmptyState from '../../components/EmptyState';
 import { ResponsablesRecurso } from '../../components/equipo/ResponsablesEquipo';
@@ -58,47 +59,78 @@ export default function CamposPage() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {campos?.map((campo: Campo) => (
-            <Link
-              key={campo.id}
-              to={`/org/${orgId}/campos/${campo.id}`}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all group"
-            >
-              <div className="flex items-start justify-between">
-                <div className="bg-emerald-50 p-2.5 rounded-xl">
-                  <Map size={20} className="text-emerald-700" />
-                </div>
-                <ChevronRight size={18} className="text-gray-300 group-hover:text-green-600 transition-colors" />
-              </div>
-
-              <h2 className="text-base font-semibold text-gray-900 mt-4">{campo.nombre}</h2>
-
-              {campo.ubicacion && (
-                <p className="text-sm text-gray-500 mt-0.5">{campo.ubicacion}</p>
-              )}
-
-              <ResponsablesRecurso
-                organizacionId={Number(orgId)}
-                modulo="Campos"
-                recursoTipo="CAMPO"
-                recursoId={campo.id}
-                campoId={campo.id}
-              />
-
-              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
-                <span className="text-sm text-gray-600">
-                  <span className="font-semibold text-gray-900">{campo.hectareas}</span> ha
-                </span>
-                <span className="text-sm text-gray-600">
-                  <span className="font-semibold text-gray-900">{campo.lotes.length}</span> lote{campo.lotes.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-            </Link>
-          ))}
+          {campos?.map((campo: Campo) => <CampoCard key={campo.id} campo={campo} organizacionId={Number(orgId)} />)}
         </div>
       )}
 
       {showWizard && <NuevoCampoWizard onClose={() => setShowWizard(false)} />}
     </div>
+  );
+}
+
+function CampoCard({ campo, organizacionId }: { campo: Campo; organizacionId: number }) {
+  const evidenciaQuery = useQuery({
+    queryKey: ['evidencias', 'portada-campo', organizacionId, campo.id],
+    queryFn: () => listarEvidencias(organizacionId, 'CAMPO', campo.id),
+    select: (evidencias) => evidencias.find((evidencia) => evidencia.archivos.length)?.archivos[0] ?? null,
+    enabled: Boolean(organizacionId),
+    retry: false,
+    staleTime: 10 * 60 * 1000,
+  });
+  const portada = evidenciaQuery.data;
+
+  return (
+    <Link
+      to={`/org/${organizacionId}/campos/${campo.id}`}
+      className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+    >
+      {portada ? (
+        <div className="relative h-48 overflow-hidden bg-gray-100 dark:bg-gray-900">
+          <img
+            src={portada.url}
+            alt={`Evidencia de ${campo.nombre}`}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-5 pb-4 pt-10">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white">
+              <Map size={14} /> Imagen reciente del campo
+            </span>
+          </div>
+          <ChevronRight size={18} className="absolute right-4 top-4 text-white drop-shadow group-hover:text-emerald-200" />
+        </div>
+      ) : (
+        <div className="flex items-start justify-between px-6 pt-6">
+          <div className="rounded-xl bg-emerald-50 p-2.5 dark:bg-emerald-500/15">
+            <Map size={20} className="text-emerald-700 dark:text-emerald-300" />
+          </div>
+          <ChevronRight size={18} className="text-gray-300 transition-colors group-hover:text-green-600 dark:text-gray-500 dark:group-hover:text-emerald-300" />
+        </div>
+      )}
+
+      <div className="p-6" style={portada ? { paddingTop: '1.25rem' } : undefined}>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white">{campo.nombre}</h2>
+
+        {campo.ubicacion && (
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{campo.ubicacion}</p>
+        )}
+
+        <ResponsablesRecurso
+          organizacionId={organizacionId}
+          modulo="Campos"
+          recursoTipo="CAMPO"
+          recursoId={campo.id}
+          campoId={campo.id}
+        />
+
+        <div className="mt-3 flex items-center gap-4 border-t border-gray-100 pt-3 dark:border-gray-700">
+          <span className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="font-semibold text-gray-900 dark:text-white">{campo.hectareas}</span> ha
+          </span>
+          <span className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="font-semibold text-gray-900 dark:text-white">{campo.lotes.length}</span> lote{campo.lotes.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
