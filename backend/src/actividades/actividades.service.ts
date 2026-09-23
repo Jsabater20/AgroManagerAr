@@ -21,6 +21,19 @@ import { ReasignarActividadDto } from './dto/reasignar-actividad.dto';
 import { PrologarActividadDto } from './dto/prolongar-actividad.dto';
 import { AgregarObservacionDto } from './dto/agregar-observacion.dto';
 
+const actividadIncluyeResponsables = {
+  usuarioOrganizacion: {
+    include: {
+      usuario: {
+        select: { id: true, nombre: true, apellido: true },
+      },
+    },
+  },
+  creadoPor: {
+    select: { id: true, nombre: true, apellido: true },
+  },
+} satisfies Prisma.ActividadMiembroInclude;
+
 @Injectable()
 export class ActividadesService {
   constructor(
@@ -289,12 +302,7 @@ export class ActividadesService {
           prioridad: dto.prioridad,
           activo: true,
         },
-        include: {
-          usuarioOrganizacion: {
-            include: { usuario: true },
-          },
-          creadoPor: true,
-        },
+        include: actividadIncluyeResponsables,
       });
 
       await tx.visibilidadModulo.upsert({
@@ -412,12 +420,7 @@ export class ActividadesService {
 
     return await this.prisma.actividadMiembro.findMany({
       where,
-      include: {
-        usuarioOrganizacion: {
-          include: { usuario: true },
-        },
-        creadoPor: true,
-      },
+      include: actividadIncluyeResponsables,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -431,12 +434,7 @@ export class ActividadesService {
   ): Promise<ActividadMiembro> {
     const actividad = await this.prisma.actividadMiembro.findUnique({
       where: { id: actividadId },
-      include: {
-        usuarioOrganizacion: {
-          include: { usuario: true },
-        },
-        creadoPor: true,
-      },
+      include: actividadIncluyeResponsables,
     });
 
     if (!actividad) {
@@ -512,10 +510,7 @@ export class ActividadesService {
       const actualizada = await tx.actividadMiembro.update({
         where: { id: actividadId },
         data: actualizaciones,
-        include: {
-          usuarioOrganizacion: { include: { usuario: true } },
-          creadoPor: true,
-        },
+        include: actividadIncluyeResponsables,
       });
 
       await tx.auditoriaLog.create({
@@ -554,10 +549,7 @@ export class ActividadesService {
       const reasignada = await tx.actividadMiembro.update({
         where: { id: actividadId },
         data: { usuarioOrganizacionId: dto.usuarioOrganizacionId },
-        include: {
-          usuarioOrganizacion: { include: { usuario: true } },
-          creadoPor: true,
-        },
+        include: actividadIncluyeResponsables,
       });
 
       await tx.auditoriaLog.create({
@@ -624,10 +616,7 @@ export class ActividadesService {
       const prolongada = await tx.actividadMiembro.update({
         where: { id: actividadId },
         data: { fechaEstimadaFin: nuevaFecha },
-        include: {
-          usuarioOrganizacion: { include: { usuario: true } },
-          creadoPor: true,
-        },
+        include: actividadIncluyeResponsables,
       });
 
       await tx.auditoriaLog.create({
@@ -688,10 +677,7 @@ export class ActividadesService {
       const actualizada = await tx.actividadMiembro.update({
         where: { id: actividadId },
         data: actualizaciones,
-        include: {
-          usuarioOrganizacion: { include: { usuario: true } },
-          creadoPor: true,
-        },
+        include: actividadIncluyeResponsables,
       });
 
       await tx.auditoriaLog.create({
@@ -757,10 +743,7 @@ export class ActividadesService {
       const archivada = await tx.actividadMiembro.update({
         where: { id: actividadId },
         data: { activo: false },
-        include: {
-          usuarioOrganizacion: { include: { usuario: true } },
-          creadoPor: true,
-        },
+        include: actividadIncluyeResponsables,
       });
 
       await tx.auditoriaLog.create({
@@ -960,12 +943,7 @@ export class ActividadesService {
   > {
     const actividad = await this.prisma.actividadMiembro.findUnique({
       where: { id: actividadId },
-      include: {
-        usuarioOrganizacion: {
-          include: { usuario: true },
-        },
-        creadoPor: true,
-      },
+      include: actividadIncluyeResponsables,
     });
 
     if (!actividad) {
