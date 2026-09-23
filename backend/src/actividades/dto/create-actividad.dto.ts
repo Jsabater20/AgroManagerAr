@@ -5,6 +5,7 @@ import {
   IsInt,
   IsDateString,
   IsEnum,
+  Matches,
   MinLength,
   MaxLength,
 } from 'class-validator';
@@ -46,6 +47,23 @@ export class CreateActividadDto {
   @IsOptional()
   @IsDateString()
   fechaEstimadaFin?: string;
+
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'horarioInicio debe tener el formato HH:mm',
+  })
+  horarioInicio?: string;
+
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'horarioFin debe tener el formato HH:mm',
+  })
+  horarioFin?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  observacionInicial?: string;
 
   @IsEnum(Prioridad)
   @IsNotEmpty()

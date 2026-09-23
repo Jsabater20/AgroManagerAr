@@ -778,6 +778,8 @@ model ActividadMiembro {
   fechaInicio      DateTime
   fechaEstimadaFin DateTime?
   fechaRealFin     DateTime?
+  horarioInicio    String?
+  horarioFin       String?
 
   estado    EstadoActividad @default(PENDIENTE)
   prioridad Prioridad       @default(MEDIA)

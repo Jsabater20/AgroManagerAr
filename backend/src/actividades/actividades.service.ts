@@ -298,6 +298,8 @@ export class ActividadesService {
           contexto: dto.contexto || null,
           fechaInicio,
           fechaEstimadaFin,
+          horarioInicio: dto.horarioInicio || null,
+          horarioFin: dto.horarioFin || null,
           estado: EstadoActividad.PENDIENTE,
           prioridad: dto.prioridad,
           activo: true,
@@ -319,6 +321,17 @@ export class ActividadesService {
           activo: true,
         },
       });
+
+      if (dto.observacionInicial?.trim()) {
+        await tx.observacionActividad.create({
+          data: {
+            actividadMiembroId: actividad.id,
+            autorId: userId,
+            contenido: dto.observacionInicial.trim(),
+            estadoActividadAlMomento: EstadoActividad.PENDIENTE,
+          },
+        });
+      }
 
       await tx.auditoriaLog.create({
         data: {
@@ -504,6 +517,14 @@ export class ActividadesService {
       this.validarFechas(fechaInicio, fechaEstimadaFin);
       actualizaciones.fechaInicio = fechaInicio;
       actualizaciones.fechaEstimadaFin = fechaEstimadaFin;
+    }
+
+    if (dto.horarioInicio !== undefined) {
+      actualizaciones.horarioInicio = dto.horarioInicio || null;
+    }
+
+    if (dto.horarioFin !== undefined) {
+      actualizaciones.horarioFin = dto.horarioFin || null;
     }
 
     const resultado = await this.prisma.$transaction(async (tx) => {
