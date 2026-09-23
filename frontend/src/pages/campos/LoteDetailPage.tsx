@@ -59,13 +59,13 @@ export default function LoteDetailPage() {
   }
 
   const totalKg = loteSiembras.reduce(
-    (a: any, s: any) => a + s.cosechas.reduce((b: any, c: any) => b + c.totalKg, 0),
+    (a: number, s: Siembra) => a + (s.cosechas ?? []).reduce((b: number, c) => b + c.totalKg, 0),
     0,
   );
-  const totalAplicaciones = loteSiembras.reduce((a: any, s: any) => a + s.aplicaciones.length, 0);
+  const totalAplicaciones = loteSiembras.reduce((a: number, s: Siembra) => a + (s.aplicaciones?.length ?? 0), 0);
   const avgRendimiento = (() => {
-    const all = loteSiembras.flatMap((s: any) => s.cosechas.map((c: any) => c.rendimientoKgHa));
-    return all.length ? Math.round(all.reduce((a: any, v: any) => a + v, 0) / all.length) : 0;
+    const all = loteSiembras.flatMap((s: Siembra) => (s.cosechas ?? []).map((c) => c.rendimientoKgHa));
+    return all.length ? Math.round(all.reduce((a, value) => a + value, 0) / all.length) : 0;
   })();
 
   return (
