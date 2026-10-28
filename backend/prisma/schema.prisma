@@ -59,6 +59,7 @@ model Usuario {
   referidoRecibido               Referido?                 @relation("referidoReferido")
   notificaciones                 Notificacion[]
   calculosGuardados              CalculoGuardado[]
+  costosProductivosCreados       CostoProductivo[]       @relation("costo_productivo_creador")
 }
 
 model Referido {
@@ -125,6 +126,7 @@ model Campo {
   lotes           Lote[]
   maquinarias     Maquinaria[]
   movimentos      MovimientoFinanciero[]
+  costosProductivos CostoProductivo[]
   tareas          TareaRural[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
   cuadrosYerba           CuadroYerba[]
@@ -141,6 +143,7 @@ model Lote {
   updatedAt DateTime  @updatedAt
   campo     Campo     @relation(fields: [campoId], references: [id])
   siembras  Siembra[]
+  costosProductivos CostoProductivo[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
   cuadrosYerba           CuadroYerba[]
 }
@@ -167,6 +170,7 @@ model Siembra {
   aplicaciones  AplicacionInsumo[]
   cosechas      Cosecha[]
   movimentos    MovimientoFinanciero[]
+  costosProductivos CostoProductivo[]
   campania      Campania?              @relation(fields: [campaniaId], references: [id])
   lote          Lote                   @relation(fields: [loteId], references: [id])
   tipoCultivo   TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
@@ -281,6 +285,7 @@ model Insumo {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   aplicaciones   AplicacionInsumo[]
+  costosProductivos CostoProductivo[]
   organizacion   Organizacion?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 
   @@index([organizacionId])
@@ -378,6 +383,7 @@ model Maquinaria {
   organizacionId    Int?
   gastos            GastoMaquinaria[]
   mantenimientos    MantenimientoMaquinaria[]
+  costosProductivos CostoProductivo[]
   campo             Campo?                    @relation(fields: [campoId], references: [id])
   organizacion      Organizacion?             @relation(fields: [organizacionId], references: [id])
   usuario           Usuario                   @relation(fields: [usuarioId], references: [id])
@@ -419,6 +425,8 @@ model MovimientoFinanciero {
   tipo           TipoMovimiento
   concepto       String
   monto          Float
+  moneda         String              @default("ARS")
+  origen         OrigenMovimientoFinanciero @default(MANUAL)
   fecha          DateTime
   categoria      CategoriaMovimiento
   campoId        Int?
@@ -431,6 +439,7 @@ model MovimientoFinanciero {
   organizacion   Organizacion?       @relation(fields: [organizacionId], references: [id])
   siembra        Siembra?            @relation(fields: [siembraId], references: [id])
   usuario        Usuario             @relation(fields: [usuarioId], references: [id])
+  costosProductivos CostoProductivo[]
 
   @@index([organizacionId])
 }
@@ -448,6 +457,7 @@ model Campania {
   organizacion   Organizacion? @relation(fields: [organizacionId], references: [id])
   usuario        Usuario       @relation(fields: [usuarioId], references: [id])
   siembras       Siembra[]
+  costosProductivos CostoProductivo[]
 
   @@index([organizacionId])
 }
@@ -555,6 +565,7 @@ model Organizacion {
   registrosAvicolas       RegistroAvicolaDiario[]
   cuadrosYerba            CuadroYerba[]
   calculosGuardados       CalculoGuardado[]
+  costosProductivos       CostoProductivo[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
@@ -575,6 +586,8 @@ model CalculoGuardado {
   updatedAt      DateTime     @updatedAt
   organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  actividadesOrigen ActividadMiembro[] @relation("calculo_origen_actividad")
+  costosProductivos CostoProductivo[]
 
   @@index([organizacionId, tipo, createdAt])
   @@index([usuarioId, createdAt])
@@ -774,6 +787,7 @@ model ActividadMiembro {
   recursoTipo TipoRecursoActividad
   recursoId   Int?
   contexto    String?
+  calculoOrigenId Int?
 
   fechaInicio      DateTime
   fechaEstimadaFin DateTime?
@@ -793,11 +807,60 @@ model ActividadMiembro {
   organizacion        Organizacion           @relation(fields: [organizacionId], references: [id], onDelete: Restrict)
   usuarioOrganizacion UsuarioOrganizacion    @relation(fields: [usuarioOrganizacionId], references: [id], onDelete: Restrict)
   creadoPor           Usuario?               @relation("creadoPor", fields: [creadoPorId], references: [id], onDelete: SetNull)
+  calculoOrigen       CalculoGuardado?       @relation("calculo_origen_actividad", fields: [calculoOrigenId], references: [id], onDelete: SetNull)
+  costosProductivos   CostoProductivo[]
 
   @@index([organizacionId, estado])
   @@index([usuarioOrganizacionId, estado])
   @@index([creadoPorId])
+  @@index([calculoOrigenId])
   @@index([organizacionId, activo])
+}
+
+model CostoProductivo {
+  id                      Int                         @id @default(autoincrement())
+  organizacionId          Int
+  actividadId             Int?
+  calculoGuardadoId       Int?
+  movimientoFinancieroId  Int?
+  campoId                 Int?
+  loteId                  Int?
+  siembraId               Int?
+  campaniaId              Int?
+  insumoId                Int?
+  maquinariaId            Int?
+  creadoPorId             Int
+  tipo                    TipoCostoProductivo
+  rubro                   RubroCostoProductivo
+  criterioDistribucion    CriterioDistribucionCosto  @default(MANUAL)
+  descripcion             String
+  cantidad                Decimal?                    @db.Decimal(16, 4)
+  unidad                  String?
+  costoUnitario           Decimal?                    @db.Decimal(16, 2)
+  monto                   Decimal                     @db.Decimal(16, 2)
+  superficieHa            Decimal?                    @db.Decimal(12, 2)
+  fecha                   DateTime                    @default(now())
+  idempotencyKey          String?                     @unique
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+
+  organizacion            Organizacion                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  actividad               ActividadMiembro?           @relation(fields: [actividadId], references: [id], onDelete: Restrict)
+  calculoGuardado         CalculoGuardado?            @relation(fields: [calculoGuardadoId], references: [id], onDelete: SetNull)
+  movimientoFinanciero    MovimientoFinanciero?       @relation(fields: [movimientoFinancieroId], references: [id], onDelete: Restrict)
+  campo                   Campo?                      @relation(fields: [campoId], references: [id], onDelete: Restrict)
+  lote                    Lote?                       @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  siembra                 Siembra?                    @relation(fields: [siembraId], references: [id], onDelete: Restrict)
+  campania                Campania?                   @relation(fields: [campaniaId], references: [id], onDelete: SetNull)
+  insumo                  Insumo?                     @relation(fields: [insumoId], references: [id], onDelete: SetNull)
+  maquinaria              Maquinaria?                 @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
+  creadoPor               Usuario                      @relation("costo_productivo_creador", fields: [creadoPorId], references: [id], onDelete: Restrict)
+
+  @@unique([actividadId, movimientoFinancieroId])
+  @@index([organizacionId, tipo, fecha])
+  @@index([organizacionId, loteId])
+  @@index([campaniaId])
+  @@index([movimientoFinancieroId])
 }
 
 model ObservacionActividad {
@@ -1148,6 +1211,33 @@ enum TipoGastoMaq {
 enum TipoMovimiento {
   INGRESO
   EGRESO
+}
+
+enum OrigenMovimientoFinanciero {
+  MANUAL
+  COSTO_PRODUCTIVO
+}
+
+enum TipoCostoProductivo {
+  ESTIMADO
+  REAL
+}
+
+enum RubroCostoProductivo {
+  INSUMO
+  MAQUINARIA
+  MANO_DE_OBRA
+  CONTRATISTA
+  SERVICIO
+  COMBUSTIBLE
+  MANTENIMIENTO
+  OTRO
+}
+
+enum CriterioDistribucionCosto {
+  MANUAL
+  POR_SUPERFICIE
+  IGUALITARIO
 }
 
 enum CategoriaMovimiento {
