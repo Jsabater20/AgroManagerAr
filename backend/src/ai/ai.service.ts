@@ -74,7 +74,7 @@ export class AiService {
         {
           tipo: 'success',
           titulo: 'Sin alertas operativas',
-          texto: 'No hay trabajos vencidos ni costos por encima del presupuesto dentro de los datos visibles.',
+          texto: 'No hay alertas activas de tareas, costos o maquinaria dentro de los datos visibles.',
         },
         {
           tipo: 'tip',

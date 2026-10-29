@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ArrowRight, CircleAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { alertasApi } from '../../api/alertas.api';
+import { useAuthStore } from '../../store/auth.store';
 
 interface AlertasOperativasPanelProps {
   organizacionId: number;
@@ -19,6 +20,10 @@ export const AlertasOperativasPanel = ({
     refetchInterval: 120000,
   });
   const alertas = alertasQuery.data ?? [];
+  const usuario = useAuthStore((state) => state.usuario);
+  const esOwner = usuario?.organizaciones?.some(
+    (organizacion) => organizacion.id === organizacionId && organizacion.propietarioId === usuario.id,
+  ) ?? false;
 
   useEffect(() => {
     if (alertas.length) {
@@ -38,7 +43,12 @@ export const AlertasOperativasPanel = ({
             <p className="mt-1 text-sm text-amber-800">Son avisos basados en fechas de trabajo y costos registrados.</p>
           </div>
         </div>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-amber-800">{alertas.length} {alertas.length === 1 ? 'alerta' : 'alertas'}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-amber-800">{alertas.length} {alertas.length === 1 ? 'alerta' : 'alertas'}</span>
+          {esOwner && (
+            <Link to={`/org/${organizacionId}/alertas`} className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-bold text-amber-800 transition hover:bg-amber-100">Ver centro</Link>
+          )}
+        </div>
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         {alertas.slice(0, 4).map((alerta) => (

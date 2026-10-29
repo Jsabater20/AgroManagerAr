@@ -74,6 +74,7 @@ import MaquinariaCalculatorPage from './pages/calculos/MaquinariaCalculatorPage'
 import GanaderiaCalculatorPage from './pages/calculos/GanaderiaCalculatorPage';
 import EconomicosCalculatorPage from './pages/calculos/EconomicosCalculatorPage';
 import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
+import AlertasPage from './pages/alertas/AlertasPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -154,6 +155,7 @@ export default function App() {
             <Route path="/empresa/estado" element={<EmpresaEstadoPage />} />
             <Route element={<Layout />}>
               <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
+              <Route path="/org/:orgId/alertas" element={<AlertasPage />} />
               <Route path="/org/:orgId/campos" element={<CamposPage />} />
               <Route path="/org/:orgId/campos/:id" element={<CampoDetailPage />} />
               <Route path="/org/:orgId/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />

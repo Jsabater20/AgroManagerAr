@@ -113,7 +113,19 @@ export interface DashboardEmpresa {
     advertencias: number;
     items: Array<{
       id: string;
-      tipo: 'TRABAJO_VENCIDO' | 'COSTO_SUPERA_ESTIMADO';
+      tipo:
+        | 'TRABAJO_VENCIDO'
+        | 'TRABAJO_SIN_INICIAR'
+        | 'TRABAJO_COMIENZA_HOY'
+        | 'TRABAJO_PROXIMO_A_VENCER'
+        | 'ACTIVIDAD_COMPLETADA_SIN_COSTO_REAL'
+        | 'MAQUINARIA_MANTENIMIENTO_VENCIDO'
+        | 'MAQUINARIA_MANTENIMIENTO_PROXIMO'
+        | 'MAQUINARIA_SEGURO_VENCIDO'
+        | 'MAQUINARIA_SEGURO_PROXIMO_A_VENCER'
+        | 'MAQUINARIA_VTV_VENCIDA'
+        | 'MAQUINARIA_VTV_PROXIMA_A_VENCER'
+        | 'COSTO_SUPERA_ESTIMADO';
       severidad: 'ADVERTENCIA' | 'CRITICA';
       titulo: string;
       mensaje: string;

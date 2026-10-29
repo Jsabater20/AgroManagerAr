@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
+import { AlertasService } from '../alertas/alertas.service';
 
 export type AgroBotIndicador = {
   etiqueta: string;
@@ -69,6 +70,7 @@ export class AgroBotConsultasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly memberAccessService: MemberAccessService,
+    private readonly alertasService: AlertasService,
   ) {}
 
   async responder(
@@ -78,6 +80,18 @@ export class AgroBotConsultasService {
   ): Promise<AgroBotRespuesta | null> {
     const consulta = this.normalizar(mensaje);
 
+    if (this.incluye(consulta, [
+      'alerta',
+      'alertas',
+      'urgente',
+      'urgentes',
+      'prioridad',
+      'prioridades',
+      'que tengo que atender',
+      'que debo atender',
+    ])) {
+      return this.alertasActuales(usuarioId, organizacionId);
+    }
     if (this.esResumen(consulta)) {
       return this.resumenEstablecimiento(usuarioId, organizacionId);
     }
@@ -194,6 +208,31 @@ export class AgroBotConsultasService {
         { etiqueta: 'Trabajos activos', valor: String(activas.length) },
       ],
       referencias,
+      basadaEnDatos: true,
+    };
+  }
+
+  private async alertasActuales(usuarioId: number, organizacionId: number): Promise<AgroBotRespuesta> {
+    const [acceso, alertas] = await Promise.all([
+      this.memberAccessService.requireModule(usuarioId, organizacionId, 'Dashboard'),
+      this.alertasService.obtenerParaOrganizacion(usuarioId, organizacionId),
+    ]);
+    const prioritarias = alertas.filter((alerta) => alerta.severidad === 'CRITICA');
+    const destacadas = alertas.slice(0, 4);
+    const destino = acceso.esOwner ? 'alertas' : 'dashboard';
+
+    return {
+      texto: alertas.length
+        ? `Tenés ${alertas.length} alerta${alertas.length === 1 ? '' : 's'} activa${alertas.length === 1 ? '' : 's'} dentro de los datos que podés consultar.${prioritarias.length ? ` ${prioritarias.length} requiere${prioritarias.length === 1 ? '' : 'n'} atención prioritaria.` : ''} ${destacadas.map((alerta) => alerta.titulo).join(', ')}.`
+        : 'No hay alertas activas dentro de los datos que podés consultar en este establecimiento.',
+      indicadores: [
+        { etiqueta: 'Alertas activas', valor: String(alertas.length) },
+        { etiqueta: 'Prioritarias', valor: String(prioritarias.length) },
+      ],
+      referencias: [{
+        etiqueta: acceso.esOwner ? 'Abrir centro de alertas' : 'Ver dashboard',
+        href: this.ruta(organizacionId, destino),
+      }],
       basadaEnDatos: true,
     };
   }

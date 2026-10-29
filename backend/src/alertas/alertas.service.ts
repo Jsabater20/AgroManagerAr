@@ -1,18 +1,34 @@
-import { Injectable } from '@nestjs/common';
-import { EstadoActividad, TipoCostoProductivo, TipoRecursoActividad } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { EstadoActividad, Prisma, TipoCostoProductivo, TipoRecursoActividad } from '@prisma/client';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { MemberAccessService } from '../organizations/member-access.service';
+import { PlanService } from '../plan/plan.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type AlertaOperativa = {
   id: string;
-  tipo: 'TRABAJO_VENCIDO' | 'COSTO_SUPERA_ESTIMADO';
+  tipo:
+    | 'TRABAJO_VENCIDO'
+    | 'TRABAJO_SIN_INICIAR'
+    | 'TRABAJO_COMIENZA_HOY'
+    | 'TRABAJO_PROXIMO_A_VENCER'
+    | 'ACTIVIDAD_COMPLETADA_SIN_COSTO_REAL'
+    | 'MAQUINARIA_MANTENIMIENTO_VENCIDO'
+    | 'MAQUINARIA_MANTENIMIENTO_PROXIMO'
+    | 'MAQUINARIA_SEGURO_VENCIDO'
+    | 'MAQUINARIA_SEGURO_PROXIMO_A_VENCER'
+    | 'MAQUINARIA_VTV_VENCIDA'
+    | 'MAQUINARIA_VTV_PROXIMA_A_VENCER'
+    | 'COSTO_SUPERA_ESTIMADO';
   severidad: 'ADVERTENCIA' | 'CRITICA';
   titulo: string;
   mensaje: string;
   enlace: string;
   organizacionId: number;
   dedupeKey: string;
+  origenTipo: string;
+  origenId: string;
 };
 
 type CostoAgrupado = {
@@ -23,6 +39,14 @@ type CostoAgrupado = {
   real: number;
 };
 
+type EstadoAlertaGestion = 'ACTIVA' | 'REVISADA' | 'RESUELTA';
+type SeveridadAlertaGestion = 'INFORMATIVA' | 'ATENCION' | 'PRIORITARIA';
+
+type FiltroAlertasGestion = {
+  estado?: string;
+  severidad?: string;
+};
+
 const ESTADOS_ACTIVOS: EstadoActividad[] = [
   EstadoActividad.PENDIENTE,
   EstadoActividad.EN_PROGRESO,
@@ -31,9 +55,12 @@ const ESTADOS_ACTIVOS: EstadoActividad[] = [
 
 @Injectable()
 export class AlertasService {
+  private readonly logger = new Logger(AlertasService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly memberAccessService: MemberAccessService,
+    private readonly planService: PlanService,
     private readonly notificacionesService: NotificacionesService,
   ) {}
 
@@ -54,11 +81,106 @@ export class AlertasService {
         })).map((asignacion) => asignacion.campoId);
     const alertas = await this.listarParaOrganizaciones([organizacionId], campoIds);
 
-    if (acceso.esOwner) {
-      await this.sincronizarNotificacionesOwner(alertas);
-    }
+    if (acceso.esOwner) await this.sincronizarAlertasPersistentes(organizacionId, alertas);
 
     return alertas;
+  }
+
+  async listarGestion(
+    usuarioId: number,
+    organizacionId: number,
+    filtro: FiltroAlertasGestion = {},
+  ) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+    await this.actualizarAlertasGestion(organizacionId);
+
+    const where: Prisma.AlertaGestionWhereInput = { organizacionId };
+    if (filtro.estado) {
+      if (!this.esEstadoGestionValido(filtro.estado)) {
+        throw new BadRequestException('Estado de alerta inválido');
+      }
+      where.estado = filtro.estado;
+    }
+    if (filtro.severidad) {
+      if (!this.esSeveridadGestionValida(filtro.severidad)) {
+        throw new BadRequestException('Severidad de alerta inválida');
+      }
+      where.severidad = filtro.severidad;
+    }
+
+    const alertas = await this.prisma.alertaGestion.findMany({
+      where,
+      include: {
+        lecturas: {
+          where: { usuarioId },
+          select: { leidaEn: true },
+        },
+      },
+      orderBy: { ultimaEvaluacionEn: 'desc' },
+      take: 100,
+    });
+
+    return alertas.map(({ lecturas, ...alerta }) => ({
+      ...alerta,
+      leida: lecturas.length > 0,
+    }));
+  }
+
+  async resumenGestion(usuarioId: number, organizacionId: number) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+    await this.actualizarAlertasGestion(organizacionId);
+
+    const activas = { organizacionId, estado: { in: ['ACTIVA', 'REVISADA'] } };
+    const [total, prioritarias, sinLeer] = await Promise.all([
+      this.prisma.alertaGestion.count({ where: activas }),
+      this.prisma.alertaGestion.count({
+        where: { ...activas, severidad: 'PRIORITARIA' },
+      }),
+      this.prisma.alertaGestion.count({
+        where: {
+          ...activas,
+          lecturas: { none: { usuarioId } },
+        },
+      }),
+    ]);
+
+    return { total, prioritarias, sinLeer };
+  }
+
+  async marcarGestionLeida(
+    usuarioId: number,
+    organizacionId: number,
+    alertaId: string,
+  ) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+    await this.obtenerAlertaGestion(organizacionId, alertaId);
+
+    await this.prisma.alertaLectura.upsert({
+      where: { alertaId_usuarioId: { alertaId, usuarioId } },
+      update: { leidaEn: new Date() },
+      create: { alertaId, usuarioId },
+    });
+    return { ok: true };
+  }
+
+  async revisarGestion(
+    usuarioId: number,
+    organizacionId: number,
+    alertaId: string,
+  ) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+    await this.obtenerAlertaGestion(organizacionId, alertaId);
+
+    await this.prisma.alertaGestion.updateMany({
+      where: { id: alertaId, organizacionId, estado: 'ACTIVA' },
+      data: { estado: 'REVISADA', revisadaEn: new Date() },
+    });
+    await this.prisma.alertaLectura.upsert({
+      where: { alertaId_usuarioId: { alertaId, usuarioId } },
+      update: { leidaEn: new Date() },
+      create: { alertaId, usuarioId },
+    });
+    return { ok: true };
   }
 
   async listarParaOrganizaciones(
@@ -69,19 +191,45 @@ export class AlertasService {
 
     const inicioHoy = new Date();
     inicioHoy.setHours(0, 0, 0, 0);
-    const [actividades, costos] = await Promise.all([
+    const inicioManana = new Date(inicioHoy);
+    inicioManana.setDate(inicioManana.getDate() + 1);
+    const inicioEnTresDias = new Date(inicioHoy);
+    inicioEnTresDias.setDate(inicioEnTresDias.getDate() + 3);
+    const haceTreintaDias = new Date(inicioHoy);
+    haceTreintaDias.setDate(haceTreintaDias.getDate() - 30);
+    const inicioEnQuinceDias = new Date(inicioHoy);
+    inicioEnQuinceDias.setDate(inicioEnQuinceDias.getDate() + 15);
+    const inicioEnTreintaYUnDias = new Date(inicioHoy);
+    inicioEnTreintaYUnDias.setDate(inicioEnTreintaYUnDias.getDate() + 31);
+    const organizacionesPro = (await Promise.all(
+      organizacionIds.map(async (organizacionId) => ({
+        organizacionId,
+        esPro: await this.planService.isOrgPro(organizacionId),
+      })),
+    ))
+      .filter((organizacion) => organizacion.esPro)
+      .map((organizacion) => organizacion.organizacionId);
+    const [actividades, costos, actividadesCompletadasSinCosto, maquinarias] = await Promise.all([
       this.prisma.actividadMiembro.findMany({
         where: {
           organizacionId: { in: organizacionIds },
           activo: true,
           estado: { in: ESTADOS_ACTIVOS },
-          fechaEstimadaFin: { lt: inicioHoy },
+          OR: [
+            { fechaEstimadaFin: { lt: inicioEnTresDias } },
+            {
+              estado: EstadoActividad.PENDIENTE,
+              fechaInicio: { lt: inicioManana },
+            },
+          ],
         },
         select: {
           id: true,
           organizacionId: true,
           titulo: true,
+          fechaInicio: true,
           fechaEstimadaFin: true,
+          estado: true,
           recursoTipo: true,
           recursoId: true,
         },
@@ -90,7 +238,7 @@ export class AlertasService {
       }),
       this.prisma.costoProductivo.findMany({
         where: {
-          organizacionId: { in: organizacionIds },
+          organizacionId: { in: organizacionesPro },
           ...(campoIds ? { campoId: { in: campoIds } } : {}),
         },
         select: {
@@ -105,12 +253,52 @@ export class AlertasService {
           campania: { select: { nombre: true } },
         },
       }),
+      this.prisma.actividadMiembro.findMany({
+        where: {
+          organizacionId: { in: organizacionesPro },
+          activo: true,
+          estado: EstadoActividad.COMPLETADA,
+          calculoOrigenId: { not: null },
+          fechaRealFin: { gte: haceTreintaDias },
+          costosProductivos: { none: { tipo: TipoCostoProductivo.REAL } },
+        },
+        select: {
+          id: true,
+          organizacionId: true,
+          titulo: true,
+          fechaRealFin: true,
+          recursoTipo: true,
+          recursoId: true,
+        },
+        orderBy: { fechaRealFin: 'desc' },
+        take: 40,
+      }),
+      this.prisma.maquinaria.findMany({
+        where: {
+          organizacionId: { in: organizacionIds },
+          ...(campoIds ? { campoId: { in: campoIds } } : {}),
+        },
+        select: {
+          id: true,
+          organizacionId: true,
+          nombre: true,
+          seguroVencimiento: true,
+          vtvVencimiento: true,
+          mantenimientos: {
+            orderBy: { fecha: 'desc' },
+            take: 1,
+            select: { id: true, proximoMantenimiento: true },
+          },
+        },
+      }),
     ]);
 
     const actividadesVisibles = campoIds
       ? await this.filtrarActividadesPorCampos(actividades, campoIds)
       : actividades;
-    const alertasTrabajos = actividadesVisibles.map((actividad) => {
+    const alertasVencidos = actividadesVisibles
+      .filter((actividad) => actividad.fechaEstimadaFin && actividad.fechaEstimadaFin < inicioHoy)
+      .map((actividad) => {
       const dias = Math.max(
         1,
         Math.floor((inicioHoy.getTime() - actividad.fechaEstimadaFin!.getTime()) / 86_400_000),
@@ -125,7 +313,198 @@ export class AlertasService {
         enlace: `/org/${actividad.organizacionId}/tareas`,
         organizacionId: actividad.organizacionId,
         dedupeKey: `alerta-trabajo-vencido-${actividad.id}`,
+        origenTipo: 'ACTIVIDAD_MIEMBRO',
+        origenId: String(actividad.id),
       };
+      });
+
+    const alertasTrabajos: AlertaOperativa[] = [
+      ...alertasVencidos,
+      ...actividadesVisibles.flatMap((actividad): AlertaOperativa[] => {
+        const fechaFin = actividad.fechaEstimadaFin;
+        if (fechaFin && fechaFin < inicioHoy) return [];
+
+        const base = {
+          enlace: `/org/${actividad.organizacionId}/tareas`,
+          organizacionId: actividad.organizacionId,
+          origenTipo: 'ACTIVIDAD_MIEMBRO',
+          origenId: String(actividad.id),
+        };
+
+        if (
+          actividad.estado === EstadoActividad.PENDIENTE
+          && actividad.fechaInicio < inicioHoy
+        ) {
+          const dias = Math.max(
+            1,
+            Math.floor((inicioHoy.getTime() - actividad.fechaInicio.getTime()) / 86_400_000),
+          );
+          return [{
+            id: `trabajo-sin-iniciar-${actividad.id}`,
+            tipo: 'TRABAJO_SIN_INICIAR',
+            severidad: dias >= 7 ? 'CRITICA' : 'ADVERTENCIA',
+            titulo: `Trabajo pendiente sin iniciar: ${actividad.titulo}`,
+            mensaje: `Está programado desde hace ${dias} día${dias === 1 ? '' : 's'} y sigue pendiente.`,
+            dedupeKey: `alerta-trabajo-sin-iniciar-${actividad.id}`,
+            ...base,
+          }];
+        }
+
+        if (fechaFin && fechaFin < inicioEnTresDias) {
+          const dias = Math.max(
+            0,
+            Math.floor((fechaFin.getTime() - inicioHoy.getTime()) / 86_400_000),
+          );
+          return [{
+            id: `trabajo-proximo-a-vencer-${actividad.id}`,
+            tipo: 'TRABAJO_PROXIMO_A_VENCER',
+            severidad: dias === 0 ? 'CRITICA' : 'ADVERTENCIA',
+            titulo: `Trabajo próximo a vencer: ${actividad.titulo}`,
+            mensaje: dias === 0
+              ? 'Su fecha estimada de finalización es hoy.'
+              : `Su fecha estimada de finalización es en ${dias} día${dias === 1 ? '' : 's'}.`,
+            dedupeKey: `alerta-trabajo-proximo-a-vencer-${actividad.id}`,
+            ...base,
+          }];
+        }
+
+        if (
+          actividad.estado === EstadoActividad.PENDIENTE
+          && actividad.fechaInicio >= inicioHoy
+          && actividad.fechaInicio < inicioManana
+        ) {
+          return [{
+            id: `trabajo-comienza-hoy-${actividad.id}`,
+            tipo: 'TRABAJO_COMIENZA_HOY',
+            severidad: 'ADVERTENCIA',
+            titulo: `Trabajo programado para hoy: ${actividad.titulo}`,
+            mensaje: 'Todavía no fue iniciado. Confirmá que la persona responsable pueda realizarlo.',
+            dedupeKey: `alerta-trabajo-comienza-hoy-${actividad.id}`,
+            ...base,
+          }];
+        }
+
+        return [];
+      }),
+    ];
+
+    const actividadesCompletadasVisibles = campoIds
+      ? await this.filtrarActividadesPorCampos(actividadesCompletadasSinCosto, campoIds)
+      : actividadesCompletadasSinCosto;
+    const alertasCostosPendientes: AlertaOperativa[] = actividadesCompletadasVisibles.map((actividad) => {
+      const dias = Math.max(
+        0,
+        Math.floor((inicioHoy.getTime() - actividad.fechaRealFin!.getTime()) / 86_400_000),
+      );
+      return {
+        id: `actividad-completada-sin-costo-real-${actividad.id}`,
+        tipo: 'ACTIVIDAD_COMPLETADA_SIN_COSTO_REAL',
+        severidad: dias >= 7 ? 'CRITICA' : 'ADVERTENCIA',
+        titulo: `Falta registrar el costo real: ${actividad.titulo}`,
+        mensaje: dias === 0
+          ? 'El trabajo se completó hoy y todavía no tiene un costo real asociado.'
+          : `El trabajo se completó hace ${dias} día${dias === 1 ? '' : 's'} y todavía no tiene un costo real asociado.`,
+        enlace: `/org/${actividad.organizacionId}/tareas`,
+        organizacionId: actividad.organizacionId,
+        dedupeKey: `alerta-actividad-completada-sin-costo-real-${actividad.id}`,
+        origenTipo: 'ACTIVIDAD_MIEMBRO',
+        origenId: String(actividad.id),
+      };
+    });
+
+    const alertasMaquinarias: AlertaOperativa[] = maquinarias.flatMap((maquinaria) => {
+      const organizacionId = maquinaria.organizacionId;
+      if (!organizacionId) return [];
+
+      const crearAlertaPorFecha = (
+        fecha: Date | null,
+        limite: Date,
+        tipos: { vencida: AlertaOperativa['tipo']; proxima: AlertaOperativa['tipo'] },
+        etiqueta: string,
+        dedupeKey: string,
+        origenTipo: string,
+        origenId: string,
+      ): AlertaOperativa | null => {
+        if (!fecha || fecha >= limite) return null;
+
+        if (fecha < inicioHoy) {
+          const dias = Math.max(
+            1,
+            Math.floor((inicioHoy.getTime() - fecha.getTime()) / 86_400_000),
+          );
+          return {
+            id: dedupeKey,
+            tipo: tipos.vencida,
+            severidad: 'CRITICA',
+            titulo: `${etiqueta} vencido: ${maquinaria.nombre}`,
+            mensaje: `Venció hace ${dias} día${dias === 1 ? '' : 's'}. Registrá la renovación o el mantenimiento realizado.`,
+            enlace: `/org/${organizacionId}/maquinarias/${maquinaria.id}`,
+            organizacionId,
+            dedupeKey,
+            origenTipo,
+            origenId,
+          };
+        }
+
+        const dias = Math.max(
+          0,
+          Math.floor((fecha.getTime() - inicioHoy.getTime()) / 86_400_000),
+        );
+        return {
+          id: dedupeKey,
+          tipo: tipos.proxima,
+          severidad: dias <= 7 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `${etiqueta} próximo: ${maquinaria.nombre}`,
+          mensaje: dias === 0
+            ? 'Vence hoy. Organizá la gestión necesaria para mantener el equipo disponible.'
+            : `Vence en ${dias} día${dias === 1 ? '' : 's'}.`,
+          enlace: `/org/${organizacionId}/maquinarias/${maquinaria.id}`,
+          organizacionId,
+          dedupeKey,
+          origenTipo,
+          origenId,
+        };
+      };
+
+      const ultimoMantenimiento = maquinaria.mantenimientos[0] ?? null;
+      return [
+        crearAlertaPorFecha(
+          ultimoMantenimiento?.proximoMantenimiento ?? null,
+          inicioEnQuinceDias,
+          {
+            vencida: 'MAQUINARIA_MANTENIMIENTO_VENCIDO',
+            proxima: 'MAQUINARIA_MANTENIMIENTO_PROXIMO',
+          },
+          'Mantenimiento',
+          `alerta-maquinaria-mantenimiento-${ultimoMantenimiento?.id ?? maquinaria.id}`,
+          'MANTENIMIENTO_MAQUINARIA',
+          String(ultimoMantenimiento?.id ?? maquinaria.id),
+        ),
+        crearAlertaPorFecha(
+          maquinaria.seguroVencimiento,
+          inicioEnTreintaYUnDias,
+          {
+            vencida: 'MAQUINARIA_SEGURO_VENCIDO',
+            proxima: 'MAQUINARIA_SEGURO_PROXIMO_A_VENCER',
+          },
+          'Seguro',
+          `alerta-maquinaria-seguro-${maquinaria.id}`,
+          'MAQUINARIA',
+          String(maquinaria.id),
+        ),
+        crearAlertaPorFecha(
+          maquinaria.vtvVencimiento,
+          inicioEnTreintaYUnDias,
+          {
+            vencida: 'MAQUINARIA_VTV_VENCIDA',
+            proxima: 'MAQUINARIA_VTV_PROXIMA_A_VENCER',
+          },
+          'VTV',
+          `alerta-maquinaria-vtv-${maquinaria.id}`,
+          'MAQUINARIA',
+          String(maquinaria.id),
+        ),
+      ].filter((alerta): alerta is AlertaOperativa => Boolean(alerta));
     });
 
     const costosAgrupados = new Map<string, CostoAgrupado>();
@@ -158,34 +537,150 @@ export class AlertasService {
           enlace: `/org/${grupo.organizacionId}/rentabilidad`,
           organizacionId: grupo.organizacionId,
           dedupeKey: `alerta-costo-supera-estimado-${grupo.organizacionId}-${grupo.recurso}`,
+          origenTipo: 'COSTO_PRODUCTIVO_AGRUPADO',
+          origenId: grupo.recurso,
         };
       });
 
-    return [...alertasTrabajos, ...alertasCostos]
+    return [...alertasTrabajos, ...alertasCostosPendientes, ...alertasMaquinarias, ...alertasCostos]
       .sort((a, b) => Number(b.severidad === 'CRITICA') - Number(a.severidad === 'CRITICA'));
   }
 
-  private async sincronizarNotificacionesOwner(alertas: AlertaOperativa[]) {
-    const organizacionIds = [...new Set(alertas.map((alerta) => alerta.organizacionId))];
-    if (!organizacionIds.length) return;
+  @Cron(CronExpression.EVERY_HOUR)
+  async revisarAlertasProgramadas() {
     const organizaciones = await this.prisma.organizacion.findMany({
-      where: { id: { in: organizacionIds } },
-      select: { id: true, propietarioId: true },
+      select: { id: true },
     });
-    const ownerPorOrganizacion = new Map(
-      organizaciones.map((organizacion) => [organizacion.id, organizacion.propietarioId]),
-    );
-    await Promise.all(alertas.map((alerta) => {
-      const ownerId = ownerPorOrganizacion.get(alerta.organizacionId);
-      if (!ownerId) return Promise.resolve(false);
-      return this.notificacionesService.crearNotificacionSiNoExiste(ownerId, {
+
+    for (const organizacion of organizaciones) {
+      try {
+        const alertas = await this.listarParaOrganizaciones([organizacion.id]);
+        await this.sincronizarAlertasPersistentes(organizacion.id, alertas);
+      } catch {
+        this.logger.warn(`No se pudieron actualizar las alertas de la organizacion ${organizacion.id}.`);
+      }
+    }
+  }
+
+  private async sincronizarAlertasPersistentes(
+    organizacionId: number,
+    alertas: AlertaOperativa[],
+  ) {
+    const ahora = new Date();
+    const existentes = await this.prisma.alertaGestion.findMany({
+      where: { organizacionId },
+      select: { id: true, clave: true, estado: true, ciclo: true },
+    });
+    const existentePorClave = new Map(existentes.map((alerta) => [alerta.clave, alerta]));
+    const clavesActivas = alertas.map((alerta) => alerta.dedupeKey);
+    const activadas: Array<{ id: string; ciclo: number; titulo: string; mensaje: string; enlace: string }> = [];
+
+    for (const alerta of alertas) {
+      const existente = existentePorClave.get(alerta.dedupeKey);
+      const severidad = alerta.severidad === 'CRITICA' ? 'PRIORITARIA' : 'ATENCION';
+      if (!existente) {
+        const creada = await this.prisma.alertaGestion.create({
+          data: {
+            organizacionId,
+            clave: alerta.dedupeKey,
+            tipo: alerta.tipo,
+            severidad,
+            estado: 'ACTIVA',
+            titulo: alerta.titulo,
+            mensaje: alerta.mensaje,
+            enlace: alerta.enlace,
+            origenTipo: alerta.origenTipo,
+            origenId: alerta.origenId,
+            detectadaEn: ahora,
+            ultimaEvaluacionEn: ahora,
+          },
+          select: { id: true, ciclo: true, titulo: true, mensaje: true, enlace: true },
+        });
+        activadas.push(creada);
+        continue;
+      }
+
+      const reabierta = existente.estado === 'RESUELTA';
+      const actualizada = await this.prisma.alertaGestion.update({
+        where: { id: existente.id },
+        data: {
+          tipo: alerta.tipo,
+          severidad,
+          estado: reabierta ? 'ACTIVA' : existente.estado,
+          titulo: alerta.titulo,
+          mensaje: alerta.mensaje,
+          enlace: alerta.enlace,
+          origenTipo: alerta.origenTipo,
+          origenId: alerta.origenId,
+          ciclo: reabierta ? existente.ciclo + 1 : existente.ciclo,
+          detectadaEn: reabierta ? ahora : undefined,
+          resueltaEn: reabierta ? null : undefined,
+          ultimaEvaluacionEn: ahora,
+        },
+        select: { id: true, ciclo: true, titulo: true, mensaje: true, enlace: true },
+      });
+      if (reabierta) activadas.push(actualizada);
+    }
+
+    await this.prisma.alertaGestion.updateMany({
+      where: {
+        organizacionId,
+        clave: { notIn: clavesActivas },
+        estado: { in: ['ACTIVA', 'REVISADA'] },
+      },
+      data: { estado: 'RESUELTA', resueltaEn: ahora, ultimaEvaluacionEn: ahora },
+    });
+
+    if (!activadas.length) return;
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { propietarioId: true },
+    });
+    if (!organizacion) return;
+
+    await Promise.all(activadas.map((alerta) =>
+      this.notificacionesService.crearNotificacionSiNoExiste(organizacion.propietarioId, {
         tipo: 'ALERTA_OPERATIVA',
         titulo: alerta.titulo,
         mensaje: alerta.mensaje,
         enlace: alerta.enlace,
-        dedupeKey: alerta.dedupeKey,
-      });
-    }));
+        dedupeKey: `alerta-${alerta.id}-ciclo-${alerta.ciclo}`,
+      }),
+    ));
+  }
+
+  private async actualizarAlertasGestion(organizacionId: number) {
+    const alertas = await this.listarParaOrganizaciones([organizacionId]);
+    await this.sincronizarAlertasPersistentes(organizacionId, alertas);
+  }
+
+  private async requerirOwnerDashboard(usuarioId: number, organizacionId: number) {
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Dashboard',
+    );
+    if (!acceso.esOwner) {
+      throw new ForbiddenException('Solo el propietario puede gestionar las alertas de la organización');
+    }
+  }
+
+  private async obtenerAlertaGestion(organizacionId: number, alertaId: string) {
+    const alerta = await this.prisma.alertaGestion.findFirst({
+      where: { id: alertaId, organizacionId },
+      select: { id: true },
+    });
+    if (!alerta) throw new NotFoundException('Alerta no encontrada');
+    return alerta;
+  }
+
+  private esEstadoGestionValido(estado: string): estado is EstadoAlertaGestion {
+    return ['ACTIVA', 'REVISADA', 'RESUELTA'].includes(estado);
+  }
+
+  private esSeveridadGestionValida(severidad: string): severidad is SeveridadAlertaGestion {
+    return ['INFORMATIVA', 'ATENCION', 'PRIORITARIA'].includes(severidad);
   }
 
   private async filtrarActividadesPorCampos<T extends {

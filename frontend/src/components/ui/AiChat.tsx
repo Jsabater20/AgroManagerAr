@@ -254,6 +254,7 @@ export default function AiChat() {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
+  '¿Qué alertas urgentes tengo?',
   '¿Cuánto gasté este mes?',
   '¿Qué tareas tengo pendientes?',
   '¿Qué trabajos están atrasados?',

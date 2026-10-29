@@ -58,6 +58,7 @@ model Usuario {
   referidosComoReferente         Referido[]                @relation("referenteReferido")
   referidoRecibido               Referido?                 @relation("referidoReferido")
   notificaciones                 Notificacion[]
+  lecturasAlertas                AlertaLectura[]
   calculosGuardados              CalculoGuardado[]
   costosProductivosCreados       CostoProductivo[]       @relation("costo_productivo_creador")
 }
@@ -93,6 +94,49 @@ model Notificacion {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId, leidaEn, createdAt])
+}
+
+model AlertaGestion {
+  id                    String    @id @default(cuid())
+  organizacionId        Int
+  clave                 String
+  tipo                  String
+  severidad             String
+  estado                String    @default("ACTIVA")
+  titulo                String
+  mensaje               String
+  enlace                String
+  origenTipo            String
+  origenId              String
+  ciclo                 Int       @default(1)
+  detectadaEn           DateTime  @default(now())
+  ultimaEvaluacionEn    DateTime  @default(now())
+  revisadaEn            DateTime?
+  resueltaEn            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  organizacion Organizacion    @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  lecturas     AlertaLectura[]
+
+  @@unique([organizacionId, clave])
+  @@index([organizacionId, estado, severidad])
+  @@index([organizacionId, ultimaEvaluacionEn])
+}
+
+model AlertaLectura {
+  id        String   @id @default(cuid())
+  alertaId  String
+  usuarioId Int
+  leidaEn   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  alerta  AlertaGestion @relation(fields: [alertaId], references: [id], onDelete: Cascade)
+  usuario Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([alertaId, usuarioId])
+  @@index([usuarioId, leidaEn])
 }
 
 model DispositivoPush {
@@ -566,6 +610,7 @@ model Organizacion {
   cuadrosYerba            CuadroYerba[]
   calculosGuardados       CalculoGuardado[]
   costosProductivos       CostoProductivo[]
+  alertasGestion          AlertaGestion[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])

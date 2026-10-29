@@ -13,7 +13,8 @@ describe('AgroBotConsultasService', () => {
     maquinaria: { findMany: jest.fn() },
   } as any;
   const memberAccessService = { requireModule: jest.fn() } as any;
-  const service = new AgroBotConsultasService(prisma, memberAccessService);
+  const alertasService = { obtenerParaOrganizacion: jest.fn() } as any;
+  const service = new AgroBotConsultasService(prisma, memberAccessService, alertasService);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -95,5 +96,30 @@ describe('AgroBotConsultasService', () => {
         where: { organizacionId: 20, id: { in: [5] } },
       }),
     );
+  });
+
+  it('responde las alertas activas con datos reales y acceso al centro del owner', async () => {
+    memberAccessService.requireModule.mockResolvedValue({ esOwner: true });
+    alertasService.obtenerParaOrganizacion.mockResolvedValue([
+      {
+        titulo: 'Trabajo vencido: Aplicar fertilizante',
+        severidad: 'CRITICA',
+      },
+      {
+        titulo: 'Mantenimiento próximo: Tractor',
+        severidad: 'ADVERTENCIA',
+      },
+    ]);
+
+    const respuesta = await service.responder(4, 19, '¿Qué alertas urgentes tengo?');
+
+    expect(respuesta?.texto).toContain('2 alertas activas');
+    expect(respuesta?.indicadores).toEqual(expect.arrayContaining([
+      expect.objectContaining({ etiqueta: 'Prioritarias', valor: '1' }),
+    ]));
+    expect(respuesta?.referencias).toEqual([
+      { etiqueta: 'Abrir centro de alertas', href: '/org/19/alertas' },
+    ]);
+    expect(alertasService.obtenerParaOrganizacion).toHaveBeenCalledWith(4, 19);
   });
 });

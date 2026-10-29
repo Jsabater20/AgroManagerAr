@@ -5,6 +5,8 @@ import { Link, useParams } from 'react-router-dom';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 import { getNotificaciones, marcarNotificacionLeida } from '../../api/notificaciones.api';
+import { alertasApi } from '../../api/alertas.api';
+import { useAuthStore } from '../../store/auth.store';
 
 interface Alerta {
   id: string;
@@ -19,6 +21,8 @@ interface Alerta {
 
 export default function NotificationBell() {
   const { orgId } = useParams<{ orgId: string }>();
+  const organizacionId = Number(orgId);
+  const usuario = useAuthStore((state) => state.usuario);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -29,6 +33,16 @@ export default function NotificationBell() {
     queryKey: ['notificaciones'],
     queryFn: getNotificaciones,
     refetchInterval: 60000,
+  });
+  const esOwner = usuario?.organizaciones?.some(
+    (organizacion) => organizacion.id === organizacionId && organizacion.propietarioId === usuario.id,
+  ) ?? false;
+  const resumenAlertasQuery = useQuery({
+    queryKey: ['alertas-gestion-resumen', organizacionId],
+    queryFn: alertasApi.resumenGestion,
+    enabled: esOwner && organizacionId > 0,
+    refetchInterval: 60000,
+    retry: false,
   });
   const marcarLeida = useMutation({
     mutationFn: marcarNotificacionLeida,
@@ -128,7 +142,7 @@ export default function NotificationBell() {
     });
   }
 
-  const count = alertas.length;
+  const count = Math.max(alertas.length, resumenAlertasQuery.data?.total ?? 0);
 
   return (
     <div ref={ref} className="relative">
@@ -185,6 +199,16 @@ export default function NotificationBell() {
                 );
               })}
             </div>
+          )}
+          {esOwner && (
+            <Link
+              to={`/org/${organizacionId}/alertas`}
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-between gap-3 border-t border-gray-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+            >
+              <span className="inline-flex items-center gap-2"><Bell size={15} /> Centro de alertas</span>
+              <span>{resumenAlertasQuery.data?.total ?? 0} activas</span>
+            </Link>
           )}
         </div>
       )}
