@@ -413,6 +413,8 @@ export interface MovimientoFinanciero {
   tipo: TipoMovimiento;
   concepto: string;
   monto: number;
+  moneda?: string;
+  origen?: 'MANUAL' | 'COSTO_PRODUCTIVO';
   fecha: string;
   categoria: CategoriaMovimiento;
   campoId?: number;

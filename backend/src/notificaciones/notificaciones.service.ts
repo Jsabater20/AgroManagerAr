@@ -126,6 +126,38 @@ export class NotificacionesService {
     return { ok: true };
   }
 
+  async crearNotificacionSiNoExiste(
+    usuarioId: number,
+    notificacion: CrearNotificacion,
+  ): Promise<boolean> {
+    if (notificacion.dedupeKey) {
+      const existente = await this.prisma.notificacion.findUnique({
+        where: { dedupeKey: notificacion.dedupeKey },
+        select: { id: true },
+      });
+      if (existente) return false;
+    }
+
+    const creada = await this.prisma.notificacion.create({
+      data: {
+        usuarioId,
+        tipo: notificacion.tipo,
+        titulo: notificacion.titulo,
+        mensaje: notificacion.mensaje,
+        enlace: notificacion.enlace,
+        dedupeKey: notificacion.dedupeKey,
+      },
+    }).catch(() => null);
+    if (!creada) return false;
+
+    await this.notificarUsuario(usuarioId, {
+      titulo: notificacion.titulo,
+      mensaje: notificacion.mensaje,
+      datos: { tipo: notificacion.tipo },
+    });
+    return true;
+  }
+
   async notificarReferidosListos(referenteId: number) {
     const [referente, cantidadValidos, superadmins] = await Promise.all([
       this.prisma.usuario.findUnique({

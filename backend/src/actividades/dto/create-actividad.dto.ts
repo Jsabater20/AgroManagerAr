@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsEnum,
   Matches,
+  Min,
   MinLength,
   MaxLength,
 } from 'class-validator';
@@ -34,6 +35,11 @@ export class CreateActividadDto {
   @IsOptional()
   @IsInt()
   recursoId?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  calculoOrigenId?: number;
 
   @IsOptional()
   @IsString()

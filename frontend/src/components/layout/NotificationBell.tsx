@@ -46,16 +46,27 @@ export default function NotificationBell() {
 
   const alertas: Alerta[] = (notificaciones ?? [])
     .filter((notificacion) => !notificacion.leidaEn)
-    .map((notificacion) => ({
-      id: `notificacion-${notificacion.id}`,
-      tipo: 'referidos' as const,
-      titulo: notificacion.titulo,
-      sub: notificacion.mensaje,
-      link: notificacion.enlace || '/',
-      icon: notificacion.tipo === 'NUEVO_REGISTRO' ? UserPlus : Gift,
-      color: notificacion.tipo === 'NUEVO_REGISTRO' ? 'text-blue-700 bg-blue-50' : 'text-emerald-700 bg-emerald-50',
-      notificacionId: notificacion.id,
-    }));
+    .map((notificacion) => {
+      const esAlertaOperativa = notificacion.tipo === 'ALERTA_OPERATIVA';
+      return {
+        id: `notificacion-${notificacion.id}`,
+        tipo: 'referidos' as const,
+        titulo: notificacion.titulo,
+        sub: notificacion.mensaje,
+        link: notificacion.enlace || '/',
+        icon: esAlertaOperativa
+          ? AlertTriangle
+          : notificacion.tipo === 'NUEVO_REGISTRO'
+            ? UserPlus
+            : Gift,
+        color: esAlertaOperativa
+          ? 'text-amber-700 bg-amber-50'
+          : notificacion.tipo === 'NUEVO_REGISTRO'
+            ? 'text-blue-700 bg-blue-50'
+            : 'text-emerald-700 bg-emerald-50',
+        notificacionId: notificacion.id,
+      };
+    });
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
   // Tareas vencidas

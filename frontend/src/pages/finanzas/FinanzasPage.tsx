@@ -59,6 +59,10 @@ export default function FinanzasPage() {
 
   const openCreate = () => { setForm(EMPTY); setEditId(null); setModal(true); };
   const openEdit   = (m: typeof movimientos[0]) => {
+    if (m.origen === 'COSTO_PRODUCTIVO') {
+      toast.error('Este egreso se gestiona desde el trabajo donde se registró el costo.');
+      return;
+    }
     setForm({ tipo: m.tipo, concepto: m.concepto, monto: m.monto,
       fecha: m.fecha.slice(0, 10), categoria: m.categoria,
       campoId: m.campoId, observaciones: m.observaciones ?? '' });
@@ -170,6 +174,11 @@ export default function FinanzasPage() {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex gap-1">
+                      {m.origen === 'COSTO_PRODUCTIVO' && (
+                        <span className="rounded-lg bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                          Desde trabajo
+                        </span>
+                      )}
                       <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
                         <Pencil size={14} />
                       </button>

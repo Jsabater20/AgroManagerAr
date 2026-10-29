@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Plus,
   Save,
+  AlertTriangle,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
@@ -248,6 +249,27 @@ export default function EmpresaDashboardPage() {
           <Metric icon={ClipboardList} label="Trabajos" value={formatNumber(dashboard.trabajos.pendientes + dashboard.trabajos.enProgreso + dashboard.trabajos.pausadas)} detail={`${dashboard.trabajos.demoradas} demorados`} tone={dashboard.trabajos.demoradas > 0 ? 'warning' : 'default'} />
         </div>
       </section>
+
+      {dashboard.alertas.total > 0 && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-amber-800">Atención de la empresa</p>
+              <h2 className="mt-1 text-xl font-bold text-slate-900">Prioridades entre establecimientos</h2>
+              <p className="mt-1 text-sm text-slate-600">{dashboard.alertas.criticas} críticas y {dashboard.alertas.advertencias} advertencias basadas en trabajos y costos.</p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-amber-800">{dashboard.alertas.total} alertas</span>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {dashboard.alertas.items.map((alerta) => (
+              <Link key={alerta.id} to={alerta.enlace} className="flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-4 transition hover:border-amber-400 hover:shadow-sm">
+                <AlertTriangle size={18} className={alerta.severidad === 'CRITICA' ? 'mt-0.5 shrink-0 text-red-600' : 'mt-0.5 shrink-0 text-amber-600'} />
+                <div><p className="text-sm font-bold text-slate-900">{alerta.titulo}</p><p className="mt-1 text-xs leading-relaxed text-slate-600">{alerta.mensaje}</p></div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-bold text-slate-900">Gestión consolidada</h2>

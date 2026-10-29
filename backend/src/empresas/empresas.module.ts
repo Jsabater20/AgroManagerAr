@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { EmpresaAccessService } from './empresa-access.service';
 import { EmpresasController } from './empresas.controller';
 import { EmpresasService } from './empresas.service';
+import { AlertasModule } from '../alertas/alertas.module';
 
 @Module({
+  imports: [AlertasModule],
   controllers: [EmpresasController],
   providers: [EmpresasService, EmpresaAccessService],
   exports: [EmpresaAccessService],

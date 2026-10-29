@@ -32,6 +32,17 @@ const actividadIncluyeResponsables = {
   creadoPor: {
     select: { id: true, nombre: true, apellido: true },
   },
+  calculoOrigen: {
+    select: {
+      id: true,
+      tipo: true,
+      titulo: true,
+      campoId: true,
+      loteId: true,
+      maquinariaId: true,
+      createdAt: true,
+    },
+  },
 } satisfies Prisma.ActividadMiembroInclude;
 
 @Injectable()
@@ -268,7 +279,17 @@ export class ActividadesService {
     orgId: number,
     dto: CreateActividadDto,
     userId: number,
+    calculoOrigenId?: number,
   ): Promise<ActividadMiembro> {
+    if (
+      dto.calculoOrigenId !== undefined &&
+      dto.calculoOrigenId !== calculoOrigenId
+    ) {
+      throw new BadRequestException(
+        'El cálculo de origen solo puede vincularse al crear el trabajo desde un cálculo guardado.',
+      );
+    }
+
     await this.validarOwner(orgId, userId);
     await this.planService.checkActividadesActivasLimit(orgId);
     await this.validarMiembroOrganizacion(orgId, dto.usuarioOrganizacionId);
@@ -296,6 +317,7 @@ export class ActividadesService {
           recursoTipo: dto.recursoTipo,
           recursoId: dto.recursoId || null,
           contexto: dto.contexto || null,
+          calculoOrigenId: calculoOrigenId ?? null,
           fechaInicio,
           fechaEstimadaFin,
           horarioInicio: dto.horarioInicio || null,
@@ -344,6 +366,7 @@ export class ActividadesService {
             titulo: actividad.titulo,
             recursoTipo: actividad.recursoTipo,
             miembroAsignado: actividad.usuarioOrganizacionId,
+            calculoOrigenId: actividad.calculoOrigenId,
           }),
         },
       });
@@ -379,7 +402,41 @@ export class ActividadesService {
       );
     }
 
-    return this.crear(orgId, dto, userId);
+    await this.validarOwner(orgId, userId);
+
+    if (!dto.calculoOrigenId) {
+      throw new BadRequestException(
+        'Seleccioná un cálculo guardado para crear un trabajo desde él.',
+      );
+    }
+
+    const calculo = await this.prisma.calculoGuardado.findFirst({
+      where: { id: dto.calculoOrigenId, organizacionId: orgId },
+      select: {
+        id: true,
+        campoId: true,
+        loteId: true,
+        maquinariaId: true,
+      },
+    });
+
+    if (!calculo) {
+      throw new NotFoundException(
+        'El cálculo seleccionado no pertenece a esta organización.',
+      );
+    }
+
+    const recursoCalculo = this.obtenerRecursoDelCalculo(calculo);
+    if (
+      dto.recursoTipo !== recursoCalculo.recursoTipo ||
+      (dto.recursoId ?? null) !== (recursoCalculo.recursoId ?? null)
+    ) {
+      throw new BadRequestException(
+        'El recurso del trabajo debe coincidir con el campo, lote o maquinaria del cálculo.',
+      );
+    }
+
+    return this.crear(orgId, dto, userId, calculo.id);
   }
 
   async listar(
@@ -951,6 +1008,35 @@ export class ActividadesService {
     });
 
     return org?.propietarioId === userId;
+  }
+
+  private obtenerRecursoDelCalculo(calculo: {
+    campoId: number | null;
+    loteId: number | null;
+    maquinariaId: number | null;
+  }): { recursoTipo: TipoRecursoActividad; recursoId?: number } {
+    if (calculo.loteId) {
+      return {
+        recursoTipo: TipoRecursoActividad.LOTE,
+        recursoId: calculo.loteId,
+      };
+    }
+
+    if (calculo.campoId) {
+      return {
+        recursoTipo: TipoRecursoActividad.CAMPO,
+        recursoId: calculo.campoId,
+      };
+    }
+
+    if (calculo.maquinariaId) {
+      return {
+        recursoTipo: TipoRecursoActividad.MAQUINARIA,
+        recursoId: calculo.maquinariaId,
+      };
+    }
+
+    return { recursoTipo: TipoRecursoActividad.GENERAL };
   }
 
   private async obtenerActividad(

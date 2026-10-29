@@ -7,7 +7,8 @@ import { organizacionesApi } from '../../api/organizaciones.api';
 
 interface CreateActivityFromCalculationButtonProps {
   organizacionId: number;
-  recursoTipo: 'CAMPO' | 'LOTE' | 'GENERAL';
+  calculoOrigenId: number;
+  recursoTipo: 'CAMPO' | 'LOTE' | 'MAQUINARIA' | 'GENERAL';
   recursoId?: number;
   recursoNombre?: string;
   tituloInicial: string;
@@ -16,6 +17,7 @@ interface CreateActivityFromCalculationButtonProps {
 
 export function CreateActivityFromCalculationButton({
   organizacionId,
+  calculoOrigenId,
   recursoTipo,
   recursoId,
   recursoNombre,
@@ -50,6 +52,7 @@ export function CreateActivityFromCalculationButton({
       usuarioOrganizacionId: Number(usuarioOrganizacionId),
       recursoTipo,
       recursoId,
+      calculoOrigenId,
       fechaInicio,
       fechaEstimadaFin: fechaEstimadaFin || undefined,
       prioridad,
@@ -62,7 +65,7 @@ export function CreateActivityFromCalculationButton({
     onError: (error: any) => toast.error(error?.response?.data?.message || 'No se pudo crear el trabajo.'),
   });
 
-  const puedeCrear = titulo.trim().length >= 3 && Number(usuarioOrganizacionId) > 0 && Boolean(fechaInicio);
+  const puedeCrear = titulo.trim().length >= 3 && Number(usuarioOrganizacionId) > 0 && Boolean(fechaInicio) && calculoOrigenId > 0;
 
   return <><button type="button" onClick={() => setAbierto(true)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-500"><ClipboardPlus size={16} /> Crear trabajo desde este cálculo</button>{abierto && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" aria-label="Crear trabajo desde cálculo"><div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800"><div className="flex items-start justify-between border-b border-gray-200 p-5 dark:border-gray-700"><div><div className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-300"><ClipboardPlus size={17} /> Desde un cálculo</div><h2 className="mt-2 text-xl font-bold text-gray-900 dark:text-white">Asignar trabajo</h2><p className="mt-1 text-sm text-gray-600 dark:text-gray-300">El resultado calculado se incluirá como referencia para la persona asignada.</p></div><button type="button" onClick={() => setAbierto(false)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Cerrar"><X size={19} /></button></div><div className="space-y-4 p-5"><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100"><strong>Recurso:</strong> {recursoNombre || 'Trabajo general'}<br /><span className="text-emerald-800 dark:text-emerald-200">{descripcionCalculo}</span></div><Field label="¿Qué tiene que hacer?"><input value={titulo} onChange={(event) => setTitulo(event.target.value)} className="input" /></Field><Field label="Asignar a"><div className="relative">{miembrosQuery.isLoading ? <p className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"><Loader2 size={16} className="animate-spin" /> Cargando miembros...</p> : miembrosActivos.length ? <><UsersRound size={16} className="pointer-events-none absolute left-3 top-3.5 text-gray-400" /><select value={usuarioOrganizacionId} onChange={(event) => setUsuarioOrganizacionId(event.target.value)} className="input pl-10">{miembrosActivos.map((miembro) => <option key={miembro.id} value={miembro.id}>{miembro.usuario.nombre} {miembro.usuario.apellido}</option>)}</select></> : <p className="text-sm text-rose-700 dark:text-rose-300">Necesitás al menos un miembro activo para asignar el trabajo.</p>}</div></Field><div className="grid gap-4 sm:grid-cols-3"><Field label="Prioridad"><select value={prioridad} onChange={(event) => setPrioridad(event.target.value)} className="input"><option value="BAJA">Baja</option><option value="MEDIA">Media</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></Field><Field label="Fecha de inicio"><div className="relative"><CalendarDays size={16} className="pointer-events-none absolute left-3 top-3.5 text-gray-400" /><input type="date" value={fechaInicio} onChange={(event) => setFechaInicio(event.target.value)} className="input pl-10" /></div></Field><Field label="Finalización estimada (opcional)"><input type="date" value={fechaEstimadaFin} min={fechaInicio} onChange={(event) => setFechaEstimadaFin(event.target.value)} className="input" /></Field></div><Field label="Indicaciones para la persona (opcional)"><textarea value={indicaciones} onChange={(event) => setIndicaciones(event.target.value)} rows={3} placeholder="Ej. Aplicar durante la mañana y avisar al terminar." className="input resize-y" /></Field></div><div className="flex flex-wrap justify-end gap-3 border-t border-gray-200 p-5 dark:border-gray-700"><button type="button" onClick={() => setAbierto(false)} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">Cancelar</button><button type="button" onClick={() => crearMutation.mutate()} disabled={!puedeCrear || crearMutation.isPending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{crearMutation.isPending && <Loader2 size={16} className="animate-spin" />}Confirmar y asignar</button></div></div></div>}</>;
 }

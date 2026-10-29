@@ -5,6 +5,7 @@ import { ReasignarModal } from './modals/ReasignarModal';
 import { CambiarEstadoModal } from './modals/CambiarEstadoModal';
 import { ProlongarFechaModal } from './modals/ProlongarFechaModal';
 import { ObservacionesModal } from './modals/ObservacionesModal';
+import { CostosActividadModal } from './modals/CostosActividadModal';
 import './ActividadesList.css';
 
 interface ActividadesListProps {
@@ -15,7 +16,7 @@ interface ActividadesListProps {
 export const ActividadesList = ({ actividades, organizacionId }: ActividadesListProps) => {
   const [selectedActividad, setSelectedActividad] = useState<any | null>(null);
   const [modalType, setModalType] = useState<
-    'edit' | 'reasignar' | 'estado' | 'prolongar' | 'observaciones' | null
+    'edit' | 'reasignar' | 'estado' | 'prolongar' | 'observaciones' | 'costos' | null
   >(null);
   const [confirmArchive, setConfirmArchive] = useState<number | null>(null);
   const { archivarMutation } = useActividades(organizacionId);
@@ -51,6 +52,11 @@ export const ActividadesList = ({ actividades, organizacionId }: ActividadesList
   const handleVerObservaciones = (actividad: any) => {
     setSelectedActividad(actividad);
     setModalType('observaciones');
+  };
+
+  const handleCostos = (actividad: any) => {
+    setSelectedActividad(actividad);
+    setModalType('costos');
   };
 
   const handleArchive = async (actividadId: number) => {
@@ -198,6 +204,15 @@ export const ActividadesList = ({ actividades, organizacionId }: ActividadesList
               >
                 Observaciones
               </button>
+              {actividad.estado === 'COMPLETADA' && (
+                <button
+                  className="btn-sm btn-secondary"
+                  onClick={() => handleCostos(actividad)}
+                  title="Registrar y consultar los costos reales del trabajo"
+                >
+                  Costos reales
+                </button>
+              )}
               <button
                 className="btn-sm btn-danger"
                 onClick={() => setConfirmArchive(actividad.id)}
@@ -241,6 +256,14 @@ export const ActividadesList = ({ actividades, organizacionId }: ActividadesList
 
       {selectedActividad && modalType === 'observaciones' && (
         <ObservacionesModal
+          actividad={selectedActividad}
+          organizacionId={organizacionId}
+          onClose={closeModal}
+        />
+      )}
+
+      {selectedActividad && modalType === 'costos' && (
+        <CostosActividadModal
           actividad={selectedActividad}
           organizacionId={organizacionId}
           onClose={closeModal}

@@ -1,6 +1,14 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { ActividadProductiva, CargoEquipo, Prisma } from '@prisma/client';
+import {
+  ActividadProductiva,
+  CargoEquipo,
+  OrigenMovimientoFinanciero,
+  Prisma,
+  RubroCostoProductivo,
+  TipoCostoProductivo,
+  TipoMovimiento,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { DEMO_EMAIL, DEMO_EMPRESA_EMAIL } from '../auth/system-accounts';
@@ -205,6 +213,9 @@ export class DemoService implements OnModuleInit {
     await this.prisma.calculoGuardado.deleteMany({
       where: { organizacionId: demoOrgId },
     });
+    await this.prisma.costoProductivo.deleteMany({
+      where: { organizacionId: demoOrgId },
+    });
 
     // ── Borrar datos de usuario demo EN ORDEN CORRECTO ────────────────────────
     // Buscar campos TANTO por usuarioId COMO por organizacionId para garantizar limpieza completa
@@ -333,6 +344,7 @@ export class DemoService implements OnModuleInit {
     await this.sembrarProduccionDemo(uid, demoOrgId);
     await this.prepararMiembrosDemo(uid, demoOrgId);
     await this.sembrarCalculosDemo(uid, demoOrgId);
+    await this.sembrarCostosProductivosDemo(uid, [demoOrgId]);
   }
 
   async sembrarEjemplosSuperadmin(usuarioId: number, organizacionId: number) {
@@ -555,6 +567,116 @@ export class DemoService implements OnModuleInit {
     }
 
     await this.prisma.calculoGuardado.createMany({ data: calculos });
+  }
+
+  private async sembrarCostosProductivosDemo(usuarioId: number, organizacionesIds: number[]) {
+    const [campos, actividadesCompletadas] = await Promise.all([
+      this.prisma.campo.findMany({
+        where: { organizacionId: { in: organizacionesIds } },
+        orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          organizacionId: true,
+          lotes: {
+            orderBy: { id: 'asc' },
+            take: 1,
+            select: {
+              id: true,
+              hectareas: true,
+              siembras: {
+                orderBy: { fechaSiembra: 'desc' },
+                take: 1,
+                select: { id: true, campaniaId: true },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.actividadMiembro.findMany({
+        where: {
+          organizacionId: { in: organizacionesIds },
+          estado: 'COMPLETADA',
+        },
+        orderBy: { fechaRealFin: 'desc' },
+        select: { id: true, organizacionId: true },
+      }),
+    ]);
+
+    for (const organizacionId of organizacionesIds) {
+      const campo = campos.find((item) => item.organizacionId === organizacionId);
+      const lote = campo?.lotes[0];
+      const siembra = lote?.siembras[0];
+      const actividad = actividadesCompletadas.find(
+        (item) => item.organizacionId === organizacionId,
+      );
+      if (!campo || !lote) continue;
+
+      const montoEstimado = 180000;
+      const fecha = new Date();
+      fecha.setHours(0, 0, 0, 0);
+
+      await this.prisma.costoProductivo.create({
+        data: {
+          organizacionId,
+          campoId: campo.id,
+          loteId: lote.id,
+          siembraId: siembra?.id ?? null,
+          campaniaId: siembra?.campaniaId ?? null,
+          creadoPorId: usuarioId,
+          tipo: TipoCostoProductivo.ESTIMADO,
+          rubro: RubroCostoProductivo.INSUMO,
+          descripcion: 'Presupuesto de insumos para la labor planificada',
+          cantidad: 1,
+          unidad: 'lote',
+          costoUnitario: montoEstimado,
+          monto: montoEstimado,
+          superficieHa: lote.hectareas,
+          fecha,
+        },
+      });
+
+      if (!actividad) continue;
+
+      const montoReal = 234000;
+      const movimiento = await this.prisma.movimientoFinanciero.create({
+        data: {
+          usuarioId,
+          organizacionId,
+          tipo: TipoMovimiento.EGRESO,
+          origen: OrigenMovimientoFinanciero.COSTO_PRODUCTIVO,
+          concepto: 'Insumos registrados al completar la labor',
+          monto: montoReal,
+          moneda: 'ARS',
+          fecha,
+          categoria: 'INSUMO',
+          campoId: campo.id,
+          siembraId: siembra?.id ?? null,
+          observaciones: 'Ejemplo generado para comparar presupuesto y costo real.',
+        },
+      });
+
+      await this.prisma.costoProductivo.create({
+        data: {
+          organizacionId,
+          actividadId: actividad.id,
+          movimientoFinancieroId: movimiento.id,
+          campoId: campo.id,
+          loteId: lote.id,
+          siembraId: siembra?.id ?? null,
+          campaniaId: siembra?.campaniaId ?? null,
+          creadoPorId: usuarioId,
+          tipo: TipoCostoProductivo.REAL,
+          rubro: RubroCostoProductivo.INSUMO,
+          descripcion: 'Insumos utilizados en el trabajo completado',
+          cantidad: 1,
+          unidad: 'lote',
+          costoUnitario: montoReal,
+          monto: montoReal,
+          superficieHa: lote.hectareas,
+          fecha,
+        },
+      });
+    }
   }
 
   private async sembrarProduccionDemo(
@@ -946,6 +1068,23 @@ export class DemoService implements OnModuleInit {
           fechaInicio: fecha(0),
           fechaEstimadaFin: fecha(3),
           estado: 'PENDIENTE',
+          prioridad: 'MEDIA',
+          activo: true,
+        },
+        {
+          organizacionId,
+          usuarioOrganizacionId: miembros.get('campo')!,
+          creadoPorId: ownerId,
+          titulo: 'Aplicacion de insumos finalizada en ' + campo.nombre,
+          descripcion:
+            'Labor completada con los insumos registrados para comparar el presupuesto con el costo real.',
+          recursoTipo: 'CAMPO',
+          recursoId: campo.id,
+          contexto: 'Campo: ' + campo.nombre,
+          fechaInicio: fecha(-5),
+          fechaEstimadaFin: fecha(-3),
+          fechaRealFin: fecha(-2),
+          estado: 'COMPLETADA',
           prioridad: 'MEDIA',
           activo: true,
         },
@@ -2707,6 +2846,7 @@ export class DemoService implements OnModuleInit {
         this.sembrarCalculosDemo(contexto.ownerId, organizacion.id),
       ),
     );
+    await this.sembrarCostosProductivosDemo(contexto.ownerId, organizacionesIds);
   }
 
   private async limpiarDemoEmpresaData(ownerId: number, organizacionesIds: number[]) {
@@ -2742,6 +2882,9 @@ export class DemoService implements OnModuleInit {
       where: { organizacionId: { in: organizacionesIds } },
     });
     await this.prisma.calculoGuardado.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.costoProductivo.deleteMany({
       where: { organizacionId: { in: organizacionesIds } },
     });
     await this.prisma.cosechaFrutihorticola.deleteMany({
@@ -3011,8 +3154,9 @@ export class DemoService implements OnModuleInit {
           creadoPorId: ownerId,
           titulo: 'Actualizar parte semanal',
           descripcion: 'Consolidar las tareas realizadas y las novedades del equipo.',
-          recursoTipo: 'GENERAL',
-          contexto: organizacion.nombre,
+          recursoTipo: 'CAMPO',
+          recursoId: campo?.id,
+          contexto,
           fechaInicio: fecha(-8),
           fechaEstimadaFin: fecha(-2),
           fechaRealFin: fecha(-1),

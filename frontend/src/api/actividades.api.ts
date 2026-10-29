@@ -7,6 +7,7 @@ export interface CreateActividadPayload {
   usuarioOrganizacionId: number;
   recursoTipo: string;
   recursoId?: number;
+  calculoOrigenId?: number;
   contexto?: string;
   fechaInicio: string;
   fechaEstimadaFin?: string;

@@ -107,6 +107,20 @@ export interface DashboardEmpresa {
     completadas: number;
     demoradas: number;
   };
+  alertas: {
+    total: number;
+    criticas: number;
+    advertencias: number;
+    items: Array<{
+      id: string;
+      tipo: 'TRABAJO_VENCIDO' | 'COSTO_SUPERA_ESTIMADO';
+      severidad: 'ADVERTENCIA' | 'CRITICA';
+      titulo: string;
+      mensaje: string;
+      enlace: string;
+      organizacionId: number;
+    }>;
+  };
 }
 
 export interface ProduccionConsolidadaEmpresa {

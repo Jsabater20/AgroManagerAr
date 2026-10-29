@@ -70,6 +70,11 @@ export class FinanzasService {
     dto: UpdateMovimientoDto,
   ) {
     const movimiento = await this.findOne(id, usuarioId, organizacionId);
+    if (movimiento.origen === 'COSTO_PRODUCTIVO') {
+      throw new BadRequestException(
+        'Este egreso se generó desde un costo real. Gestioná el costo desde el trabajo asociado.',
+      );
+    }
     const acceso = await this.memberAccessService.requireModule(
       usuarioId,
       organizacionId,
@@ -91,7 +96,12 @@ export class FinanzasService {
   }
 
   async remove(id: number, usuarioId: number, organizacionId: number) {
-    await this.findOne(id, usuarioId, organizacionId);
+    const movimiento = await this.findOne(id, usuarioId, organizacionId);
+    if (movimiento.origen === 'COSTO_PRODUCTIVO') {
+      throw new BadRequestException(
+        'Este egreso se generó desde un costo real y no se puede eliminar por separado.',
+      );
+    }
     return this.prisma.movimientoFinanciero.delete({ where: { id } });
   }
 

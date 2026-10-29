@@ -37,6 +37,8 @@ import { TamboModule } from './tambo/tambo.module';
 import { AvicolaModule } from './avicola/avicola.module';
 import { YerbaModule } from './yerba/yerba.module';
 import { CalculosModule } from './calculos/calculos.module';
+import { CostosProductivosModule } from './costos-productivos/costos-productivos.module';
+import { AlertasModule } from './alertas/alertas.module';
 
 @Module({
   imports: [
@@ -81,6 +83,8 @@ import { CalculosModule } from './calculos/calculos.module';
     AvicolaModule,
     YerbaModule,
     CalculosModule,
+    CostosProductivosModule,
+    AlertasModule,
   ],
   controllers: [AppController],
   providers: [
