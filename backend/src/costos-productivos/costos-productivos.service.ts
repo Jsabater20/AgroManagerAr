@@ -11,8 +11,8 @@ import {
   RubroCostoProductivo,
   TipoCostoProductivo,
   TipoMovimiento,
-  TipoRecursoActividad,
 } from '@prisma/client';
+import type { TipoRecursoActividad } from '@prisma/client';
 import { PlanService } from '../plan/plan.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCostoActividadDto } from './dto/create-costo-actividad.dto';
@@ -272,7 +272,7 @@ export class CostosProductivosService {
     if (!actividad.recursoId) return vacio;
 
     switch (actividad.recursoTipo) {
-      case TipoRecursoActividad.CAMPO: {
+      case 'CAMPO': {
         const campo = await this.prisma.campo.findFirst({
           where: { id: actividad.recursoId, organizacionId: orgId },
           select: { id: true },
@@ -280,7 +280,7 @@ export class CostosProductivosService {
         if (!campo) throw new BadRequestException('El campo del trabajo ya no está disponible.');
         return { ...vacio, campoId: campo.id };
       }
-      case TipoRecursoActividad.LOTE: {
+      case 'LOTE': {
         const lote = await this.prisma.lote.findFirst({
           where: {
             id: actividad.recursoId,
@@ -291,7 +291,7 @@ export class CostosProductivosService {
         if (!lote) throw new BadRequestException('El lote del trabajo ya no está disponible.');
         return { ...vacio, campoId: lote.campoId, loteId: lote.id };
       }
-      case TipoRecursoActividad.SIEMBRA: {
+      case 'SIEMBRA': {
         const siembra = await this.prisma.siembra.findFirst({
           where: {
             id: actividad.recursoId,
@@ -312,7 +312,7 @@ export class CostosProductivosService {
           campaniaId: siembra.campaniaId,
         };
       }
-      case TipoRecursoActividad.MAQUINARIA: {
+      case 'MAQUINARIA': {
         const maquinaria = await this.prisma.maquinaria.findFirst({
           where: { id: actividad.recursoId, organizacionId: orgId },
           select: { id: true, campoId: true },
@@ -326,7 +326,7 @@ export class CostosProductivosService {
           maquinariaId: maquinaria.id,
         };
       }
-      case TipoRecursoActividad.CAMPANIA: {
+      case 'CAMPANIA': {
         const campania = await this.prisma.campania.findFirst({
           where: { id: actividad.recursoId, organizacionId: orgId },
           select: { id: true },
