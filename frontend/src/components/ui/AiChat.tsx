@@ -1,18 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Loader2, Sprout, Zap } from 'lucide-react';
+import { ArrowUpRight, Bot, Database, X, Send, Loader2, Sprout, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { aiApi, type ChatMessage } from '../../api/ai.api';
+import {
+  aiApi,
+  type AgroBotIndicador,
+  type AgroBotReferencia,
+  type ChatMessage,
+} from '../../api/ai.api';
 import { useAuthStore } from '../../store/auth.store';
 
 interface DisplayMessage {
   role: 'user' | 'model';
   text: string;
   loading?: boolean;
+  indicadores?: AgroBotIndicador[];
+  referencias?: AgroBotReferencia[];
+  basadaEnDatos?: boolean;
 }
 
 const WELCOME: DisplayMessage = {
   role: 'model',
-  text: '¡Hola! Soy **AgroBot** 🌱\nAnalizé tu establecimiento. Podés preguntarme sobre tus cultivos, tareas, finanzas, clima o cualquier tema agropecuario. ¿En qué te ayudo?',
+  text: '¡Hola! Soy **AgroBot** 🌱\nPuedo consultar los datos visibles de este establecimiento: gastos, trabajos, lotes, campañas y maquinarias. También puedo ayudarte con consultas agropecuarias generales. ¿Qué necesitás revisar?',
 };
 
 export default function AiChat() {
@@ -49,7 +57,16 @@ export default function AiChat() {
 
     try {
       const reply = await aiApi.chat(history, msg);
-      setMessages((prev) => [...prev.slice(0, -1), { role: 'model', text: reply }]);
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        {
+          role: 'model',
+          text: reply.text,
+          indicadores: reply.indicadores,
+          referencias: reply.referencias,
+          basadaEnDatos: reply.basadaEnDatos,
+        },
+      ]);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       const errMsg =
@@ -138,7 +155,51 @@ export default function AiChat() {
                       Pensando...
                     </span>
                   ) : (
-                    renderMarkdown(m.text)
+                    <>
+                      {renderMarkdown(m.text)}
+                      {m.indicadores && m.indicadores.length > 0 && (
+                        <div className="mt-3 grid gap-1.5">
+                          {m.indicadores.map((indicador) => (
+                            <div
+                              key={`${indicador.etiqueta}-${indicador.valor}`}
+                              className="rounded-lg border border-green-100 bg-green-50 px-2.5 py-2 dark:border-green-900/60 dark:bg-green-950/30"
+                            >
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-green-700 dark:text-green-300">
+                                {indicador.etiqueta}
+                              </p>
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">{indicador.valor}</p>
+                              {indicador.detalle && (
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400">{indicador.detalle}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {m.referencias && m.referencias.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {m.referencias.map((referencia) => (
+                            <button
+                              key={referencia.href}
+                              type="button"
+                              onClick={() => {
+                                setOpen(false);
+                                navigate(referencia.href);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-white px-2 py-1 text-[11px] font-semibold text-green-700 transition-colors hover:bg-green-50 dark:border-green-900 dark:bg-gray-900 dark:text-green-300"
+                            >
+                              {referencia.etiqueta}
+                              <ArrowUpRight size={11} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {m.basadaEnDatos && (
+                        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                          <Database size={10} />
+                          Datos del establecimiento activo
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -193,10 +254,10 @@ export default function AiChat() {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
-  '¿Cómo están mis finanzas?',
+  '¿Cuánto gasté este mes?',
   '¿Qué tareas tengo pendientes?',
+  '¿Qué trabajos están atrasados?',
   'Resumí mi establecimiento',
-  '¿Cuándo sembrar soja?',
 ];
 
 /** Minimal markdown renderer — bold + newlines only */

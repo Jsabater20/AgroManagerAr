@@ -23,18 +23,24 @@ export class AiController {
   @Post('chat')
   async chat(@Req() req: AuthRequest, @Body() dto: AiChatDto) {
     await this.planService.checkProAccess(req.organizacionId, 'AgroBot IA');
-    const text = await this.aiService.chat(
+    const respuesta = await this.aiService.chat(
       req.user.id,
+      req.organizacionId,
       dto.history,
       dto.message,
     );
-    return { text };
+    return {
+      text: respuesta.texto,
+      indicadores: respuesta.indicadores ?? [],
+      referencias: respuesta.referencias ?? [],
+      basadaEnDatos: respuesta.basadaEnDatos,
+    };
   }
 
   @Get('insights')
   async insights(@Req() req: AuthRequest) {
     await this.planService.checkProAccess(req.organizacionId, 'Análisis IA');
-    const items = await this.aiService.insights(req.user.id);
+    const items = await this.aiService.insights(req.user.id, req.organizacionId);
     return { insights: items };
   }
 }

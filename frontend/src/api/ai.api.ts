@@ -11,11 +11,29 @@ export interface AiInsight {
   texto: string;
 }
 
+export interface AgroBotIndicador {
+  etiqueta: string;
+  valor: string;
+  detalle?: string;
+}
+
+export interface AgroBotReferencia {
+  etiqueta: string;
+  href: string;
+}
+
+export interface AgroBotRespuesta {
+  text: string;
+  indicadores: AgroBotIndicador[];
+  referencias: AgroBotReferencia[];
+  basadaEnDatos: boolean;
+}
+
 export const aiApi = {
   chat: (history: ChatMessage[], message: string) =>
     api
-      .post<{ text: string }>('/ai/chat', { history, message })
-      .then((r) => r.data.text),
+      .post<AgroBotRespuesta>('/ai/chat', { history, message })
+      .then((r) => r.data),
 
   insights: () =>
     api

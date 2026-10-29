@@ -119,9 +119,7 @@ export default function AiInsights() {
         <div className="text-center py-6 text-sm text-gray-400">
           <Bot size={28} className="mx-auto mb-2 opacity-30" />
           <p>No se pudo obtener el análisis.</p>
-          <p className="text-xs mt-1 text-gray-300">
-            Verificá que <code className="text-gray-400">GEMINI_API_KEY</code> esté configurada en el backend.
-          </p>
+          <p className="text-xs mt-1 text-gray-300">Intentá actualizar nuevamente en unos segundos.</p>
         </div>
       )}
 
