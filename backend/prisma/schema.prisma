@@ -61,6 +61,9 @@ model Usuario {
   lecturasAlertas                AlertaLectura[]
   calculosGuardados              CalculoGuardado[]
   costosProductivosCreados       CostoProductivo[]       @relation("costo_productivo_creador")
+  preferenciasReportes           PreferenciaReporte[]
+  historialReportes              HistorialReporte[]
+  enviosReportesAutomaticos      EnvioReporteAutomatico[]
 }
 
 model Referido {
@@ -611,6 +614,9 @@ model Organizacion {
   calculosGuardados       CalculoGuardado[]
   costosProductivos       CostoProductivo[]
   alertasGestion          AlertaGestion[]
+  preferenciasReportes    PreferenciaReporte[]
+  historialReportes       HistorialReporte[]
+  enviosReportesAutomaticos EnvioReporteAutomatico[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
@@ -669,6 +675,62 @@ model BeneficioProOrganizacion {
 
   @@index([organizacionId, activo, fechaFin])
   @@index([otorgadoPorId])
+}
+
+model PreferenciaReporte {
+  id             Int          @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int
+  tipoPeriodo    String       @default("MENSUAL")
+  vistaDesglose  String       @default("LOTES")
+  envioAutomatico Boolean     @default(false)
+  frecuenciaEnvio String      @default("MENSUAL")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId])
+  @@index([organizacionId])
+}
+
+model EnvioReporteAutomatico {
+  id             Int          @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int
+  tipoPeriodo    String
+  periodoDesde   DateTime
+  periodoHasta   DateTime
+  estado         String       @default("PROCESANDO")
+  error          String?
+  enviadoEn      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId, tipoPeriodo, periodoDesde, periodoHasta])
+  @@index([organizacionId, createdAt])
+  @@index([estado, createdAt])
+}
+
+model HistorialReporte {
+  id              Int          @id @default(autoincrement())
+  usuarioId       Int
+  organizacionId  Int
+  tipo            String
+  fechaReferencia DateTime
+  periodoDesde    DateTime
+  periodoHasta    DateTime
+  createdAt       DateTime     @default(now())
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, organizacionId, createdAt])
+  @@index([organizacionId, createdAt])
 }
 
 model UsuarioOrganizacion {

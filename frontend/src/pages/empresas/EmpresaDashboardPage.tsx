@@ -282,6 +282,7 @@ export default function EmpresaDashboardPage() {
           <AccessCard to={`/empresas/${id}/finanzas`} icon={CircleDollarSign} title="Finanzas" detail="Ingresos y egresos" />
           <AccessCard to={`/empresas/${id}/rentabilidad`} icon={BarChart3} title="Rentabilidad" detail="Comparativas y campañas" />
           <AccessCard to={`/empresas/${id}/produccion`} icon={ChartNoAxesCombined} title="Producción" detail="Resultados por establecimiento" />
+          <AccessCard to={`/empresas/${id}/reportes`} icon={ChartNoAxesCombined} title="Reportes" detail="Cierres y comparativas" />
           <AccessCard to={`/empresas/${id}/auditoria`} icon={ShieldCheck} title="Auditoría" detail="Trazabilidad del equipo" />
           <AccessCard to={`/empresas/${id}/exportaciones`} icon={Download} title="Exportaciones" detail="Informes Excel y PDF" />
         </div>

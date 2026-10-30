@@ -298,6 +298,27 @@ export interface FiltrosAuditoriaEmpresa {
   offset?: number;
 }
 
+export interface ReporteConsolidadoEmpresa {
+  empresa: { id: number; nombre: string };
+  periodo: { tipo: 'SEMANAL' | 'MENSUAL'; etiqueta: string; desde: string; hasta: string };
+  accesoFinanciero: { nivel: 'COMPLETO' | 'PARCIAL' | 'SIN_ACCESO'; establecimientosIncluidos: number };
+  resumen: {
+    operacion: { campos: number; superficieHa: number; cosechaKg: number; completadas: number; pendientes: number; vencidas: number; alertas: number; alertasPrioritarias: number };
+    finanzas: { ingresos: number; egresos: number; costosReales: number; costosEstimados: number; saldo: number } | null;
+  };
+  establecimientos: Array<{
+    id: number;
+    nombre: string;
+    operacion: { campos: number; superficieHa: number; cosechaKg: number; completadas: number; pendientes: number; vencidas: number; alertas: number; alertasPrioritarias: number };
+    finanzas: { ingresos: number; egresos: number; costosReales: number; costosEstimados: number; saldo: number } | null;
+  }>;
+  resumenInteligente: {
+    resumen: string;
+    generadoCon: string;
+    hallazgos: Array<{ id: string; titulo: string; descripcion: string; accionSugerida?: string }>;
+  };
+}
+
 export const empresasApi = {
   listarMias: () => api.get<EmpresaResumen[]>('/empresas/mias').then((response) => response.data),
   listarParaAdmin: () => api.get<EmpresaAdmin[]>('/empresas/admin/todas').then((response) => response.data),
@@ -317,6 +338,8 @@ export const empresasApi = {
     api.get<DashboardEmpresa>(`/empresas/${empresaId}/dashboard`).then((response) => response.data),
   obtenerProduccion: (empresaId: number) =>
     api.get<ProduccionConsolidadaEmpresa>(`/empresas/${empresaId}/produccion`).then((response) => response.data),
+  obtenerReporteConsolidado: (empresaId: number, params: { tipo?: 'SEMANAL' | 'MENSUAL'; fechaReferencia?: string } = {}) =>
+    api.get<ReporteConsolidadoEmpresa>(`/empresas/${empresaId}/reportes/consolidado`, { params }).then((response) => response.data),
   obtenerOrganizaciones: (empresaId: number) =>
     api.get<EstablecimientoEmpresa[]>(`/empresas/${empresaId}/organizaciones`).then((response) => response.data),
   obtenerMiembrosConsolidados: (empresaId: number) =>

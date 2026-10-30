@@ -57,6 +57,7 @@ import EmpresaRentabilidadPage from './pages/empresas/EmpresaRentabilidadPage';
 import EmpresaAuditoriaPage from './pages/empresas/EmpresaAuditoriaPage';
 import EmpresaExportacionesPage from './pages/empresas/EmpresaExportacionesPage';
 import EmpresaProduccionPage from './pages/empresas/EmpresaProduccionPage';
+import EmpresaReportesPage from './pages/empresas/EmpresaReportesPage';
 import EmpresaEstadoPage from './pages/empresas/EmpresaEstadoPage';
 import DemoEmpresaEntryPage from './pages/empresas/DemoEmpresaEntryPage';
 import DemoEmpresaWelcomePage from './pages/empresas/DemoEmpresaWelcomePage';
@@ -202,6 +203,7 @@ export default function App() {
               <Route path="/empresas/:empresaId/finanzas" element={<EmpresaFinanzasPage />} />
               <Route path="/empresas/:empresaId/rentabilidad" element={<EmpresaRentabilidadPage />} />
               <Route path="/empresas/:empresaId/produccion" element={<EmpresaProduccionPage />} />
+              <Route path="/empresas/:empresaId/reportes" element={<EmpresaReportesPage />} />
               <Route path="/empresas/:empresaId/auditoria" element={<EmpresaAuditoriaPage />} />
               <Route path="/empresas/:empresaId/exportaciones" element={<EmpresaExportacionesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />

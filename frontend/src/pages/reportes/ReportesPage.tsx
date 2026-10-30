@@ -8,8 +8,9 @@ import { insumosApi } from '../../api/insumos.api';
 import { ganadoApi } from '../../api/ganado.api';
 import { tareasApi } from '../../api/tareas.api';
 import { exportToExcel, exportToPdf } from '../../utils/export';
-import { useAuthStore } from '../../store/auth.store';
-import { PlanBanner } from '../../components/ui/PlanBanner';
+import { ReportesPeriodicosPanel } from '../../components/reportes/ReportesPeriodicosPanel';
+import { DesgloseProductivoPanel } from '../../components/reportes/DesgloseProductivoPanel';
+import { GestionReportesPanel } from '../../components/reportes/GestionReportesPanel';
 import type { Siembra, Insumo, Animal, TareaRural } from '../../api/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -52,6 +53,9 @@ function ReportesContent() {
 
   return (
     <div>
+      <ReportesPeriodicosPanel />
+      <DesgloseProductivoPanel />
+      <GestionReportesPanel />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
@@ -568,7 +572,5 @@ function TareasReport({ tareas }: { tareas: TareaRural[] }) {
 }
 
 export default function ReportesPage() {
-  const isPro = useAuthStore((s) => s.isPro());
-  if (!isPro) return <PlanBanner feature="Reportes avanzados" description="Exportá tus datos en Excel y PDF: siembras, insumos, ganado y tareas. Disponible en Pro." />;
   return <ReportesContent />;
 }

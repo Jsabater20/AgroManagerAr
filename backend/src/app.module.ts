@@ -40,6 +40,7 @@ import { YerbaModule } from './yerba/yerba.module';
 import { CalculosModule } from './calculos/calculos.module';
 import { CostosProductivosModule } from './costos-productivos/costos-productivos.module';
 import { AlertasModule } from './alertas/alertas.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { AlertasModule } from './alertas/alertas.module';
     CalculosModule,
     CostosProductivosModule,
     AlertasModule,
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [
