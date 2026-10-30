@@ -11,6 +11,7 @@ import { exportToExcel, exportToPdf } from '../../utils/export';
 import { ReportesPeriodicosPanel } from '../../components/reportes/ReportesPeriodicosPanel';
 import { DesgloseProductivoPanel } from '../../components/reportes/DesgloseProductivoPanel';
 import { GestionReportesPanel } from '../../components/reportes/GestionReportesPanel';
+import { PreferenciasAlertasPanel } from '../../components/reportes/PreferenciasAlertasPanel';
 import type { Siembra, Insumo, Animal, TareaRural } from '../../api/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ function ReportesContent() {
       <ReportesPeriodicosPanel />
       <DesgloseProductivoPanel />
       <GestionReportesPanel />
+      <PreferenciasAlertasPanel />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>

@@ -2,9 +2,11 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EstadoActividad, Prisma, TipoCostoProductivo, TipoRecursoActividad } from '@prisma/client';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
+import { MailerService } from '../mailer/mailer.service';
 import { MemberAccessService } from '../organizations/member-access.service';
 import { PlanService } from '../plan/plan.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdatePreferenciasAlertasDto } from './dto/update-preferencias-alertas.dto';
 
 export type AlertaOperativa = {
   id: string;
@@ -47,6 +49,14 @@ type FiltroAlertasGestion = {
   severidad?: string;
 };
 
+const PREFERENCIAS_ALERTAS_POR_DEFECTO = {
+  alertasActivas: true,
+  notificacionEnApp: true,
+  notificacionPush: true,
+  notificacionEmail: false,
+  soloPrioritarias: false,
+};
+
 const ESTADOS_ACTIVOS: EstadoActividad[] = [
   EstadoActividad.PENDIENTE,
   EstadoActividad.EN_PROGRESO,
@@ -62,7 +72,46 @@ export class AlertasService {
     private readonly memberAccessService: MemberAccessService,
     private readonly planService: PlanService,
     private readonly notificacionesService: NotificacionesService,
+    private readonly mailerService: MailerService,
   ) {}
+
+  async obtenerPreferencias(usuarioId: number, organizacionId: number) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+    const [preferencias, usuario] = await Promise.all([
+      this.prisma.preferenciaAlerta.findUnique({
+        where: { usuarioId_organizacionId: { usuarioId, organizacionId } },
+      }),
+      this.prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { emailVerificado: true },
+      }),
+    ]);
+
+    return {
+      ...PREFERENCIAS_ALERTAS_POR_DEFECTO,
+      ...preferencias,
+      emailVerificado: usuario?.emailVerificado ?? false,
+    };
+  }
+
+  async actualizarPreferencias(
+    usuarioId: number,
+    organizacionId: number,
+    datos: UpdatePreferenciasAlertasDto,
+  ) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+    const preferencias = await this.prisma.preferenciaAlerta.upsert({
+      where: { usuarioId_organizacionId: { usuarioId, organizacionId } },
+      create: { usuarioId, organizacionId, ...PREFERENCIAS_ALERTAS_POR_DEFECTO, ...datos },
+      update: datos,
+    });
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { emailVerificado: true },
+    });
+
+    return { ...preferencias, emailVerificado: usuario?.emailVerificado ?? false };
+  }
 
   async obtenerParaOrganizacion(usuarioId: number, organizacionId: number) {
     const acceso = await this.memberAccessService.requireModule(
@@ -573,7 +622,14 @@ export class AlertasService {
     });
     const existentePorClave = new Map(existentes.map((alerta) => [alerta.clave, alerta]));
     const clavesActivas = alertas.map((alerta) => alerta.dedupeKey);
-    const activadas: Array<{ id: string; ciclo: number; titulo: string; mensaje: string; enlace: string }> = [];
+    const activadas: Array<{
+      id: string;
+      ciclo: number;
+      titulo: string;
+      mensaje: string;
+      enlace: string;
+      severidad: SeveridadAlertaGestion;
+    }> = [];
 
     for (const alerta of alertas) {
       const existente = existentePorClave.get(alerta.dedupeKey);
@@ -596,7 +652,7 @@ export class AlertasService {
           },
           select: { id: true, ciclo: true, titulo: true, mensaje: true, enlace: true },
         });
-        activadas.push(creada);
+        activadas.push({ ...creada, severidad });
         continue;
       }
 
@@ -619,7 +675,7 @@ export class AlertasService {
         },
         select: { id: true, ciclo: true, titulo: true, mensaje: true, enlace: true },
       });
-      if (reabierta) activadas.push(actualizada);
+      if (reabierta) activadas.push({ ...actualizada, severidad });
     }
 
     await this.prisma.alertaGestion.updateMany({
@@ -635,19 +691,98 @@ export class AlertasService {
 
     const organizacion = await this.prisma.organizacion.findUnique({
       where: { id: organizacionId },
-      select: { propietarioId: true },
+      select: {
+        nombre: true,
+        propietarioId: true,
+        propietario: { select: { email: true, nombre: true, emailVerificado: true } },
+      },
     });
     if (!organizacion) return;
+    const preferenciasGuardadas = await this.prisma.preferenciaAlerta.findUnique({
+      where: {
+        usuarioId_organizacionId: {
+          usuarioId: organizacion.propietarioId,
+          organizacionId,
+        },
+      },
+    });
+    const preferencias = { ...PREFERENCIAS_ALERTAS_POR_DEFECTO, ...preferenciasGuardadas };
+    if (!preferencias.alertasActivas) return;
 
-    await Promise.all(activadas.map((alerta) =>
-      this.notificacionesService.crearNotificacionSiNoExiste(organizacion.propietarioId, {
-        tipo: 'ALERTA_OPERATIVA',
-        titulo: alerta.titulo,
-        mensaje: alerta.mensaje,
-        enlace: alerta.enlace,
-        dedupeKey: `alerta-${alerta.id}-ciclo-${alerta.ciclo}`,
-      }),
-    ));
+    const alertasAEnviar = preferencias.soloPrioritarias
+      ? activadas.filter((alerta) => alerta.severidad === 'PRIORITARIA')
+      : activadas;
+    if (!alertasAEnviar.length) return;
+
+    await Promise.allSettled(alertasAEnviar.map(async (alerta) => {
+      const tieneCanalActivo = preferencias.notificacionEnApp
+        || preferencias.notificacionPush
+        || (preferencias.notificacionEmail && organizacion.propietario.emailVerificado);
+      if (!tieneCanalActivo) return;
+
+      const creada = await this.notificacionesService.crearNotificacionSiNoExiste(
+        organizacion.propietarioId,
+        {
+          tipo: 'ALERTA_OPERATIVA',
+          titulo: alerta.titulo,
+          mensaje: alerta.mensaje,
+          enlace: alerta.enlace,
+          dedupeKey: `alerta-${alerta.id}-ciclo-${alerta.ciclo}`,
+          visibleEnApp: preferencias.notificacionEnApp,
+          enviarPush: preferencias.notificacionPush,
+        },
+      );
+      if (!creada || !preferencias.notificacionEmail || !organizacion.propietario.emailVerificado) return;
+
+      await this.mailerService.enviarCorreo({
+        email: organizacion.propietario.email,
+        asunto: `AgroManager AR: ${alerta.titulo}`,
+        html: this.crearContenidoCorreoAlerta({
+          nombreUsuario: organizacion.propietario.nombre,
+          nombreOrganizacion: organizacion.nombre,
+          titulo: alerta.titulo,
+          mensaje: alerta.mensaje,
+          enlace: alerta.enlace,
+          organizacionId,
+        }),
+      });
+    }));
+  }
+
+  private crearContenidoCorreoAlerta({
+    nombreUsuario,
+    nombreOrganizacion,
+    titulo,
+    mensaje,
+    enlace,
+    organizacionId,
+  }: {
+    nombreUsuario: string;
+    nombreOrganizacion: string;
+    titulo: string;
+    mensaje: string;
+    enlace: string;
+    organizacionId: number;
+  }) {
+    const escapar = (valor: string) => valor.replace(/[&<>'"]/g, (caracter) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+    })[caracter] ?? caracter);
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5174';
+    const destino = `${frontendUrl}${enlace.startsWith('/') ? enlace : `/org/${organizacionId}/${enlace}`}`;
+
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+        <h1 style="color: #047857; margin-bottom: 8px;">Nueva alerta operativa</h1>
+        <p>Hola ${escapar(nombreUsuario)},</p>
+        <p>Detectamos una alerta en <strong>${escapar(nombreOrganizacion)}</strong>.</p>
+        <div style="background: #fff7ed; border: 1px solid #fdba74; border-radius: 10px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0 0 8px;"><strong>${escapar(titulo)}</strong></p>
+          <p style="margin: 0;">${escapar(mensaje)}</p>
+        </div>
+        <p style="text-align: center; margin: 28px 0;"><a href="${escapar(destino)}" style="display: inline-block; padding: 12px 24px; background: #059669; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">Ver alerta</a></p>
+        <p style="color: #6b7280; font-size: 12px;">Podés cambiar estos avisos desde Reportes → Preferencias de alertas.</p>
+      </div>
+    `;
   }
 
   private async actualizarAlertasGestion(organizacionId: number) {

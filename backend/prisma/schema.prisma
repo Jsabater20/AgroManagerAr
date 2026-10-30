@@ -59,6 +59,7 @@ model Usuario {
   referidoRecibido               Referido?                 @relation("referidoReferido")
   notificaciones                 Notificacion[]
   lecturasAlertas                AlertaLectura[]
+  preferenciasAlertas            PreferenciaAlerta[]
   calculosGuardados              CalculoGuardado[]
   costosProductivosCreados       CostoProductivo[]       @relation("costo_productivo_creador")
   preferenciasReportes           PreferenciaReporte[]
@@ -91,12 +92,13 @@ model Notificacion {
   mensaje     String
   enlace      String?
   dedupeKey   String?   @unique
+  visibleEnApp Boolean  @default(true)
   leidaEn     DateTime?
   createdAt   DateTime  @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  @@index([usuarioId, leidaEn, createdAt])
+  @@index([usuarioId, visibleEnApp, leidaEn, createdAt])
 }
 
 model AlertaGestion {
@@ -140,6 +142,25 @@ model AlertaLectura {
 
   @@unique([alertaId, usuarioId])
   @@index([usuarioId, leidaEn])
+}
+
+model PreferenciaAlerta {
+  id                  Int      @id @default(autoincrement())
+  usuarioId           Int
+  organizacionId      Int
+  alertasActivas      Boolean  @default(true)
+  notificacionEnApp   Boolean  @default(true)
+  notificacionPush    Boolean  @default(true)
+  notificacionEmail   Boolean  @default(false)
+  soloPrioritarias    Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId])
+  @@index([organizacionId])
 }
 
 model DispositivoPush {
@@ -614,6 +635,7 @@ model Organizacion {
   calculosGuardados       CalculoGuardado[]
   costosProductivos       CostoProductivo[]
   alertasGestion          AlertaGestion[]
+  preferenciasAlertas     PreferenciaAlerta[]
   preferenciasReportes    PreferenciaReporte[]
   historialReportes       HistorialReporte[]
   enviosReportesAutomaticos EnvioReporteAutomatico[]

@@ -52,6 +52,23 @@ export interface ResumenAlertasGestion {
   sinLeer: number;
 }
 
+export interface PreferenciasAlertas {
+  id?: number;
+  usuarioId?: number;
+  organizacionId?: number;
+  alertasActivas: boolean;
+  notificacionEnApp: boolean;
+  notificacionPush: boolean;
+  notificacionEmail: boolean;
+  soloPrioritarias: boolean;
+  emailVerificado: boolean;
+}
+
+export type ActualizarPreferenciasAlertas = Partial<Pick<
+  PreferenciasAlertas,
+  'alertasActivas' | 'notificacionEnApp' | 'notificacionPush' | 'notificacionEmail' | 'soloPrioritarias'
+>>;
+
 export const alertasApi = {
   listar: (): Promise<AlertaOperativa[]> =>
     api.get('/alertas').then((response) => response.data),
@@ -66,4 +83,8 @@ export const alertasApi = {
     api.patch(`/alertas/gestion/${id}/leida`).then((response) => response.data),
   revisarGestion: (id: string): Promise<{ ok: boolean }> =>
     api.patch(`/alertas/gestion/${id}/revisada`).then((response) => response.data),
+  preferencias: (): Promise<PreferenciasAlertas> =>
+    api.get('/alertas/preferencias').then((response) => response.data),
+  actualizarPreferencias: (datos: ActualizarPreferenciasAlertas): Promise<PreferenciasAlertas> =>
+    api.patch('/alertas/preferencias', datos).then((response) => response.data),
 };

@@ -14,6 +14,8 @@ interface CrearNotificacion {
   mensaje: string;
   enlace?: string;
   dedupeKey?: string;
+  visibleEnApp?: boolean;
+  enviarPush?: boolean;
 }
 
 interface ExpoPushTicket {
@@ -112,7 +114,7 @@ export class NotificacionesService {
 
   async listar(usuarioId: number) {
     return this.prisma.notificacion.findMany({
-      where: { usuarioId },
+      where: { usuarioId, visibleEnApp: true },
       orderBy: { createdAt: 'desc' },
       take: 30,
     });
@@ -146,15 +148,18 @@ export class NotificacionesService {
         mensaje: notificacion.mensaje,
         enlace: notificacion.enlace,
         dedupeKey: notificacion.dedupeKey,
+        visibleEnApp: notificacion.visibleEnApp ?? true,
       },
     }).catch(() => null);
     if (!creada) return false;
 
-    await this.notificarUsuario(usuarioId, {
-      titulo: notificacion.titulo,
-      mensaje: notificacion.mensaje,
-      datos: { tipo: notificacion.tipo },
-    });
+    if (notificacion.enviarPush ?? true) {
+      await this.notificarUsuario(usuarioId, {
+        titulo: notificacion.titulo,
+        mensaje: notificacion.mensaje,
+        datos: { tipo: notificacion.tipo },
+      });
+    }
     return true;
   }
 
