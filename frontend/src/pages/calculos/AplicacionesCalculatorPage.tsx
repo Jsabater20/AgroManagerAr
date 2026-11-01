@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Droplets, Info, Leaf, Loader2, RotateCcw, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { calculosApi } from '../../api/calculos.api';
+import { calculosApi, type CalculoGuardado } from '../../api/calculos.api';
 import { CalculatorLayout } from '../../components/calculos/CalculatorLayout';
 import { CreateActivityFromCalculationButton } from '../../components/calculos/CreateActivityFromCalculationButton';
 import { SaveCalculationButton } from '../../components/calculos/SaveCalculationButton';
@@ -26,6 +26,7 @@ export default function AplicacionesCalculatorPage() {
   const [dosis, setDosis] = useState('');
   const [aguaPorHa, setAguaPorHa] = useState('');
   const [mostrarResultado, setMostrarResultado] = useState(false);
+  const [calculoGuardado, setCalculoGuardado] = useState<CalculoGuardado | null>(null);
 
   const camposQuery = useQuery({
     queryKey: ['calculos', 'aplicaciones', organizacionId],
@@ -41,6 +42,25 @@ export default function AplicacionesCalculatorPage() {
   const puedeCalcular = superficieNumero > 0 && dosis.trim() !== '' && aguaPorHa.trim() !== '';
   const productoNecesario = calcularProductoNecesario(superficieNumero, dosisNumero);
   const aguaNecesaria = calcularAguaNecesaria(superficieNumero, aguaNumero);
+
+  useEffect(() => {
+    setCalculoGuardado(null);
+  }, [campoId, loteId, superficie, dosis, aguaPorHa]);
+
+  const payloadCalculo = {
+    tipo: 'APLICACION' as const,
+    titulo: `Aplicación para ${formatNumber(superficieNumero)} ha`,
+    campoId: campoSeleccionado?.id,
+    loteId: loteSeleccionado?.id,
+    datos: {
+      superficieHa: superficieNumero,
+      dosisLitrosPorHa: dosisNumero,
+      volumenAguaLitrosPorHa: aguaNumero,
+      campoNombre: campoSeleccionado?.nombre,
+      loteNombre: loteSeleccionado?.nombre,
+    },
+    resultado: { productoLitros: productoNecesario, aguaLitros: aguaNecesaria },
+  };
 
   const seleccionarCampo = (valor: string) => {
     setCampoId(valor);
@@ -123,8 +143,8 @@ export default function AplicacionesCalculatorPage() {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Resultado estimado</p>
           <h2 className="mt-2 text-2xl font-bold">Prepará lo necesario para {formatNumber(superficieNumero)} ha</h2>
           {(campoSeleccionado || loteSeleccionado) && <p className="mt-2 text-sm text-slate-300">{campoSeleccionado?.nombre}{loteSeleccionado ? ` · Lote ${loteSeleccionado.nombre}` : ''}</p>}
-          {tienePro && <div className="mt-5"><SaveCalculationButton payload={{ tipo: 'APLICACION', titulo: `Aplicación para ${formatNumber(superficieNumero)} ha`, campoId: campoSeleccionado?.id, loteId: loteSeleccionado?.id, datos: { superficieHa: superficieNumero, dosisLitrosPorHa: dosisNumero, volumenAguaLitrosPorHa: aguaNumero, campoNombre: campoSeleccionado?.nombre, loteNombre: loteSeleccionado?.nombre }, resultado: { productoLitros: productoNecesario, aguaLitros: aguaNecesaria } }} /></div>}
-          {tienePro && esOwner && <div className="mt-5"><CreateActivityFromCalculationButton organizacionId={organizacionId} recursoTipo={loteSeleccionado ? 'LOTE' : campoSeleccionado ? 'CAMPO' : 'GENERAL'} recursoId={loteSeleccionado?.id || campoSeleccionado?.id} recursoNombre={loteSeleccionado ? `${campoSeleccionado?.nombre} · Lote ${loteSeleccionado.nombre}` : campoSeleccionado?.nombre} tituloInicial={`Aplicar producto en ${loteSeleccionado?.nombre || campoSeleccionado?.nombre || 'el establecimiento'}`} descripcionCalculo={`Aplicación calculada: ${formatNumber(superficieNumero)} ha · ${formatNumber(productoNecesario)} L de producto · ${formatNumber(aguaNecesaria)} L de agua.`} /></div>}
+          {tienePro && <div className="mt-5"><SaveCalculationButton payload={payloadCalculo} onSaved={setCalculoGuardado} /></div>}
+          {tienePro && esOwner && calculoGuardado && <div className="mt-5 rounded-xl border border-emerald-400/40 bg-emerald-400/10 p-4"><p className="mb-3 text-sm font-medium text-emerald-100">Cálculo guardado. Ahora podés asignar este trabajo sin perder la referencia original.</p><CreateActivityFromCalculationButton organizacionId={organizacionId} calculoOrigenId={calculoGuardado.id} recursoTipo={loteSeleccionado ? 'LOTE' : campoSeleccionado ? 'CAMPO' : 'GENERAL'} recursoId={loteSeleccionado?.id || campoSeleccionado?.id} recursoNombre={loteSeleccionado ? `${campoSeleccionado?.nombre} · Lote ${loteSeleccionado.nombre}` : campoSeleccionado?.nombre} tituloInicial={`Aplicar producto en ${loteSeleccionado?.nombre || campoSeleccionado?.nombre || 'el establecimiento'}`} descripcionCalculo={`Aplicación calculada: ${formatNumber(superficieNumero)} ha · ${formatNumber(productoNecesario)} L de producto · ${formatNumber(aguaNecesaria)} L de agua.`} /></div>}
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <ResultCard icon={Leaf} label="Producto necesario" value={`${formatNumber(productoNecesario)} L`} detail={`${formatNumber(dosisNumero)} L/ha`} />
             <ResultCard icon={Droplets} label="Agua necesaria" value={`${formatNumber(aguaNecesaria)} L`} detail={`${formatNumber(aguaNumero)} L/ha`} />

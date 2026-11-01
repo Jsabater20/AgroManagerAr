@@ -58,7 +58,13 @@ model Usuario {
   referidosComoReferente         Referido[]                @relation("referenteReferido")
   referidoRecibido               Referido?                 @relation("referidoReferido")
   notificaciones                 Notificacion[]
+  lecturasAlertas                AlertaLectura[]
+  preferenciasAlertas            PreferenciaAlerta[]
   calculosGuardados              CalculoGuardado[]
+  costosProductivosCreados       CostoProductivo[]       @relation("costo_productivo_creador")
+  preferenciasReportes           PreferenciaReporte[]
+  historialReportes              HistorialReporte[]
+  enviosReportesAutomaticos      EnvioReporteAutomatico[]
 }
 
 model Referido {
@@ -86,12 +92,75 @@ model Notificacion {
   mensaje     String
   enlace      String?
   dedupeKey   String?   @unique
+  visibleEnApp Boolean  @default(true)
   leidaEn     DateTime?
   createdAt   DateTime  @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  @@index([usuarioId, leidaEn, createdAt])
+  @@index([usuarioId, visibleEnApp, leidaEn, createdAt])
+}
+
+model AlertaGestion {
+  id                    String    @id @default(cuid())
+  organizacionId        Int
+  clave                 String
+  tipo                  String
+  severidad             String
+  estado                String    @default("ACTIVA")
+  titulo                String
+  mensaje               String
+  enlace                String
+  origenTipo            String
+  origenId              String
+  ciclo                 Int       @default(1)
+  detectadaEn           DateTime  @default(now())
+  ultimaEvaluacionEn    DateTime  @default(now())
+  revisadaEn            DateTime?
+  resueltaEn            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  organizacion Organizacion    @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  lecturas     AlertaLectura[]
+
+  @@unique([organizacionId, clave])
+  @@index([organizacionId, estado, severidad])
+  @@index([organizacionId, ultimaEvaluacionEn])
+}
+
+model AlertaLectura {
+  id        String   @id @default(cuid())
+  alertaId  String
+  usuarioId Int
+  leidaEn   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  alerta  AlertaGestion @relation(fields: [alertaId], references: [id], onDelete: Cascade)
+  usuario Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([alertaId, usuarioId])
+  @@index([usuarioId, leidaEn])
+}
+
+model PreferenciaAlerta {
+  id                  Int      @id @default(autoincrement())
+  usuarioId           Int
+  organizacionId      Int
+  alertasActivas      Boolean  @default(true)
+  notificacionEnApp   Boolean  @default(true)
+  notificacionPush    Boolean  @default(true)
+  notificacionEmail   Boolean  @default(false)
+  soloPrioritarias    Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId])
+  @@index([organizacionId])
 }
 
 model DispositivoPush {
@@ -125,6 +194,7 @@ model Campo {
   lotes           Lote[]
   maquinarias     Maquinaria[]
   movimentos      MovimientoFinanciero[]
+  costosProductivos CostoProductivo[]
   tareas          TareaRural[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
   cuadrosYerba           CuadroYerba[]
@@ -141,6 +211,7 @@ model Lote {
   updatedAt DateTime  @updatedAt
   campo     Campo     @relation(fields: [campoId], references: [id])
   siembras  Siembra[]
+  costosProductivos CostoProductivo[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
   cuadrosYerba           CuadroYerba[]
 }
@@ -167,6 +238,7 @@ model Siembra {
   aplicaciones  AplicacionInsumo[]
   cosechas      Cosecha[]
   movimentos    MovimientoFinanciero[]
+  costosProductivos CostoProductivo[]
   campania      Campania?              @relation(fields: [campaniaId], references: [id])
   lote          Lote                   @relation(fields: [loteId], references: [id])
   tipoCultivo   TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
@@ -281,6 +353,7 @@ model Insumo {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   aplicaciones   AplicacionInsumo[]
+  costosProductivos CostoProductivo[]
   organizacion   Organizacion?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 
   @@index([organizacionId])
@@ -378,6 +451,7 @@ model Maquinaria {
   organizacionId    Int?
   gastos            GastoMaquinaria[]
   mantenimientos    MantenimientoMaquinaria[]
+  costosProductivos CostoProductivo[]
   campo             Campo?                    @relation(fields: [campoId], references: [id])
   organizacion      Organizacion?             @relation(fields: [organizacionId], references: [id])
   usuario           Usuario                   @relation(fields: [usuarioId], references: [id])
@@ -419,6 +493,8 @@ model MovimientoFinanciero {
   tipo           TipoMovimiento
   concepto       String
   monto          Float
+  moneda         String              @default("ARS")
+  origen         OrigenMovimientoFinanciero @default(MANUAL)
   fecha          DateTime
   categoria      CategoriaMovimiento
   campoId        Int?
@@ -431,6 +507,7 @@ model MovimientoFinanciero {
   organizacion   Organizacion?       @relation(fields: [organizacionId], references: [id])
   siembra        Siembra?            @relation(fields: [siembraId], references: [id])
   usuario        Usuario             @relation(fields: [usuarioId], references: [id])
+  costosProductivos CostoProductivo[]
 
   @@index([organizacionId])
 }
@@ -448,6 +525,7 @@ model Campania {
   organizacion   Organizacion? @relation(fields: [organizacionId], references: [id])
   usuario        Usuario       @relation(fields: [usuarioId], references: [id])
   siembras       Siembra[]
+  costosProductivos CostoProductivo[]
 
   @@index([organizacionId])
 }
@@ -555,6 +633,12 @@ model Organizacion {
   registrosAvicolas       RegistroAvicolaDiario[]
   cuadrosYerba            CuadroYerba[]
   calculosGuardados       CalculoGuardado[]
+  costosProductivos       CostoProductivo[]
+  alertasGestion          AlertaGestion[]
+  preferenciasAlertas     PreferenciaAlerta[]
+  preferenciasReportes    PreferenciaReporte[]
+  historialReportes       HistorialReporte[]
+  enviosReportesAutomaticos EnvioReporteAutomatico[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
@@ -575,6 +659,8 @@ model CalculoGuardado {
   updatedAt      DateTime     @updatedAt
   organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  actividadesOrigen ActividadMiembro[] @relation("calculo_origen_actividad")
+  costosProductivos CostoProductivo[]
 
   @@index([organizacionId, tipo, createdAt])
   @@index([usuarioId, createdAt])
@@ -611,6 +697,62 @@ model BeneficioProOrganizacion {
 
   @@index([organizacionId, activo, fechaFin])
   @@index([otorgadoPorId])
+}
+
+model PreferenciaReporte {
+  id             Int          @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int
+  tipoPeriodo    String       @default("MENSUAL")
+  vistaDesglose  String       @default("LOTES")
+  envioAutomatico Boolean     @default(false)
+  frecuenciaEnvio String      @default("MENSUAL")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId])
+  @@index([organizacionId])
+}
+
+model EnvioReporteAutomatico {
+  id             Int          @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int
+  tipoPeriodo    String
+  periodoDesde   DateTime
+  periodoHasta   DateTime
+  estado         String       @default("PROCESANDO")
+  error          String?
+  enviadoEn      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId, tipoPeriodo, periodoDesde, periodoHasta])
+  @@index([organizacionId, createdAt])
+  @@index([estado, createdAt])
+}
+
+model HistorialReporte {
+  id              Int          @id @default(autoincrement())
+  usuarioId       Int
+  organizacionId  Int
+  tipo            String
+  fechaReferencia DateTime
+  periodoDesde    DateTime
+  periodoHasta    DateTime
+  createdAt       DateTime     @default(now())
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, organizacionId, createdAt])
+  @@index([organizacionId, createdAt])
 }
 
 model UsuarioOrganizacion {
@@ -774,10 +916,13 @@ model ActividadMiembro {
   recursoTipo TipoRecursoActividad
   recursoId   Int?
   contexto    String?
+  calculoOrigenId Int?
 
   fechaInicio      DateTime
   fechaEstimadaFin DateTime?
   fechaRealFin     DateTime?
+  horarioInicio    String?
+  horarioFin       String?
 
   estado    EstadoActividad @default(PENDIENTE)
   prioridad Prioridad       @default(MEDIA)
@@ -791,11 +936,60 @@ model ActividadMiembro {
   organizacion        Organizacion           @relation(fields: [organizacionId], references: [id], onDelete: Restrict)
   usuarioOrganizacion UsuarioOrganizacion    @relation(fields: [usuarioOrganizacionId], references: [id], onDelete: Restrict)
   creadoPor           Usuario?               @relation("creadoPor", fields: [creadoPorId], references: [id], onDelete: SetNull)
+  calculoOrigen       CalculoGuardado?       @relation("calculo_origen_actividad", fields: [calculoOrigenId], references: [id], onDelete: SetNull)
+  costosProductivos   CostoProductivo[]
 
   @@index([organizacionId, estado])
   @@index([usuarioOrganizacionId, estado])
   @@index([creadoPorId])
+  @@index([calculoOrigenId])
   @@index([organizacionId, activo])
+}
+
+model CostoProductivo {
+  id                      Int                         @id @default(autoincrement())
+  organizacionId          Int
+  actividadId             Int?
+  calculoGuardadoId       Int?
+  movimientoFinancieroId  Int?
+  campoId                 Int?
+  loteId                  Int?
+  siembraId               Int?
+  campaniaId              Int?
+  insumoId                Int?
+  maquinariaId            Int?
+  creadoPorId             Int
+  tipo                    TipoCostoProductivo
+  rubro                   RubroCostoProductivo
+  criterioDistribucion    CriterioDistribucionCosto  @default(MANUAL)
+  descripcion             String
+  cantidad                Decimal?                    @db.Decimal(16, 4)
+  unidad                  String?
+  costoUnitario           Decimal?                    @db.Decimal(16, 2)
+  monto                   Decimal                     @db.Decimal(16, 2)
+  superficieHa            Decimal?                    @db.Decimal(12, 2)
+  fecha                   DateTime                    @default(now())
+  idempotencyKey          String?                     @unique
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+
+  organizacion            Organizacion                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  actividad               ActividadMiembro?           @relation(fields: [actividadId], references: [id], onDelete: Restrict)
+  calculoGuardado         CalculoGuardado?            @relation(fields: [calculoGuardadoId], references: [id], onDelete: SetNull)
+  movimientoFinanciero    MovimientoFinanciero?       @relation(fields: [movimientoFinancieroId], references: [id], onDelete: Restrict)
+  campo                   Campo?                      @relation(fields: [campoId], references: [id], onDelete: Restrict)
+  lote                    Lote?                       @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  siembra                 Siembra?                    @relation(fields: [siembraId], references: [id], onDelete: Restrict)
+  campania                Campania?                   @relation(fields: [campaniaId], references: [id], onDelete: SetNull)
+  insumo                  Insumo?                     @relation(fields: [insumoId], references: [id], onDelete: SetNull)
+  maquinaria              Maquinaria?                 @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
+  creadoPor               Usuario                      @relation("costo_productivo_creador", fields: [creadoPorId], references: [id], onDelete: Restrict)
+
+  @@unique([actividadId, movimientoFinancieroId])
+  @@index([organizacionId, tipo, fecha])
+  @@index([organizacionId, loteId])
+  @@index([campaniaId])
+  @@index([movimientoFinancieroId])
 }
 
 model ObservacionActividad {
@@ -1146,6 +1340,33 @@ enum TipoGastoMaq {
 enum TipoMovimiento {
   INGRESO
   EGRESO
+}
+
+enum OrigenMovimientoFinanciero {
+  MANUAL
+  COSTO_PRODUCTIVO
+}
+
+enum TipoCostoProductivo {
+  ESTIMADO
+  REAL
+}
+
+enum RubroCostoProductivo {
+  INSUMO
+  MAQUINARIA
+  MANO_DE_OBRA
+  CONTRATISTA
+  SERVICIO
+  COMBUSTIBLE
+  MANTENIMIENTO
+  OTRO
+}
+
+enum CriterioDistribucionCosto {
+  MANUAL
+  POR_SUPERFICIE
+  IGUALITARIO
 }
 
 enum CategoriaMovimiento {

@@ -59,6 +59,7 @@ import EmpresaRentabilidadPage from './pages/empresas/EmpresaRentabilidadPage';
 import EmpresaAuditoriaPage from './pages/empresas/EmpresaAuditoriaPage';
 import EmpresaExportacionesPage from './pages/empresas/EmpresaExportacionesPage';
 import EmpresaProduccionPage from './pages/empresas/EmpresaProduccionPage';
+import EmpresaReportesPage from './pages/empresas/EmpresaReportesPage';
 import EmpresaEstadoPage from './pages/empresas/EmpresaEstadoPage';
 import DemoEmpresaEntryPage from './pages/empresas/DemoEmpresaEntryPage';
 import DemoEmpresaWelcomePage from './pages/empresas/DemoEmpresaWelcomePage';
@@ -76,6 +77,7 @@ import MaquinariaCalculatorPage from './pages/calculos/MaquinariaCalculatorPage'
 import GanaderiaCalculatorPage from './pages/calculos/GanaderiaCalculatorPage';
 import EconomicosCalculatorPage from './pages/calculos/EconomicosCalculatorPage';
 import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
+import AlertasPage from './pages/alertas/AlertasPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -159,6 +161,7 @@ export default function App() {
             <Route path="/empresa/estado" element={<EmpresaEstadoPage />} />
             <Route element={<Layout />}>
               <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
+              <Route path="/org/:orgId/alertas" element={<AlertasPage />} />
               <Route path="/org/:orgId/campos" element={<CamposPage />} />
               <Route path="/org/:orgId/campos/:id" element={<CampoDetailPage />} />
               <Route path="/org/:orgId/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />
@@ -205,6 +208,7 @@ export default function App() {
               <Route path="/empresas/:empresaId/finanzas" element={<EmpresaFinanzasPage />} />
               <Route path="/empresas/:empresaId/rentabilidad" element={<EmpresaRentabilidadPage />} />
               <Route path="/empresas/:empresaId/produccion" element={<EmpresaProduccionPage />} />
+              <Route path="/empresas/:empresaId/reportes" element={<EmpresaReportesPage />} />
               <Route path="/empresas/:empresaId/auditoria" element={<EmpresaAuditoriaPage />} />
               <Route path="/empresas/:empresaId/exportaciones" element={<EmpresaExportacionesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />

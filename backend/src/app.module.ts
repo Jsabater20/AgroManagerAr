@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -37,6 +38,9 @@ import { TamboModule } from './tambo/tambo.module';
 import { AvicolaModule } from './avicola/avicola.module';
 import { YerbaModule } from './yerba/yerba.module';
 import { CalculosModule } from './calculos/calculos.module';
+import { CostosProductivosModule } from './costos-productivos/costos-productivos.module';
+import { AlertasModule } from './alertas/alertas.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -49,6 +53,7 @@ import { CalculosModule } from './calculos/calculos.module';
         limit: 100,
       },
     ]),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     PlanModule,
@@ -81,6 +86,9 @@ import { CalculosModule } from './calculos/calculos.module';
     AvicolaModule,
     YerbaModule,
     CalculosModule,
+    CostosProductivosModule,
+    AlertasModule,
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [

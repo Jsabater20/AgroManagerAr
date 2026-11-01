@@ -7,9 +7,13 @@ export interface CreateActividadPayload {
   usuarioOrganizacionId: number;
   recursoTipo: string;
   recursoId?: number;
+  calculoOrigenId?: number;
   contexto?: string;
   fechaInicio: string;
   fechaEstimadaFin?: string;
+  horarioInicio?: string;
+  horarioFin?: string;
+  observacionInicial?: string;
   prioridad: string;
 }
 
@@ -21,6 +25,8 @@ export interface UpdateActividadPayload {
   contexto?: string;
   fechaInicio?: string;
   fechaEstimadaFin?: string;
+  horarioInicio?: string;
+  horarioFin?: string;
   prioridad?: string;
 }
 

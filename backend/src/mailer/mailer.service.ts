@@ -13,6 +13,27 @@ export class MailerService {
     this.resend = new Resend(process.env.RESEND_API_KEY);
   }
 
+  async enviarCorreo({
+    email,
+    asunto,
+    html,
+  }: {
+    email: string;
+    asunto: string;
+    html: string;
+  }) {
+    const respuesta = await this.resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+      to: email,
+      subject: asunto,
+      html,
+    });
+    if (respuesta.error) {
+      throw new Error(respuesta.error.message || 'Resend no pudo enviar el correo');
+    }
+    return respuesta;
+  }
+
   async enviarInvitacion(
     email: string,
     nombreOrganizacion: string,

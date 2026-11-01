@@ -1,14 +1,25 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookmarkPlus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { calculosApi, type GuardarCalculoPayload } from '../../api/calculos.api';
+import {
+  calculosApi,
+  type CalculoGuardado,
+  type GuardarCalculoPayload,
+} from '../../api/calculos.api';
 
-export function SaveCalculationButton({ payload }: { payload: GuardarCalculoPayload }) {
+export function SaveCalculationButton({
+  payload,
+  onSaved,
+}: {
+  payload: GuardarCalculoPayload;
+  onSaved?: (calculo: CalculoGuardado) => void;
+}) {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: () => calculosApi.guardar(payload),
-    onSuccess: () => {
+    onSuccess: (calculo) => {
       queryClient.invalidateQueries({ queryKey: ['calculos', 'historial'] });
+      onSaved?.(calculo);
       toast.success('Cálculo guardado en el historial.');
     },
     onError: (error: any) => {

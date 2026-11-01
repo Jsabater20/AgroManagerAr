@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Bot, AlertTriangle, CheckCircle2, Info, Lightbulb, RefreshCw, Link, Zap } from 'lucide-react';
+import { Bot, AlertTriangle, BellRing, CheckCircle2, Info, Lightbulb, RefreshCw, Link, Zap } from 'lucide-react';
 import { aiApi, type AiInsight } from '../../api/ai.api';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
@@ -40,7 +40,12 @@ const TIPO_CONFIG: Record<
 
 export default function AiInsights() {
   const isPro = useAuthStore((s) => s.isPro());
+  const usuario = useAuthStore((s) => s.usuario);
   const navigate = useNavigate();
+  const organizacionId = usuario?.usuarioOrganizacionId ?? null;
+  const esOwner = organizacionId !== null && (usuario?.organizaciones?.some(
+    (organizacion) => organizacion.id === organizacionId && organizacion.propietarioId === usuario.id,
+  ) ?? false);
   const { data, isLoading, isError, refetch, isFetching } = useQuery<AiInsight[]>({
     queryKey: ['ai-insights'],
     queryFn: aiApi.insights,
@@ -119,9 +124,7 @@ export default function AiInsights() {
         <div className="text-center py-6 text-sm text-gray-400">
           <Bot size={28} className="mx-auto mb-2 opacity-30" />
           <p>No se pudo obtener el análisis.</p>
-          <p className="text-xs mt-1 text-gray-300">
-            Verificá que <code className="text-gray-400">GEMINI_API_KEY</code> esté configurada en el backend.
-          </p>
+          <p className="text-xs mt-1 text-gray-300">Intentá actualizar nuevamente en unos segundos.</p>
         </div>
       )}
 
@@ -152,6 +155,15 @@ export default function AiInsights() {
       )}
 
       {/* Footer CTA */}
+      {esOwner && organizacionId && (
+        <RouterLink
+          to={`/org/${organizacionId}/alertas`}
+          className="mt-3.5 flex items-center justify-center gap-1.5 text-xs font-medium text-amber-700 hover:underline dark:text-amber-400"
+        >
+          <BellRing size={11} />
+          Ver centro de alertas
+        </RouterLink>
+      )}
       <RouterLink
         to="#"
         onClick={(e) => { e.preventDefault(); document.querySelector<HTMLButtonElement>('[aria-label="AgroBot"]')?.click(); }}

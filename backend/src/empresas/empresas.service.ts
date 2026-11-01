@@ -14,6 +14,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmpresaAccessService } from './empresa-access.service';
+import { AlertasService } from '../alertas/alertas.service';
 import {
   ActualizarComercialEmpresaDto,
   ActualizarMiembroEmpresaDto,
@@ -34,6 +35,7 @@ export class EmpresasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly empresaAccessService: EmpresaAccessService,
+    private readonly alertasService: AlertasService,
   ) {}
 
   async crearEmpresa(superAdminId: number, dto: CrearEmpresaDto) {
@@ -460,7 +462,7 @@ export class EmpresasService {
     const acceso = await this.empresaAccessService.obtenerAcceso(usuarioId, empresaId);
     const organizacionIds = acceso.organizacionesIds;
 
-    const [campos, animales, maquinarias, actividades, miembros] = await Promise.all([
+    const [campos, animales, maquinarias, actividades, miembros, alertas] = await Promise.all([
       this.prisma.campo.aggregate({
         where: { organizacionId: { in: organizacionIds } },
         _count: true,
@@ -478,6 +480,7 @@ export class EmpresasService {
         distinct: ['usuarioId'],
         select: { usuarioId: true },
       }),
+      this.alertasService.listarParaOrganizaciones(organizacionIds),
     ]);
 
     const hoy = new Date();
@@ -517,6 +520,12 @@ export class EmpresasService {
         pausadas: actividadesPorEstado.PAUSADA ?? 0,
         completadas: actividadesPorEstado.COMPLETADA ?? 0,
         demoradas,
+      },
+      alertas: {
+        total: alertas.length,
+        criticas: alertas.filter((alerta) => alerta.severidad === 'CRITICA').length,
+        advertencias: alertas.filter((alerta) => alerta.severidad === 'ADVERTENCIA').length,
+        items: alertas.slice(0, 6),
       },
     };
   }

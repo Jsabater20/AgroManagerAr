@@ -14,6 +14,8 @@ interface CrearNotificacion {
   mensaje: string;
   enlace?: string;
   dedupeKey?: string;
+  visibleEnApp?: boolean;
+  enviarPush?: boolean;
 }
 
 interface ExpoPushTicket {
@@ -112,7 +114,7 @@ export class NotificacionesService {
 
   async listar(usuarioId: number) {
     return this.prisma.notificacion.findMany({
-      where: { usuarioId },
+      where: { usuarioId, visibleEnApp: true },
       orderBy: { createdAt: 'desc' },
       take: 30,
     });
@@ -124,6 +126,41 @@ export class NotificacionesService {
       data: { leidaEn: new Date() },
     });
     return { ok: true };
+  }
+
+  async crearNotificacionSiNoExiste(
+    usuarioId: number,
+    notificacion: CrearNotificacion,
+  ): Promise<boolean> {
+    if (notificacion.dedupeKey) {
+      const existente = await this.prisma.notificacion.findUnique({
+        where: { dedupeKey: notificacion.dedupeKey },
+        select: { id: true },
+      });
+      if (existente) return false;
+    }
+
+    const creada = await this.prisma.notificacion.create({
+      data: {
+        usuarioId,
+        tipo: notificacion.tipo,
+        titulo: notificacion.titulo,
+        mensaje: notificacion.mensaje,
+        enlace: notificacion.enlace,
+        dedupeKey: notificacion.dedupeKey,
+        visibleEnApp: notificacion.visibleEnApp ?? true,
+      },
+    }).catch(() => null);
+    if (!creada) return false;
+
+    if (notificacion.enviarPush ?? true) {
+      await this.notificarUsuario(usuarioId, {
+        titulo: notificacion.titulo,
+        mensaje: notificacion.mensaje,
+        datos: { tipo: notificacion.tipo },
+      });
+    }
+    return true;
   }
 
   async notificarReferidosListos(referenteId: number) {
