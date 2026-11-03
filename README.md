@@ -270,7 +270,8 @@ DATABASE_URL=           # Neon connection string
 JWT_SECRET=
 JWT_EXPIRATION=7d
 PORT=3001
-FRONTEND_URL=           # https://www.agromanagerar.com
+FRONTEND_URL=           # Lista separada por comas de orígenes exactos permitidos
+ALLOWED_ORIGINS=        # Alias opcional de FRONTEND_URL para compatibilidad
 GEMINI_API_KEY=
 RESEND_API_KEY=         # API key de Resend
 RESEND_FROM_EMAIL=      # noreply@tudominio.com (dominio verificado en Resend)
@@ -316,6 +317,6 @@ Campos en `Usuario`: `email`, `nombre`, `password`, `rol` (ADMIN/OPERADOR), `pla
 - **Novedades** permite crear borradores y publicarlos desde el panel SUPERADMIN. Al publicar se crean avisos internos/push deduplicados únicamente para personas que aceptaron novedades. Los correos no se envían de forma automática: requieren consentimiento, email verificado, una revisión/confirmación manual y \`NOVEDADES_EMAILS_HABILITADOS=true\` en el backend.
 - **Emails** se envían vía Resend HTTP API (no SMTP). Railway bloquea conexiones SMTP salientes.
 - **Hidratación de auth**: al montar la app, si hay token en localStorage se hace `GET /api/auth/me` para restaurar el perfil completo (plan, rol, nombre). `PrivateRoute` muestra spinner durante la hidratación.
-- **CORS** acepta localhost:5173 y localhost:5174 en dev; en prod se sobreescribe con `FRONTEND_URL`.
+- **CORS** acepta orígenes exactos. En Railway cargá FRONTEND_URL (o ALLOWED_ORIGINS) con el dominio público y cada preview de Vercel que necesites usar, separados por comas y sin barra final.
 - **Rate limiting** con `@nestjs/throttler`: global 100 req/min, con límites más estrictos en rutas de auth.
 
