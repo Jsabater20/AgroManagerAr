@@ -20,4 +20,8 @@ export class UpdatePreferenciasAlertasDto {
   @IsOptional()
   @IsBoolean()
   soloPrioritarias?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  alertasClimaActivas?: boolean;
 }

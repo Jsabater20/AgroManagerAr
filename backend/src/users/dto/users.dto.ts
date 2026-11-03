@@ -34,8 +34,17 @@ export class ChangePasswordDto {
 }
 
 export class UpdatePreferenciasComunicacionesDto {
+  @IsOptional()
   @IsBoolean()
-  recibeComunicaciones!: boolean;
+  recibeComunicaciones?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recibeNovedades?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recibePromociones?: boolean;
 }
 
 export class PrepararFotoPerfilDto {

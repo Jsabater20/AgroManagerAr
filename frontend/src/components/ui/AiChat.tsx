@@ -20,7 +20,7 @@ interface DisplayMessage {
 
 const WELCOME: DisplayMessage = {
   role: 'model',
-  text: '¡Hola! Soy **AgroBot** 🌱\nPuedo consultar los datos visibles de este establecimiento: gastos, trabajos, lotes, campañas y maquinarias. También puedo ayudarte con consultas agropecuarias generales. ¿Qué necesitás revisar?',
+  text: '¡Hola! Soy **AgroBot** 🌱\nPuedo consultar los datos visibles de este establecimiento: gastos, trabajos, lotes, campañas, maquinarias y el pronóstico disponible por campo. También puedo ayudarte con consultas agropecuarias generales. ¿Qué necesitás revisar?',
 };
 
 export default function AiChat() {
@@ -196,7 +196,7 @@ export default function AiChat() {
                       {m.basadaEnDatos && (
                         <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 dark:text-gray-500">
                           <Database size={10} />
-                          Datos del establecimiento activo
+                          Datos visibles del establecimiento y pronóstico disponible
                         </span>
                       )}
                     </>
@@ -254,6 +254,8 @@ export default function AiChat() {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
+  '¿Cómo está el clima de mis campos?',
+  '¿Hay riesgo de helada o lluvia?',
   '¿Qué alertas urgentes tengo?',
   '¿Cuánto gasté este mes?',
   '¿Qué tareas tengo pendientes?',

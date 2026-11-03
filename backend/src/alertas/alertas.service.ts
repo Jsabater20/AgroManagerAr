@@ -1,11 +1,14 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { EstadoActividad, Prisma, TipoCostoProductivo, TipoRecursoActividad } from '@prisma/client';
+import { EstadoActividad, Prisma, Prioridad, TipoCostoProductivo, TipoRecursoActividad } from '@prisma/client';
+import { ActividadesService } from '../actividades/actividades.service';
+import { ClimaService } from '../clima/clima.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { MailerService } from '../mailer/mailer.service';
 import { MemberAccessService } from '../organizations/member-access.service';
 import { PlanService } from '../plan/plan.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CrearTareaAlertaClimaticaDto } from './dto/crear-tarea-alerta-climatica.dto';
 import { UpdatePreferenciasAlertasDto } from './dto/update-preferencias-alertas.dto';
 
 export type AlertaOperativa = {
@@ -22,7 +25,12 @@ export type AlertaOperativa = {
     | 'MAQUINARIA_SEGURO_PROXIMO_A_VENCER'
     | 'MAQUINARIA_VTV_VENCIDA'
     | 'MAQUINARIA_VTV_PROXIMA_A_VENCER'
-    | 'COSTO_SUPERA_ESTIMADO';
+    | 'COSTO_SUPERA_ESTIMADO'
+    | 'CLIMA_TORMENTA'
+    | 'CLIMA_HELADA'
+    | 'CLIMA_CALOR_EXTREMO'
+    | 'CLIMA_LLUVIA_INTENSA'
+    | 'CLIMA_VIENTO_FUERTE';
   severidad: 'ADVERTENCIA' | 'CRITICA';
   titulo: string;
   mensaje: string;
@@ -41,6 +49,16 @@ type CostoAgrupado = {
   real: number;
 };
 
+type PronosticoClimaticoCacheado = {
+  diario?: Array<{
+    temperaturaMaxC?: number | null;
+    temperaturaMinC?: number | null;
+    precipitacionMm?: number | null;
+    rafagasMaxKmh?: number | null;
+    codigoMeteorologico?: number | null;
+  }>;
+};
+
 type EstadoAlertaGestion = 'ACTIVA' | 'REVISADA' | 'RESUELTA';
 type SeveridadAlertaGestion = 'INFORMATIVA' | 'ATENCION' | 'PRIORITARIA';
 
@@ -55,6 +73,7 @@ const PREFERENCIAS_ALERTAS_POR_DEFECTO = {
   notificacionPush: true,
   notificacionEmail: false,
   soloPrioritarias: false,
+  alertasClimaActivas: false,
 };
 
 const ESTADOS_ACTIVOS: EstadoActividad[] = [
@@ -73,6 +92,8 @@ export class AlertasService {
     private readonly planService: PlanService,
     private readonly notificacionesService: NotificacionesService,
     private readonly mailerService: MailerService,
+    private readonly climaService: ClimaService,
+    private readonly actividadesService: ActividadesService,
   ) {}
 
   async obtenerPreferencias(usuarioId: number, organizacionId: number) {
@@ -230,6 +251,67 @@ export class AlertasService {
       create: { alertaId, usuarioId },
     });
     return { ok: true };
+  }
+
+  async crearTareaDesdeAlertaClimatica(
+    usuarioId: number,
+    organizacionId: number,
+    alertaId: string,
+    datos: CrearTareaAlertaClimaticaDto,
+  ) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+    const alerta = await this.prisma.alertaGestion.findFirst({
+      where: {
+        id: alertaId,
+        organizacionId,
+        origenTipo: 'PRONOSTICO_CLIMATICO',
+        tipo: { startsWith: 'CLIMA_' },
+        estado: { in: ['ACTIVA', 'REVISADA'] },
+      },
+      select: {
+        id: true,
+        titulo: true,
+        mensaje: true,
+        severidad: true,
+        origenId: true,
+        actividadMiembroId: true,
+      },
+    });
+    if (!alerta) throw new NotFoundException('Alerta climática no encontrada');
+    if (alerta.actividadMiembroId) {
+      throw new BadRequestException('Esta alerta ya tiene una tarea de seguimiento creada');
+    }
+
+    const campoId = Number(alerta.origenId);
+    const campo = Number.isInteger(campoId)
+      ? await this.prisma.campo.findFirst({
+          where: { id: campoId, organizacionId },
+          select: { id: true, nombre: true },
+        })
+      : null;
+    if (!campo) throw new BadRequestException('No se encontró el campo relacionado con la alerta');
+
+    const actividad = await this.actividadesService.crear(
+      organizacionId,
+      {
+        titulo: `Revisar alerta climática: ${campo.nombre}`,
+        descripcion: `${alerta.titulo}. ${alerta.mensaje}`,
+        usuarioOrganizacionId: datos.usuarioOrganizacionId,
+        recursoTipo: TipoRecursoActividad.CAMPO,
+        recursoId: campo.id,
+        contexto: 'CLIMA',
+        fechaInicio: datos.fechaInicio ?? new Date().toISOString(),
+        prioridad: alerta.severidad === 'PRIORITARIA' ? Prioridad.ALTA : Prioridad.MEDIA,
+        observacionInicial: datos.observacion?.trim() || undefined,
+      },
+      usuarioId,
+    );
+
+    await this.prisma.alertaGestion.update({
+      where: { id: alerta.id },
+      data: { actividadMiembroId: actividad.id },
+    });
+    return actividad;
   }
 
   async listarParaOrganizaciones(
@@ -591,8 +673,122 @@ export class AlertasService {
         };
       });
 
-    return [...alertasTrabajos, ...alertasCostosPendientes, ...alertasMaquinarias, ...alertasCostos]
+    const alertasClima = await this.listarAlertasClimaticas(organizacionIds, campoIds);
+    return [...alertasTrabajos, ...alertasCostosPendientes, ...alertasMaquinarias, ...alertasCostos, ...alertasClima]
       .sort((a, b) => Number(b.severidad === 'CRITICA') - Number(a.severidad === 'CRITICA'));
+  }
+
+  private async listarAlertasClimaticas(
+    organizacionIds: number[],
+    campoIds?: number[],
+  ): Promise<AlertaOperativa[]> {
+    const preferencias = await this.prisma.preferenciaAlerta.findMany({
+      where: {
+        organizacionId: { in: organizacionIds },
+        alertasClimaActivas: true,
+      },
+      select: { organizacionId: true },
+    });
+    const organizacionesConClima = [...new Set(preferencias.map((preferencia) => preferencia.organizacionId))];
+    if (!organizacionesConClima.length) return [];
+
+    const haceDosHoras = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const caches = await this.prisma.cachePronosticoClima.findMany({
+      where: {
+        organizacionId: { in: organizacionesConClima },
+        obtenidoEn: { gte: haceDosHoras },
+        ...(campoIds ? { campoId: { in: campoIds } } : {}),
+      },
+      select: {
+        organizacionId: true,
+        campoId: true,
+        datos: true,
+        campo: { select: { nombre: true } },
+      },
+    });
+
+    const alertas: AlertaOperativa[] = [];
+    for (const cache of caches) {
+      const pronostico = cache.datos as unknown as PronosticoClimaticoCacheado;
+      const dias = (pronostico.diario ?? []).slice(0, 2);
+      if (!dias.length) continue;
+      const base = {
+        enlace: `/org/${cache.organizacionId}/clima?campoId=${cache.campoId}`,
+        organizacionId: cache.organizacionId,
+        origenTipo: 'PRONOSTICO_CLIMATICO',
+        origenId: String(cache.campoId),
+      };
+      const nombreCampo = cache.campo.nombre;
+      const tormenta = dias.find((dia) => (dia.codigoMeteorologico ?? 0) >= 95);
+      if (tormenta) {
+        alertas.push({
+          id: `clima-tormenta-${cache.campoId}`,
+          tipo: 'CLIMA_TORMENTA',
+          severidad: 'CRITICA',
+          titulo: `Posible tormenta en ${nombreCampo}`,
+          mensaje: 'El pronóstico indica condiciones de tormenta en las próximas 48 horas. Revisá las tareas expuestas y asegurá equipos o animales si corresponde.',
+          dedupeKey: `alerta-clima-tormenta-${cache.campoId}`,
+          ...base,
+        });
+      }
+
+      const helada = dias.find((dia) => typeof dia.temperaturaMinC === 'number' && dia.temperaturaMinC <= 3);
+      if (helada) {
+        const temperatura = Number(helada.temperaturaMinC);
+        alertas.push({
+          id: `clima-helada-${cache.campoId}`,
+          tipo: 'CLIMA_HELADA',
+          severidad: temperatura <= 0 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `${temperatura <= 0 ? 'Riesgo de helada' : 'Temperatura baja'} en ${nombreCampo}`,
+          mensaje: `Se esperan mínimas cercanas a ${temperatura.toFixed(1)} °C en las próximas 48 horas. Planificá la protección de cultivos sensibles.`,
+          dedupeKey: `alerta-clima-helada-${cache.campoId}`,
+          ...base,
+        });
+      }
+
+      const calor = dias.find((dia) => typeof dia.temperaturaMaxC === 'number' && dia.temperaturaMaxC >= 35);
+      if (calor) {
+        const temperatura = Number(calor.temperaturaMaxC);
+        alertas.push({
+          id: `clima-calor-${cache.campoId}`,
+          tipo: 'CLIMA_CALOR_EXTREMO',
+          severidad: temperatura >= 40 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `${temperatura >= 40 ? 'Calor extremo' : 'Temperatura elevada'} en ${nombreCampo}`,
+          mensaje: `Se esperan máximas de hasta ${temperatura.toFixed(1)} °C en las próximas 48 horas. Considerá el bienestar animal y las labores a campo.`,
+          dedupeKey: `alerta-clima-calor-${cache.campoId}`,
+          ...base,
+        });
+      }
+
+      const lluvia = dias.find((dia) => typeof dia.precipitacionMm === 'number' && dia.precipitacionMm >= 25);
+      if (lluvia) {
+        const milimetros = Number(lluvia.precipitacionMm);
+        alertas.push({
+          id: `clima-lluvia-${cache.campoId}`,
+          tipo: 'CLIMA_LLUVIA_INTENSA',
+          severidad: milimetros >= 50 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `Lluvias importantes previstas en ${nombreCampo}`,
+          mensaje: `Se esperan aproximadamente ${milimetros.toFixed(1)} mm. Revisá accesos, drenajes y tareas que puedan verse afectadas.`,
+          dedupeKey: `alerta-clima-lluvia-${cache.campoId}`,
+          ...base,
+        });
+      }
+
+      const viento = dias.find((dia) => typeof dia.rafagasMaxKmh === 'number' && dia.rafagasMaxKmh >= 50);
+      if (viento) {
+        const rafagas = Number(viento.rafagasMaxKmh);
+        alertas.push({
+          id: `clima-viento-${cache.campoId}`,
+          tipo: 'CLIMA_VIENTO_FUERTE',
+          severidad: rafagas >= 70 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `Viento fuerte previsto en ${nombreCampo}`,
+          mensaje: `Se pronostican ráfagas de hasta ${rafagas.toFixed(0)} km/h. Evaluá la seguridad de infraestructura, equipos y tareas en altura.`,
+          dedupeKey: `alerta-clima-viento-${cache.campoId}`,
+          ...base,
+        });
+      }
+    }
+    return alertas;
   }
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -603,6 +799,7 @@ export class AlertasService {
 
     for (const organizacion of organizaciones) {
       try {
+        await this.climaService.actualizarPronosticosParaAlertas(organizacion.id);
         const alertas = await this.listarParaOrganizaciones([organizacion.id]);
         await this.sincronizarAlertasPersistentes(organizacion.id, alertas);
       } catch {
@@ -671,6 +868,7 @@ export class AlertasService {
           ciclo: reabierta ? existente.ciclo + 1 : existente.ciclo,
           detectadaEn: reabierta ? ahora : undefined,
           resueltaEn: reabierta ? null : undefined,
+          actividadMiembroId: reabierta ? null : undefined,
           ultimaEvaluacionEn: ahora,
         },
         select: { id: true, ciclo: true, titulo: true, mensaje: true, enlace: true },

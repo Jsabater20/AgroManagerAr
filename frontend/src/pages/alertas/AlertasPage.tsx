@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   AlertTriangle,
   BellRing,
@@ -11,13 +12,16 @@ import {
   Clock3,
   Eye,
   Inbox,
+  ListTodo,
   RefreshCw,
 } from 'lucide-react';
 import {
   alertasApi,
+  type AlertaGestion,
   type EstadoAlertaGestion,
   type SeveridadAlertaGestion,
 } from '../../api/alertas.api';
+import { organizacionesApi } from '../../api/organizaciones.api';
 import { useAuthStore } from '../../store/auth.store';
 
 const ESTADOS: Array<{ valor: EstadoAlertaGestion; etiqueta: string }> = [
@@ -62,6 +66,7 @@ export default function AlertasPage() {
   const queryClient = useQueryClient();
   const [estado, setEstado] = useState<EstadoAlertaGestion>('ACTIVA');
   const [severidad, setSeveridad] = useState<SeveridadAlertaGestion | ''>('');
+  const [alertaParaTarea, setAlertaParaTarea] = useState<AlertaGestion | null>(null);
 
   const esOwner = useMemo(
     () => usuario?.organizaciones?.some(
@@ -85,6 +90,11 @@ export default function AlertasPage() {
     enabled: esOwner && organizacionId > 0,
     refetchInterval: 120000,
   });
+  const miembrosQuery = useQuery({
+    queryKey: ['miembros', organizacionId, 'alertas-clima'],
+    queryFn: () => organizacionesApi.obtenerMiembros(organizacionId),
+    enabled: esOwner && organizacionId > 0,
+  });
 
   const actualizarConsultas = async () => {
     await Promise.all([
@@ -99,6 +109,19 @@ export default function AlertasPage() {
   const revisar = useMutation({
     mutationFn: alertasApi.revisarGestion,
     onSuccess: actualizarConsultas,
+  });
+  const crearTareaClimatica = useMutation({
+    mutationFn: (datos: { alertaId: string; usuarioOrganizacionId: number; fechaInicio: string; observacion?: string }) =>
+      alertasApi.crearTareaClimatica(datos.alertaId, datos),
+    onSuccess: async () => {
+      toast.success('Tarea de revisión creada y asignada.');
+      setAlertaParaTarea(null);
+      await actualizarConsultas();
+    },
+    onError: (error: any) => {
+      const mensaje = error?.response?.data?.message;
+      toast.error(Array.isArray(mensaje) ? mensaje[0] : mensaje || 'No se pudo crear la tarea desde la alerta.');
+    },
   });
 
   if (!esOwner) {
@@ -245,6 +268,23 @@ export default function AlertasPage() {
                         <CheckCheck size={15} /> Marcar revisada
                       </button>
                     )}
+                    {alerta.origenTipo === 'PRONOSTICO_CLIMATICO' && !alerta.actividadMiembroId && alerta.estado !== 'RESUELTA' && (
+                      <button
+                        type="button"
+                        onClick={() => setAlertaParaTarea(alerta)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800 transition hover:bg-sky-100 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-100"
+                      >
+                        <ListTodo size={15} /> Crear tarea de revisión
+                      </button>
+                    )}
+                    {alerta.origenTipo === 'PRONOSTICO_CLIMATICO' && alerta.actividadMiembroId && (
+                      <Link
+                        to={`/org/${organizacionId}/tareas`}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800 transition hover:bg-sky-100 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-100"
+                      >
+                        <ListTodo size={15} /> Ver tarea creada
+                      </Link>
+                    )}
                     <Link
                       to={alerta.enlace}
                       onClick={() => {
@@ -266,6 +306,55 @@ export default function AlertasPage() {
         <CircleAlert size={16} className="mt-0.5 shrink-0" />
         Las alertas resueltas se conservan como historial. Si la condición vuelve a aparecer, se abre un nuevo ciclo y se notifica nuevamente.
       </p>
+      {alertaParaTarea && (
+        <CrearTareaClimaticaDialog
+          alerta={alertaParaTarea}
+          miembros={miembrosQuery.data?.filter((miembro) => miembro.activo) ?? []}
+          cargandoMiembros={miembrosQuery.isLoading}
+          guardando={crearTareaClimatica.isPending}
+          onClose={() => { if (!crearTareaClimatica.isPending) setAlertaParaTarea(null); }}
+          onSubmit={(datos) => crearTareaClimatica.mutate({ alertaId: alertaParaTarea.id, ...datos })}
+        />
+      )}
+    </div>
+  );
+}
+
+function CrearTareaClimaticaDialog({
+  alerta,
+  miembros,
+  cargandoMiembros,
+  guardando,
+  onClose,
+  onSubmit,
+}: {
+  alerta: AlertaGestion;
+  miembros: Array<{ id: number; usuario: { nombre: string; apellido: string }; activo: boolean }>;
+  cargandoMiembros: boolean;
+  guardando: boolean;
+  onClose: () => void;
+  onSubmit: (datos: { usuarioOrganizacionId: number; fechaInicio: string; observacion?: string }) => void;
+}) {
+  const [usuarioOrganizacionId, setUsuarioOrganizacionId] = useState('');
+  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().slice(0, 10));
+  const [observacion, setObservacion] = useState('');
+  const sinMiembros = !cargandoMiembros && miembros.length === 0;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4" onClick={onClose}>
+      <div className="mx-auto my-8 w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start gap-3">
+          <span className="rounded-xl bg-sky-100 p-2.5 text-sky-700 dark:bg-sky-950 dark:text-sky-200"><ListTodo size={20} /></span>
+          <div><h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Crear tarea de revisión</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">La tarea conservará el vínculo con esta alerta climática.</p></div>
+        </div>
+        <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50/70 p-3 text-sm text-sky-900 dark:border-sky-950 dark:bg-sky-950/25 dark:text-sky-100"><p className="font-bold">{alerta.titulo}</p><p className="mt-1 text-xs leading-relaxed">{alerta.mensaje}</p></div>
+        <form className="mt-5 space-y-4" onSubmit={(event) => { event.preventDefault(); if (usuarioOrganizacionId) onSubmit({ usuarioOrganizacionId: Number(usuarioOrganizacionId), fechaInicio, observacion: observacion.trim() || undefined }); }}>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200"><span className="mb-1.5 block">Asignar a *</span><select required disabled={cargandoMiembros || sinMiembros} value={usuarioOrganizacionId} onChange={(event) => setUsuarioOrganizacionId(event.target.value)} className="input"><option value="">{cargandoMiembros ? 'Cargando equipo...' : sinMiembros ? 'No hay miembros disponibles' : 'Elegí una persona'}</option>{miembros.map((miembro) => <option key={miembro.id} value={miembro.id}>{miembro.usuario.nombre} {miembro.usuario.apellido}</option>)}</select></label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200"><span className="mb-1.5 block">Fecha de inicio *</span><input required type="date" value={fechaInicio} onChange={(event) => setFechaInicio(event.target.value)} className="input" /></label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200"><span className="mb-1.5 block">Indicación adicional (opcional)</span><textarea value={observacion} maxLength={1000} rows={3} onChange={(event) => setObservacion(event.target.value)} className="input resize-none" placeholder="Ej: Revisar drenajes y asegurar la maquinaria." /></label>
+          <div className="flex justify-end gap-3 pt-2"><button type="button" disabled={guardando} onClick={onClose} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100 disabled:opacity-60 dark:text-slate-300 dark:hover:bg-slate-800">Cancelar</button><button disabled={guardando || sinMiembros || !usuarioOrganizacionId} className="inline-flex items-center gap-2 rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-sky-800 disabled:opacity-60">{guardando && <RefreshCw size={16} className="animate-spin" />} Crear y asignar tarea</button></div>
+        </form>
+      </div>
     </div>
   );
 }

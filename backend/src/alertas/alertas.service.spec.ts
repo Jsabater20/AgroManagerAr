@@ -18,15 +18,23 @@ describe('AlertasService', () => {
       count: jest.fn(),
     },
     alertaLectura: { upsert: jest.fn() },
+    preferenciaAlerta: { findMany: jest.fn(), findUnique: jest.fn() },
+    cachePronosticoClima: { findMany: jest.fn() },
   } as any;
   const memberAccessService = { requireModule: jest.fn() } as any;
   const planService = { isOrgPro: jest.fn() } as any;
   const notificacionesService = { crearNotificacionSiNoExiste: jest.fn() } as any;
+  const mailerService = { enviarCorreo: jest.fn() } as any;
+  const climaService = { actualizarPronosticosParaAlertas: jest.fn() } as any;
+  const actividadesService = { crear: jest.fn() } as any;
   const service = new AlertasService(
     prisma,
     memberAccessService,
     planService,
     notificacionesService,
+    mailerService,
+    climaService,
+    actividadesService,
   );
 
   beforeEach(() => {
@@ -73,6 +81,8 @@ describe('AlertasService', () => {
     prisma.alertaGestion.findMany.mockResolvedValue([]);
     prisma.alertaGestion.findFirst.mockResolvedValue({ id: 'alerta-1' });
     prisma.alertaLectura.upsert.mockResolvedValue({ id: 'lectura-1' });
+    prisma.preferenciaAlerta.findMany.mockResolvedValue([]);
+    prisma.preferenciaAlerta.findUnique.mockResolvedValue(null);
     prisma.alertaGestion.create.mockImplementation(({ data }) => Promise.resolve({
       id: 'alerta-1',
       ciclo: 1,
@@ -234,6 +244,35 @@ describe('AlertasService', () => {
       'MAQUINARIA_VTV_VENCIDA',
     ]));
     expect(alertas).toHaveLength(3);
+  });
+
+  it('genera alertas climáticas solo para organizaciones que las activaron', async () => {
+    prisma.preferenciaAlerta.findMany.mockResolvedValue([{ organizacionId: 1 }]);
+    prisma.cachePronosticoClima.findMany.mockResolvedValue([{
+      organizacionId: 1,
+      campoId: 4,
+      campo: { nombre: 'Las Meninas' },
+      datos: {
+        diario: [{
+          temperaturaMinC: -1,
+          temperaturaMaxC: 38,
+          precipitacionMm: 56,
+          rafagasMaxKmh: 72,
+          codigoMeteorologico: 95,
+        }],
+      },
+    }]);
+
+    const alertas = await (service as any).listarAlertasClimaticas([1]);
+
+    expect(alertas.map((alerta: any) => alerta.tipo)).toEqual(expect.arrayContaining([
+      'CLIMA_TORMENTA',
+      'CLIMA_HELADA',
+      'CLIMA_CALOR_EXTREMO',
+      'CLIMA_LLUVIA_INTENSA',
+      'CLIMA_VIENTO_FUERTE',
+    ]));
+    expect(alertas.every((alerta: any) => alerta.enlace === '/org/1/clima?campoId=4')).toBe(true);
   });
 
   it('marca como leída una alerta persistente dentro de la organización activa', async () => {

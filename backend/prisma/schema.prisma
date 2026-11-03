@@ -31,6 +31,8 @@ model Usuario {
   trialUsado           Boolean   @default(false)
   codigoReferido       String    @unique @default(cuid())
   recibeComunicaciones Boolean   @default(false)
+  recibeNovedades      Boolean   @default(false)
+  recibePromociones    Boolean   @default(false)
   comunicacionesConsentidasEn DateTime?
   preferenciasComunicacionesActualizadasEn DateTime?
 
@@ -71,6 +73,11 @@ model Usuario {
   preferenciasReportes           PreferenciaReporte[]
   historialReportes              HistorialReporte[]
   enviosReportesAutomaticos      EnvioReporteAutomatico[]
+  registrosPrecipitacion         RegistroPrecipitacion[]
+  historialPrecipitaciones       HistorialRegistroPrecipitacion[]
+  novedadesCreadas               NovedadProducto[]       @relation("novedades_creadas")
+  lecturasNovedades              NovedadProductoLectura[]
+  enviosCorreoNovedades          EnvioCorreoNovedad[]
 }
 
 model Referido {
@@ -107,6 +114,63 @@ model Notificacion {
   @@index([usuarioId, visibleEnApp, leidaEn, createdAt])
 }
 
+model NovedadProducto {
+  id             String                    @id @default(cuid())
+  titulo         String
+  resumen        String
+  contenido      String                    @db.Text
+  categoria      CategoriaNovedadProducto  @default(GENERAL)
+  estado         EstadoNovedadProducto     @default(BORRADOR)
+  version        String?
+  destacada      Boolean                   @default(false)
+  publicadaEn    DateTime?
+  notificadaEn   DateTime?
+  creadoPorId    Int?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  creadoPor Usuario?                 @relation("novedades_creadas", fields: [creadoPorId], references: [id], onDelete: SetNull)
+  lecturas  NovedadProductoLectura[]
+  enviosCorreo EnvioCorreoNovedad[]
+
+  @@index([estado, publicadaEn])
+  @@index([destacada, publicadaEn])
+}
+
+model EnvioCorreoNovedad {
+  id          String                    @id @default(cuid())
+  novedadId   String
+  usuarioId   Int
+  estado      EstadoEnvioCorreoNovedad  @default(PENDIENTE)
+  intentos    Int                       @default(0)
+  error       String?
+  enviadoEn   DateTime?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  novedad NovedadProducto @relation(fields: [novedadId], references: [id], onDelete: Cascade)
+  usuario Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([novedadId, usuarioId])
+  @@index([novedadId, estado])
+  @@index([usuarioId, estado])
+}
+
+model NovedadProductoLectura {
+  id         String   @id @default(cuid())
+  novedadId  String
+  usuarioId  Int
+  leidaEn    DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  novedad NovedadProducto @relation(fields: [novedadId], references: [id], onDelete: Cascade)
+  usuario Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([novedadId, usuarioId])
+  @@index([usuarioId, leidaEn])
+}
+
 model AlertaGestion {
   id                    String    @id @default(cuid())
   organizacionId        Int
@@ -119,6 +183,7 @@ model AlertaGestion {
   enlace                String
   origenTipo            String
   origenId              String
+  actividadMiembroId    Int?
   ciclo                 Int       @default(1)
   detectadaEn           DateTime  @default(now())
   ultimaEvaluacionEn    DateTime  @default(now())
@@ -127,12 +192,14 @@ model AlertaGestion {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  organizacion Organizacion    @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  lecturas     AlertaLectura[]
+  organizacion       Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  actividadMiembro   ActividadMiembro?  @relation("actividad_alerta_climatica", fields: [actividadMiembroId], references: [id], onDelete: SetNull)
+  lecturas           AlertaLectura[]
 
   @@unique([organizacionId, clave])
   @@index([organizacionId, estado, severidad])
   @@index([organizacionId, ultimaEvaluacionEn])
+  @@index([actividadMiembroId])
 }
 
 model AlertaLectura {
@@ -159,6 +226,7 @@ model PreferenciaAlerta {
   notificacionPush    Boolean  @default(true)
   notificacionEmail   Boolean  @default(false)
   soloPrioritarias    Boolean  @default(false)
+  alertasClimaActivas Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -193,6 +261,8 @@ model Campo {
   updatedAt       DateTime               @updatedAt
   latitud         Float?
   longitud        Float?
+  provincia       String?
+  localidad       String?
   organizacionId  Int?
   AsignacionCampo AsignacionCampo[]
   organizacion    Organizacion?          @relation(fields: [organizacionId], references: [id])
@@ -204,6 +274,8 @@ model Campo {
   tareas          TareaRural[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
   cuadrosYerba           CuadroYerba[]
+  cachePronosticosClima  CachePronosticoClima[]
+  registrosPrecipitacion RegistroPrecipitacion[]
 
   @@index([organizacionId])
 }
@@ -220,6 +292,7 @@ model Lote {
   costosProductivos CostoProductivo[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
   cuadrosYerba           CuadroYerba[]
+  registrosPrecipitacion RegistroPrecipitacion[]
 }
 
 model TipoCultivo {
@@ -645,6 +718,8 @@ model Organizacion {
   preferenciasReportes    PreferenciaReporte[]
   historialReportes       HistorialReporte[]
   enviosReportesAutomaticos EnvioReporteAutomatico[]
+  cachePronosticosClima    CachePronosticoClima[]
+  registrosPrecipitacion   RegistroPrecipitacion[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
@@ -684,6 +759,66 @@ model OrganizacionActividadProductiva {
 
   @@unique([organizacionId, tipoActividad])
   @@index([organizacionId, activo])
+}
+
+model CachePronosticoClima {
+  id                    Int          @id @default(autoincrement())
+  organizacionId        Int
+  campoId               Int
+  proveedor             String
+  latitud               Float
+  longitud              Float
+  datos                 Json
+  obtenidoEn            DateTime
+  expiraEn              DateTime
+  actualizadoProveedorEn DateTime?
+  errorUltimaConsulta   String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo        Campo        @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
+  @@unique([campoId, proveedor])
+  @@index([organizacionId, expiraEn])
+}
+
+model RegistroPrecipitacion {
+  id             Int       @id @default(autoincrement())
+  organizacionId Int
+  campoId        Int
+  loteId         Int?
+  usuarioId      Int?
+  fecha          DateTime
+  milimetros     Decimal   @db.Decimal(8, 2)
+  observaciones  String?
+  corregidoEn    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organizacion Organizacion                  @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo        Campo                         @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote         Lote?                         @relation(fields: [loteId], references: [id], onDelete: SetNull)
+  usuario      Usuario?                      @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  historial    HistorialRegistroPrecipitacion[]
+
+  @@index([organizacionId, campoId, fecha])
+  @@index([loteId, fecha])
+}
+
+model HistorialRegistroPrecipitacion {
+  id           Int       @id @default(autoincrement())
+  registroId   Int
+  usuarioId    Int?
+  accion       String
+  datosAntes   Json?
+  datosDespues Json
+  createdAt    DateTime  @default(now())
+
+  registro RegistroPrecipitacion @relation(fields: [registroId], references: [id], onDelete: Cascade)
+  usuario  Usuario?              @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([registroId, createdAt])
 }
 
 model BeneficioProOrganizacion {
@@ -994,6 +1129,7 @@ model ActividadMiembro {
   creadoPor           Usuario?               @relation("creadoPor", fields: [creadoPorId], references: [id], onDelete: SetNull)
   calculoOrigen       CalculoGuardado?       @relation("calculo_origen_actividad", fields: [calculoOrigenId], references: [id], onDelete: SetNull)
   costosProductivos   CostoProductivo[]
+  alertasClimaticas   AlertaGestion[]        @relation("actividad_alerta_climatica")
 
   @@index([organizacionId, estado])
   @@index([usuarioOrganizacionId, estado])
@@ -1177,6 +1313,28 @@ enum Rol {
 enum PlanTipo {
   FREE
   PRO
+}
+
+enum EstadoNovedadProducto {
+  BORRADOR
+  PUBLICADA
+}
+
+enum CategoriaNovedadProducto {
+  GENERAL
+  FUNCIONALIDAD
+  CLIMA
+  ALERTAS
+  AGROBOT
+  REPORTES
+  EMPRESAS
+  SEGURIDAD
+}
+
+enum EstadoEnvioCorreoNovedad {
+  PENDIENTE
+  ENVIADO
+  ERROR
 }
 
 enum EstadoCampaniaPromocional {

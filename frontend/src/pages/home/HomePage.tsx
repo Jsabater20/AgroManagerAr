@@ -40,7 +40,7 @@ const FREE_FEATURES = [
   '1 miembro adicional + hasta 3 trabajos activos',
   'Asigná recursos y trabajos con fechas y estados',
   'Fotos de perfil para tu equipo',
-  'Clima actual',
+  'Clima actual y alertas climáticas',
   'Dashboard básico',
 ];
 const PRO_FEATURES = [
@@ -51,7 +51,6 @@ const PRO_FEATURES = [
   'Campañas agrícolas',
   'AgroBot IA',
   'Analytics avanzados + rentabilidad',
-  'Alertas climáticas',
   'Exportar CSV/PDF',
   'Reportes avanzados',
   'Soporte prioritario',

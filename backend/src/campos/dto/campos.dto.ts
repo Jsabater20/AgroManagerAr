@@ -3,6 +3,8 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -26,13 +28,27 @@ export class CreateCampoDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(-90)
+  @Max(90)
   @Type(() => Number)
   latitud?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(-180)
+  @Max(180)
   @Type(() => Number)
   longitud?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  provincia?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  localidad?: string;
 }
 
 export class UpdateCampoDto {
@@ -56,13 +72,27 @@ export class UpdateCampoDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(-90)
+  @Max(90)
   @Type(() => Number)
   latitud?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(-180)
+  @Max(180)
   @Type(() => Number)
   longitud?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  provincia?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  localidad?: string;
 }
 
 export class CreateLoteDto {

@@ -53,7 +53,8 @@ export default function PerfilPage() {
   const [passwordActual, setPasswordActual] = useState('');
   const [passwordNueva, setPasswordNueva] = useState('');
   const [passwordConfirmacion, setPasswordConfirmacion] = useState('');
-  const [recibeComunicaciones, setRecibeComunicaciones] = useState(false);
+  const [recibeNovedades, setRecibeNovedades] = useState(false);
+  const [recibePromociones, setRecibePromociones] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string }>();
 
   const sincronizarPerfil = (perfilActualizado: typeof perfil) => {
@@ -137,12 +138,17 @@ export default function PerfilPage() {
 
   useEffect(() => {
     if (profileQuery.data) {
-      setRecibeComunicaciones(Boolean(profileQuery.data.recibeComunicaciones));
+      setRecibeNovedades(Boolean(profileQuery.data.recibeNovedades ?? profileQuery.data.recibeComunicaciones));
+      setRecibePromociones(Boolean(profileQuery.data.recibePromociones ?? profileQuery.data.recibeComunicaciones));
     }
-  }, [profileQuery.data?.recibeComunicaciones]);
+  }, [
+    profileQuery.data?.recibeComunicaciones,
+    profileQuery.data?.recibeNovedades,
+    profileQuery.data?.recibePromociones,
+  ]);
 
   const actualizarComunicaciones = useMutation({
-    mutationFn: () => actualizarPreferenciasComunicaciones(recibeComunicaciones),
+    mutationFn: () => actualizarPreferenciasComunicaciones({ recibeNovedades, recibePromociones }),
     onSuccess: (preferencias) => {
       queryClient.setQueryData(['profile'], (anterior: typeof profileQuery.data) =>
         anterior ? { ...anterior, ...preferencias } : anterior,
@@ -302,11 +308,15 @@ export default function PerfilPage() {
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"><Mail size={20} /></div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-bold text-gray-900 dark:text-white">Novedades y beneficios</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">Elegí si querés recibir novedades, consejos y promociones de AgroManager AR por email. Las alertas operativas se administran por separado.</p>
+            <h2 className="font-bold text-gray-900 dark:text-white">Preferencias de comunicaciones</h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">Elegí qué comunicaciones opcionales querés recibir. Las alertas operativas se administran por separado y no dependen de estas opciones.</p>
             <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900">
-              <input type="checkbox" checked={recibeComunicaciones} onChange={(event) => setRecibeComunicaciones(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-              <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Quiero recibir comunicaciones comerciales de AgroManager AR.</span>
+              <input type="checkbox" checked={recibeNovedades} onChange={(event) => setRecibeNovedades(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+              <span><span className="block text-sm font-medium text-gray-800 dark:text-gray-100">Novedades y actualizaciones</span><span className="mt-0.5 block text-xs leading-5 text-gray-500 dark:text-gray-400">Lanzamientos, mejoras importantes y nuevas herramientas de AgroManager AR.</span></span>
+            </label>
+            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900">
+              <input type="checkbox" checked={recibePromociones} onChange={(event) => setRecibePromociones(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+              <span><span className="block text-sm font-medium text-gray-800 dark:text-gray-100">Promociones y beneficios</span><span className="mt-0.5 block text-xs leading-5 text-gray-500 dark:text-gray-400">Ofertas, descuentos y campañas comerciales opcionales.</span></span>
             </label>
             <button type="button" onClick={() => actualizarComunicaciones.mutate()} disabled={actualizarComunicaciones.isPending} className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{actualizarComunicaciones.isPending ? 'Guardando...' : 'Guardar preferencia'}</button>
           </div>

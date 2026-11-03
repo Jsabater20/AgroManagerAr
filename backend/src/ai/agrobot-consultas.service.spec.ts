@@ -11,10 +11,12 @@ describe('AgroBotConsultasService', () => {
     gastoMaquinaria: { findMany: jest.fn() },
     mantenimientoMaquinaria: { findMany: jest.fn() },
     maquinaria: { findMany: jest.fn() },
+    cachePronosticoClima: { findMany: jest.fn() },
   } as any;
   const memberAccessService = { requireModule: jest.fn() } as any;
   const alertasService = { obtenerParaOrganizacion: jest.fn() } as any;
-  const service = new AgroBotConsultasService(prisma, memberAccessService, alertasService);
+  const climaService = { obtenerPronostico: jest.fn() } as any;
+  const service = new AgroBotConsultasService(prisma, memberAccessService, alertasService, climaService);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -121,5 +123,26 @@ describe('AgroBotConsultasService', () => {
       { etiqueta: 'Abrir centro de alertas', href: '/org/19/alertas' },
     ]);
     expect(alertasService.obtenerParaOrganizacion).toHaveBeenCalledWith(4, 19);
+  });
+
+  it('responde consultas de clima con el pronóstico de campos autorizados', async () => {
+    memberAccessService.requireModule.mockResolvedValue({ esOwner: true });
+    prisma.campo.findMany.mockResolvedValue([{ id: 9, nombre: 'La Esperanza', hectareas: 120 }]);
+    climaService.obtenerPronostico.mockResolvedValue({
+      estado: 'DISPONIBLE',
+      datos: {
+        actual: { temperaturaC: 24.5, humedadRelativa: 61, vientoKmh: 15, codigoMeteorologico: 1 },
+        diario: [{ temperaturaMinC: 9, temperaturaMaxC: 28, precipitacionMm: 12.5 }],
+      },
+    });
+
+    const respuesta = await service.responder(4, 19, '¿Cómo está el clima en La Esperanza?');
+
+    expect(respuesta?.texto).toContain('La Esperanza');
+    expect(respuesta?.texto).toContain('24.5 °C');
+    expect(respuesta?.referencias).toEqual([
+      { etiqueta: 'Ver clima · La Esperanza', href: '/org/19/clima?campoId=9' },
+    ]);
+    expect(climaService.obtenerPronostico).toHaveBeenCalledWith(4, 19, 9);
   });
 });

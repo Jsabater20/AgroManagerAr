@@ -10,6 +10,8 @@ export interface UserProfile {
   plan?: 'FREE' | 'PRO';
   planExpira?: string | null;
   recibeComunicaciones?: boolean;
+  recibeNovedades?: boolean;
+  recibePromociones?: boolean;
   comunicacionesConsentidasEn?: string | null;
   preferenciasComunicacionesActualizadasEn?: string | null;
   codigoReferido?: string;
@@ -66,15 +68,17 @@ export const updateProfile = (
 
 export interface PreferenciasComunicaciones {
   recibeComunicaciones: boolean;
+  recibeNovedades: boolean;
+  recibePromociones: boolean;
   comunicacionesConsentidasEn: string | null;
   preferenciasComunicacionesActualizadasEn: string | null;
 }
 
 export const actualizarPreferenciasComunicaciones = (
-  recibeComunicaciones: boolean,
+  preferencias: Pick<PreferenciasComunicaciones, 'recibeNovedades' | 'recibePromociones'>,
 ): Promise<PreferenciasComunicaciones> =>
   api
-    .patch<PreferenciasComunicaciones>('/users/profile/comunicaciones', { recibeComunicaciones })
+    .patch<PreferenciasComunicaciones>('/users/profile/comunicaciones', preferencias)
     .then((r) => r.data);
 
 export const changePassword = (

@@ -113,6 +113,8 @@ export class AuthService {
         emailVerificado: false,
         emailVerifToken: tokenHash,
         recibeComunicaciones: dto.recibeComunicaciones ?? false,
+        recibeNovedades: dto.recibeComunicaciones ?? false,
+        recibePromociones: dto.recibeComunicaciones ?? false,
         comunicacionesConsentidasEn: dto.recibeComunicaciones ? new Date() : null,
         preferenciasComunicacionesActualizadasEn: new Date(),
       },

@@ -76,6 +76,7 @@ import GanaderiaCalculatorPage from './pages/calculos/GanaderiaCalculatorPage';
 import EconomicosCalculatorPage from './pages/calculos/EconomicosCalculatorPage';
 import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
 import AlertasPage from './pages/alertas/AlertasPage';
+import NovedadesPage from './pages/novedades/NovedadesPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -207,6 +208,7 @@ export default function App() {
               <Route path="/empresas/:empresaId/auditoria" element={<EmpresaAuditoriaPage />} />
               <Route path="/empresas/:empresaId/exportaciones" element={<EmpresaExportacionesPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
+              <Route path="/novedades" element={<NovedadesPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
             </Route>
