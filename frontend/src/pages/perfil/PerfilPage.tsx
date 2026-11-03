@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Camera,
   CheckCircle2,
   KeyRound,
+  Mail,
   Pencil,
   SlidersHorizontal,
   Trash2,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import {
   actualizarEncuadreFotoPerfil,
+  actualizarPreferenciasComunicaciones,
   changePassword,
   eliminarFotoPerfil,
   getProfile,
@@ -24,6 +26,7 @@ import {
 } from '../../api/users.api';
 import { getResumenReferidos } from '../../api/referidos.api';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
+import { EstadoPromocionProCard } from '../../components/promociones/EstadoPromocionProCard';
 import { useAuthStore } from '../../store/auth.store';
 
 const ENCUADRE_INICIAL: FotoPerfilEncuadre = {
@@ -50,6 +53,7 @@ export default function PerfilPage() {
   const [passwordActual, setPasswordActual] = useState('');
   const [passwordNueva, setPasswordNueva] = useState('');
   const [passwordConfirmacion, setPasswordConfirmacion] = useState('');
+  const [recibeComunicaciones, setRecibeComunicaciones] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string }>();
 
   const sincronizarPerfil = (perfilActualizado: typeof perfil) => {
@@ -131,6 +135,24 @@ export default function PerfilPage() {
       setMensaje({ tipo: 'error', texto: errorMessage(error, 'No pudimos cambiar la contraseña.') }),
   });
 
+  useEffect(() => {
+    if (profileQuery.data) {
+      setRecibeComunicaciones(Boolean(profileQuery.data.recibeComunicaciones));
+    }
+  }, [profileQuery.data?.recibeComunicaciones]);
+
+  const actualizarComunicaciones = useMutation({
+    mutationFn: () => actualizarPreferenciasComunicaciones(recibeComunicaciones),
+    onSuccess: (preferencias) => {
+      queryClient.setQueryData(['profile'], (anterior: typeof profileQuery.data) =>
+        anterior ? { ...anterior, ...preferencias } : anterior,
+      );
+      setMensaje({ tipo: 'ok', texto: 'Preferencias de comunicaciones actualizadas.' });
+    },
+    onError: (error: unknown) =>
+      setMensaje({ tipo: 'error', texto: errorMessage(error, 'No pudimos actualizar las preferencias.') }),
+  });
+
   const plan = currentOrg?.planEfectivo ?? currentOrg?.plan ?? perfil?.plan ?? 'FREE';
   const beneficioPro = currentOrg?.beneficioPro;
   const nombreCompleto = [perfil?.nombre, perfil?.apellido].filter(Boolean).join(' ') || 'Usuario';
@@ -185,6 +207,8 @@ export default function PerfilPage() {
           {mensaje.texto}
         </div>
       )}
+
+      <EstadoPromocionProCard organizacionId={currentOrg?.id} />
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
         <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -272,6 +296,21 @@ export default function PerfilPage() {
             </div>
           </div>
         ) : <p className="mt-5 text-lg font-semibold text-gray-900 dark:text-white">{nombreCompleto}</p>}
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"><Mail size={20} /></div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-bold text-gray-900 dark:text-white">Novedades y beneficios</h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">Elegí si querés recibir novedades, consejos y promociones de AgroManager AR por email. Las alertas operativas se administran por separado.</p>
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900">
+              <input type="checkbox" checked={recibeComunicaciones} onChange={(event) => setRecibeComunicaciones(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Quiero recibir comunicaciones comerciales de AgroManager AR.</span>
+            </label>
+            <button type="button" onClick={() => actualizarComunicaciones.mutate()} disabled={actualizarComunicaciones.isPending} className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{actualizarComunicaciones.isPending ? 'Guardando...' : 'Guardar preferencia'}</button>
+          </div>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">

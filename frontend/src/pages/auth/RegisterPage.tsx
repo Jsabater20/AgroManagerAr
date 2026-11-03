@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Sprout,
@@ -13,6 +14,7 @@ import {
   MapPinned,
 } from 'lucide-react';
 import { api } from '../../api/client';
+import { promocionesApi } from '../../api/promociones.api';
 import toast from 'react-hot-toast';
 
 const rules = [
@@ -42,7 +44,14 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptCommunications, setAcceptCommunications] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const promocionQuery = useQuery({
+    queryKey: ['promociones', 'lanzamiento-publico'],
+    queryFn: promocionesApi.obtenerLanzamientoPublico,
+    staleTime: 5 * 60 * 1000,
+  });
+  const promocion = promocionQuery.data;
 
   // Si hay token de invitación, el email es read-only
   const emailReadOnly = !!invitationToken;
@@ -67,6 +76,7 @@ export default function RegisterPage() {
             email: form.email,
             password: form.password,
             invitationToken,
+            recibeComunicaciones: acceptCommunications,
           }
         : {
             nombre: form.nombre,
@@ -74,6 +84,7 @@ export default function RegisterPage() {
             email: form.email,
             password: form.password,
             tipoRegistro,
+            recibeComunicaciones: acceptCommunications,
             ...(tipoRegistro === 'EMPRESA' ? { nombreEmpresa: form.nombreEmpresa } : {}),
             ...(form.codigoReferido.trim() ? { codigoReferido: form.codigoReferido.trim() } : {}),
           };
@@ -108,6 +119,11 @@ export default function RegisterPage() {
           {tipoRegistro === 'EMPRESA' && (
             <p className="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
               Tu empresa quedó pendiente de activación. Te contactaremos para definir los establecimientos incluidos.
+            </p>
+          )}
+          {!invitationToken && tipoRegistro === 'DUENO_CAMPO' && promocion && (
+            <p className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-relaxed text-emerald-900">
+              Tu beneficio está reservado: al crear tu cuenta vas a tener {promocion.duracionMeses} meses de AgroManager Pro sin costo, sin tarjeta ni renovación automática.
             </p>
           )}
           <Link
@@ -195,6 +211,13 @@ export default function RegisterPage() {
 
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Creá tu cuenta</h1>
           <p className="text-gray-500 text-sm mb-8">Completá los datos para comenzar</p>
+
+          {!invitationToken && tipoRegistro === 'DUENO_CAMPO' && promocion && (
+            <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              <p className="font-bold">{promocion.nombre}</p>
+              <p className="mt-1 leading-5">Registrate ahora y recibí {promocion.duracionMeses} meses de Pro sin costo. No pedimos tarjeta y no se renueva automáticamente.</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!invitationToken && (
@@ -363,6 +386,18 @@ export default function RegisterPage() {
                 <Link to="/privacidad" target="_blank" className="text-green-700 font-medium hover:underline">
                   política de privacidad
                 </Link>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2.5 cursor-pointer select-none rounded-xl border border-gray-200 bg-white p-3">
+              <input
+                type="checkbox"
+                checked={acceptCommunications}
+                onChange={(e) => setAcceptCommunications(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer mt-0.5 shrink-0"
+              />
+              <span className="text-sm text-gray-600 leading-snug">
+                Quiero recibir novedades, beneficios y consejos de AgroManager AR por email. Podés cambiar esta preferencia cuando quieras desde tu perfil.
               </span>
             </label>
 

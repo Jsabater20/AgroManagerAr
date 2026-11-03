@@ -12,6 +12,7 @@ import { R2StorageService } from '../storage/r2-storage.service';
 import { DemoService } from '../demo/demo.service';
 import {
   UpdateProfileDto,
+  UpdatePreferenciasComunicacionesDto,
   ChangePasswordDto,
   UpdateUserPlanDto,
   UpdateUserRolDto,
@@ -42,6 +43,9 @@ export class UsersService {
         plan: true,
         planExpira: true,
         codigoReferido: true,
+        recibeComunicaciones: true,
+        comunicacionesConsentidasEn: true,
+        preferenciasComunicacionesActualizadasEn: true,
         createdAt: true,
         fotoPerfilStorageKey: true,
         fotoPerfilPosicionX: true,
@@ -140,6 +144,26 @@ export class UsersService {
       select: { id: true, email: true, nombre: true, apellido: true, rol: true, plan: true },
     });
     return u;
+  }
+
+  async actualizarPreferenciasComunicaciones(
+    usuarioId: number,
+    dto: UpdatePreferenciasComunicacionesDto,
+  ) {
+    const ahora = new Date();
+    return this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: {
+        recibeComunicaciones: dto.recibeComunicaciones,
+        comunicacionesConsentidasEn: dto.recibeComunicaciones ? ahora : null,
+        preferenciasComunicacionesActualizadasEn: ahora,
+      },
+      select: {
+        recibeComunicaciones: true,
+        comunicacionesConsentidasEn: true,
+        preferenciasComunicacionesActualizadasEn: true,
+      },
+    });
   }
 
   async prepararFotoPerfil(

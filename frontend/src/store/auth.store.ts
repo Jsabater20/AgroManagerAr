@@ -34,6 +34,7 @@ export interface Usuario {
   rolGlobal?: string;
   plan?: 'FREE' | 'PRO';
   planExpira?: string | null;
+  recibeComunicaciones?: boolean;
   usuarioOrganizacionId?: number | null;
   organizaciones?: Organizacion[];
   empresas?: EmpresaSesion[];

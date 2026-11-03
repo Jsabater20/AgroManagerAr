@@ -15,6 +15,7 @@ import { DemoGuard } from '../auth/demo.guard';
 import { UsersService } from './users.service';
 import {
   UpdateProfileDto,
+  UpdatePreferenciasComunicacionesDto,
   ChangePasswordDto,
   UpdateUserPlanDto,
   UpdateUserRolDto,
@@ -44,6 +45,17 @@ export class UsersController {
   @Patch('profile')
   updateProfile(@Request() req: AuthRequest, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(req.user.id, dto);
+  }
+
+  @Patch('profile/comunicaciones')
+  actualizarPreferenciasComunicaciones(
+    @Request() req: AuthRequest,
+    @Body() dto: UpdatePreferenciasComunicacionesDto,
+  ) {
+    return this.usersService.actualizarPreferenciasComunicaciones(
+      req.user.id,
+      dto,
+    );
   }
 
   @Post('profile/foto/subida')

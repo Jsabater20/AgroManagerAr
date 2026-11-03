@@ -15,6 +15,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { EmpresaAccessService } from './empresa-access.service';
 import { AlertasService } from '../alertas/alertas.service';
+import { PlanService } from '../plan/plan.service';
 import {
   ActualizarComercialEmpresaDto,
   ActualizarMiembroEmpresaDto,
@@ -36,6 +37,7 @@ export class EmpresasService {
     private readonly prisma: PrismaService,
     private readonly empresaAccessService: EmpresaAccessService,
     private readonly alertasService: AlertasService,
+    private readonly planService: PlanService,
   ) {}
 
   async crearEmpresa(superAdminId: number, dto: CrearEmpresaDto) {
@@ -642,7 +644,7 @@ export class EmpresasService {
     if (organizacion.propietarioId !== usuarioId) {
       throw new ForbiddenException('Solo podés vincular establecimientos propios');
     }
-    if (organizacion.plan !== 'PRO') {
+    if (!(await this.planService.isOrgPro(organizacion.id))) {
       throw new BadRequestException('El establecimiento debe tener plan Pro activo');
     }
     if (acceso.empresa.organizaciones.length >= acceso.empresa.limiteEstablecimientos) {

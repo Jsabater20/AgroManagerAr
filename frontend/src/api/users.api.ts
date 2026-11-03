@@ -9,6 +9,9 @@ export interface UserProfile {
   rolGlobal?: string;
   plan?: 'FREE' | 'PRO';
   planExpira?: string | null;
+  recibeComunicaciones?: boolean;
+  comunicacionesConsentidasEn?: string | null;
+  preferenciasComunicacionesActualizadasEn?: string | null;
   codigoReferido?: string;
   referidosValidados?: number;
   usuarioOrganizacionId?: number | null;
@@ -60,6 +63,19 @@ export const updateProfile = (
   apellido: string,
 ): Promise<UserProfile> =>
   api.patch<UserProfile>('/users/profile', { nombre, apellido }).then((r) => r.data);
+
+export interface PreferenciasComunicaciones {
+  recibeComunicaciones: boolean;
+  comunicacionesConsentidasEn: string | null;
+  preferenciasComunicacionesActualizadasEn: string | null;
+}
+
+export const actualizarPreferenciasComunicaciones = (
+  recibeComunicaciones: boolean,
+): Promise<PreferenciasComunicaciones> =>
+  api
+    .patch<PreferenciasComunicaciones>('/users/profile/comunicaciones', { recibeComunicaciones })
+    .then((r) => r.data);
 
 export const changePassword = (
   passwordActual: string,

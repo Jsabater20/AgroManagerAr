@@ -17,6 +17,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ReferidosService } from '../referidos/referidos.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
+import { PromocionesService } from '../promociones/promociones.service';
 import {
   RegisterDto,
   LoginDto,
@@ -38,6 +39,7 @@ export class AuthService {
     private jwtService: JwtService,
     private referidosService: ReferidosService,
     private notificacionesService: NotificacionesService,
+    private promocionesService: PromocionesService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -110,8 +112,11 @@ export class AuthService {
         password: hash,
         emailVerificado: false,
         emailVerifToken: tokenHash,
+        recibeComunicaciones: dto.recibeComunicaciones ?? false,
+        comunicacionesConsentidasEn: dto.recibeComunicaciones ? new Date() : null,
+        preferenciasComunicacionesActualizadasEn: new Date(),
       },
-      select: { id: true, email: true, nombre: true, apellido: true },
+      select: { id: true, email: true, nombre: true, apellido: true, createdAt: true },
     });
 
     if (referente) {
@@ -164,6 +169,15 @@ export class AuthService {
           propietarioId: usuario.id,
         },
       });
+
+      try {
+        await this.promocionesService.asignarPromocionPorRegistro(
+          usuario.id,
+          usuario.createdAt,
+        );
+      } catch (error) {
+        console.error('[Promociones] No se pudo asignar el beneficio de registro:', error);
+      }
     }
 
     await this.notificacionesService.notificarNuevoRegistro(

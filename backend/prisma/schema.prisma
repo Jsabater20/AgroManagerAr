@@ -30,6 +30,9 @@ model Usuario {
   fotoPerfilEscala     Float     @default(1)
   trialUsado           Boolean   @default(false)
   codigoReferido       String    @unique @default(cuid())
+  recibeComunicaciones Boolean   @default(false)
+  comunicacionesConsentidasEn DateTime?
+  preferenciasComunicacionesActualizadasEn DateTime?
 
   animales                       Animal[]
   auditoriasLogs                 AuditoriaLog[]           @relation("auditoriaLogs")
@@ -55,6 +58,9 @@ model Usuario {
   dispositivosPush               DispositivoPush[]
   evidencias                     Evidencia[]              @relation("evidenciasCreadasPor")
   beneficiosProOtorgados         BeneficioProOrganizacion[] @relation("beneficiosProOtorgados")
+  campaniasPromocionalesCreadas  CampaniaPromocional[]      @relation("campaniasPromocionalesCreadas")
+  campaniasPromocionalesActivadas CampaniaPromocional[]     @relation("campaniasPromocionalesActivadas")
+  asignacionesPromocionales      AsignacionPromocion[]
   referidosComoReferente         Referido[]                @relation("referenteReferido")
   referidoRecibido               Referido?                 @relation("referidoReferido")
   notificaciones                 Notificacion[]
@@ -684,6 +690,7 @@ model BeneficioProOrganizacion {
   id             Int          @id @default(autoincrement())
   organizacionId Int
   otorgadoPorId  Int
+  asignacionPromocionId Int?
   motivo         String?
   fechaInicio    DateTime     @default(now())
   fechaFin       DateTime
@@ -694,9 +701,58 @@ model BeneficioProOrganizacion {
 
   organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   otorgadoPor  Usuario      @relation("beneficiosProOtorgados", fields: [otorgadoPorId], references: [id], onDelete: Restrict)
+  asignacionPromocion AsignacionPromocion? @relation(fields: [asignacionPromocionId], references: [id], onDelete: SetNull)
 
   @@index([organizacionId, activo, fechaFin])
   @@index([otorgadoPorId])
+  @@unique([asignacionPromocionId, organizacionId])
+}
+
+model CampaniaPromocional {
+  id                           Int                       @id @default(autoincrement())
+  codigo                       String                    @unique
+  nombre                       String
+  descripcion                  String?
+  estado                       EstadoCampaniaPromocional @default(BORRADOR)
+  inicioNuevosRegistros        DateTime
+  finNuevosRegistros           DateTime
+  duracionMeses                Int
+  incluyeOrganizacionesEmpresa Boolean                   @default(false)
+  mostrarEnSitio               Boolean                   @default(false)
+  activadaEn                   DateTime?
+  creadaPorId                  Int
+  activadaPorId                Int?
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
+
+  creadaPor    Usuario               @relation("campaniasPromocionalesCreadas", fields: [creadaPorId], references: [id], onDelete: Restrict)
+  activadaPor  Usuario?              @relation("campaniasPromocionalesActivadas", fields: [activadaPorId], references: [id], onDelete: SetNull)
+  asignaciones AsignacionPromocion[]
+
+  @@index([estado, inicioNuevosRegistros, finNuevosRegistros])
+}
+
+model AsignacionPromocion {
+  id          Int                       @id @default(autoincrement())
+  campaniaId  Int
+  usuarioId   Int
+  fechaInicio DateTime
+  fechaFin    DateTime
+  origen      OrigenAsignacionPromocion
+  estado      EstadoAsignacionPromocion @default(ASIGNADA)
+  detalle     String?
+  bienvenidaVistaEn DateTime?
+  asignadaEn  DateTime                  @default(now())
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  campania   CampaniaPromocional        @relation(fields: [campaniaId], references: [id], onDelete: Cascade)
+  usuario    Usuario                     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  beneficios BeneficioProOrganizacion[]
+
+  @@unique([campaniaId, usuarioId])
+  @@index([usuarioId, fechaFin])
+  @@index([campaniaId, estado])
 }
 
 model PreferenciaReporte {
@@ -1121,6 +1177,25 @@ enum Rol {
 enum PlanTipo {
   FREE
   PRO
+}
+
+enum EstadoCampaniaPromocional {
+  BORRADOR
+  ACTIVA
+  PAUSADA
+  FINALIZADA
+}
+
+enum OrigenAsignacionPromocion {
+  EXISTENTE
+  REGISTRO
+  MANUAL
+}
+
+enum EstadoAsignacionPromocion {
+  ASIGNADA
+  OMITIDA
+  ERROR
 }
 
 enum ActividadProductiva {

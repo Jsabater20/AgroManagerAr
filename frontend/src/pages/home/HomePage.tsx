@@ -28,6 +28,7 @@ import FertilizerCalculatorPreview from '../../components/marketing/FertilizerCa
 import ActivityExplorer from '../../components/marketing/ActivityExplorer';
 import WorkflowTour from '../../components/marketing/WorkflowTour';
 import PlanSimulator from '../../components/marketing/PlanSimulator';
+import { PromocionLanzamientoBanner } from '../../components/promociones/PromocionLanzamientoBanner';
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -329,6 +330,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
       <PublicNav />
+      <PromocionLanzamientoBanner />
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gray-950 text-white">

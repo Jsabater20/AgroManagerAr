@@ -25,6 +25,7 @@ import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import AiInsights from '../../components/ui/AiInsights';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { AlertasOperativasPanel } from '../../components/dashboard/AlertasOperativasPanel';
+import { PromocionBienvenida } from '../../components/promociones/PromocionBienvenida';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -144,6 +145,7 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-shell space-y-6">
+      <PromocionBienvenida organizacionId={orgIdNum} />
       {/* Header banner */}
       <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-slate-800 via-slate-700 to-emerald-800 shadow-lg">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(52,211,153,0.15),transparent_60%)]" />
