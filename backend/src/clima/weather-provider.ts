@@ -1,5 +1,5 @@
 export type PronosticoClimaticoNormalizado = {
-  proveedor: 'OPEN_METEO_COMMERCIAL';
+  proveedor: 'WEATHERAPI';
   atribucion: string;
   zonaHoraria: string;
   actualizadoProveedorEn: string | null;
@@ -29,37 +29,67 @@ export interface WeatherProvider {
   obtenerPronostico(latitud: number, longitud: number): Promise<PronosticoClimaticoNormalizado>;
 }
 
-type RespuestaOpenMeteo = {
-  timezone?: string;
-  current?: {
-    time?: string;
-    temperature_2m?: number;
-    apparent_temperature?: number;
-    relative_humidity_2m?: number;
-    precipitation?: number;
-    wind_speed_10m?: number;
-    wind_gusts_10m?: number;
-    weather_code?: number;
+type RespuestaWeatherApi = {
+  location?: {
+    tz_id?: string;
   };
-  daily?: {
-    time?: string[];
-    temperature_2m_max?: number[];
-    temperature_2m_min?: number[];
-    precipitation_sum?: number[];
-    precipitation_probability_max?: number[];
-    wind_speed_10m_max?: number[];
-    wind_gusts_10m_max?: number[];
-    weather_code?: number[];
+  current?: {
+    last_updated?: string;
+    temp_c?: number;
+    feelslike_c?: number;
+    humidity?: number;
+    precip_mm?: number;
+    wind_kph?: number;
+    gust_kph?: number;
+    condition?: { code?: number };
+  };
+  forecast?: {
+    forecastday?: Array<{
+      date?: string;
+      day?: {
+        maxtemp_c?: number;
+        mintemp_c?: number;
+        totalprecip_mm?: number;
+        daily_chance_of_rain?: number | string;
+        maxwind_kph?: number;
+        condition?: { code?: number };
+      };
+    }>;
   };
 };
 
-const numero = (valor: unknown): number | null =>
-  typeof valor === 'number' && Number.isFinite(valor) ? valor : null;
+const numero = (valor: unknown): number | null => {
+  if (typeof valor === 'number' && Number.isFinite(valor)) return valor;
+  if (typeof valor === 'string' && valor.trim() && Number.isFinite(Number(valor))) return Number(valor);
+  return null;
+};
 
-export class OpenMeteoCommercialProvider implements WeatherProvider {
+const CODIGOS_TORMENTA = new Set([1087, 1273, 1276, 1279, 1282]);
+const CODIGOS_NIEVE = new Set([
+  1066, 1069, 1114, 1117, 1210, 1213, 1216, 1219, 1222, 1225, 1237,
+  1249, 1252, 1255, 1258, 1261, 1264,
+]);
+const CODIGOS_LLUVIOSOS = new Set([
+  1063, 1072, 1150, 1153, 1168, 1171, 1180, 1183, 1186, 1189, 1192,
+  1195, 1198, 1201, 1204, 1207, 1240, 1243, 1246,
+]);
+
+function codigoWeatherApiAWmo(codigo: number | undefined): number | null {
+  if (codigo === undefined) return null;
+  if (codigo === 1000) return 0;
+  if (codigo === 1003) return 2;
+  if (codigo === 1006 || codigo === 1009) return 3;
+  if (codigo === 1030 || codigo === 1135 || codigo === 1147) return 45;
+  if (CODIGOS_TORMENTA.has(codigo)) return 95;
+  if (CODIGOS_NIEVE.has(codigo)) return 71;
+  if (CODIGOS_LLUVIOSOS.has(codigo)) return 61;
+  return null;
+}
+
+export class WeatherApiProvider implements WeatherProvider {
   constructor(
     private readonly apiKey: string,
-    private readonly baseUrl = 'https://customer-api.open-meteo.com/v1/forecast',
+    private readonly baseUrl = 'https://api.weatherapi.com/v1/forecast.json',
   ) {}
 
   async obtenerPronostico(
@@ -67,56 +97,50 @@ export class OpenMeteoCommercialProvider implements WeatherProvider {
     longitud: number,
   ): Promise<PronosticoClimaticoNormalizado> {
     const url = new URL(this.baseUrl);
-    url.searchParams.set('apikey', this.apiKey);
-    url.searchParams.set('latitude', String(latitud));
-    url.searchParams.set('longitude', String(longitud));
-    url.searchParams.set('timezone', 'America/Argentina/Buenos_Aires');
-    url.searchParams.set('forecast_days', '7');
-    url.searchParams.set(
-      'current',
-      'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,wind_speed_10m,wind_gusts_10m,weather_code',
-    );
-    url.searchParams.set(
-      'daily',
-      'temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,weather_code',
-    );
+    url.searchParams.set('key', this.apiKey);
+    url.searchParams.set('q', `${latitud},${longitud}`);
+    url.searchParams.set('days', '3');
+    url.searchParams.set('aqi', 'no');
+    url.searchParams.set('alerts', 'no');
+    url.searchParams.set('lang', 'es');
 
     const respuesta = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!respuesta.ok) {
       throw new Error(`El proveedor meteorológico respondió ${respuesta.status}`);
     }
 
-    const datos = await respuesta.json() as RespuestaOpenMeteo;
-    if (!datos.daily?.time?.length) {
+    const datos = await respuesta.json() as RespuestaWeatherApi;
+    const pronostico = datos.forecast?.forecastday;
+    if (!pronostico?.length) {
       throw new Error('El proveedor meteorológico no devolvió un pronóstico válido');
     }
 
     return {
-      proveedor: 'OPEN_METEO_COMMERCIAL',
-      atribucion: 'Pronóstico provisto por Open-Meteo. Datos meteorológicos sujetos a atribución CC BY 4.0.',
-      zonaHoraria: datos.timezone ?? 'America/Argentina/Buenos_Aires',
-      actualizadoProveedorEn: datos.current?.time ?? null,
+      proveedor: 'WEATHERAPI',
+      atribucion: 'Pronóstico provisto por WeatherAPI.com.',
+      zonaHoraria: datos.location?.tz_id ?? 'America/Argentina/Buenos_Aires',
+      actualizadoProveedorEn: datos.current?.last_updated ?? null,
       actual: datos.current
         ? {
-            fecha: datos.current.time ?? new Date().toISOString(),
-            temperaturaC: numero(datos.current.temperature_2m),
-            sensacionTermicaC: numero(datos.current.apparent_temperature),
-            humedadRelativa: numero(datos.current.relative_humidity_2m),
-            precipitacionMm: numero(datos.current.precipitation),
-            vientoKmh: numero(datos.current.wind_speed_10m),
-            rafagasKmh: numero(datos.current.wind_gusts_10m),
-            codigoMeteorologico: numero(datos.current.weather_code),
+            fecha: datos.current.last_updated ?? new Date().toISOString(),
+            temperaturaC: numero(datos.current.temp_c),
+            sensacionTermicaC: numero(datos.current.feelslike_c),
+            humedadRelativa: numero(datos.current.humidity),
+            precipitacionMm: numero(datos.current.precip_mm),
+            vientoKmh: numero(datos.current.wind_kph),
+            rafagasKmh: numero(datos.current.gust_kph),
+            codigoMeteorologico: codigoWeatherApiAWmo(datos.current.condition?.code),
           }
         : null,
-      diario: datos.daily.time.map((fecha, indice) => ({
-        fecha,
-        temperaturaMaxC: numero(datos.daily?.temperature_2m_max?.[indice]),
-        temperaturaMinC: numero(datos.daily?.temperature_2m_min?.[indice]),
-        precipitacionMm: numero(datos.daily?.precipitation_sum?.[indice]),
-        probabilidadPrecipitacionMax: numero(datos.daily?.precipitation_probability_max?.[indice]),
-        vientoMaxKmh: numero(datos.daily?.wind_speed_10m_max?.[indice]),
-        rafagasMaxKmh: numero(datos.daily?.wind_gusts_10m_max?.[indice]),
-        codigoMeteorologico: numero(datos.daily?.weather_code?.[indice]),
+      diario: pronostico.map((dia) => ({
+        fecha: dia.date ?? new Date().toISOString().slice(0, 10),
+        temperaturaMaxC: numero(dia.day?.maxtemp_c),
+        temperaturaMinC: numero(dia.day?.mintemp_c),
+        precipitacionMm: numero(dia.day?.totalprecip_mm),
+        probabilidadPrecipitacionMax: numero(dia.day?.daily_chance_of_rain),
+        vientoMaxKmh: numero(dia.day?.maxwind_kph),
+        rafagasMaxKmh: null,
+        codigoMeteorologico: codigoWeatherApiAWmo(dia.day?.condition?.code),
       })),
     };
   }

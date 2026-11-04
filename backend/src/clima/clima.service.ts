@@ -7,11 +7,11 @@ import {
   UpdateRegistroPrecipitacionDto,
 } from './dto/registro-precipitacion.dto';
 import {
-  OpenMeteoCommercialProvider,
+  WeatherApiProvider,
   type WeatherProvider,
 } from './weather-provider';
 
-const PROVEEDOR_PRONOSTICO = 'OPEN_METEO_COMMERCIAL';
+const PROVEEDOR_PRONOSTICO = 'WEATHERAPI';
 const DURACION_CACHE_MINUTOS = 30;
 const MAXIMO_CACHE_DESACTUALIZADA_HORAS = 6;
 
@@ -371,9 +371,9 @@ export class ClimaService {
     if (process.env.WEATHER_PROVIDER?.trim().toUpperCase() !== PROVEEDOR_PRONOSTICO) {
       return null;
     }
-    const apiKey = process.env.OPEN_METEO_API_KEY?.trim();
+    const apiKey = process.env.WEATHERAPI_API_KEY?.trim();
     if (!apiKey) return null;
-    return new OpenMeteoCommercialProvider(apiKey, process.env.OPEN_METEO_API_URL?.trim() || undefined);
+    return new WeatherApiProvider(apiKey, process.env.WEATHERAPI_API_URL?.trim() || undefined);
   }
 
   private respuestaDesdeCache(
@@ -425,7 +425,7 @@ export class ClimaService {
       campo: this.resumenCampo(campo),
       mensaje: error
         ? 'No se pudo actualizar el pronóstico. Intentá nuevamente más tarde.'
-        : 'El proveedor comercial de pronóstico todavía no está configurado para producción.',
+        : 'El proveedor de pronóstico todavía no está configurado para producción.',
       datos: null,
     };
   }

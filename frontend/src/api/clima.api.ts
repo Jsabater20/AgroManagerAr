@@ -1,7 +1,7 @@
 import { api } from './client';
 
 export type PronosticoClimatico = {
-  proveedor: 'OPEN_METEO_COMMERCIAL';
+  proveedor: 'WEATHERAPI';
   atribucion: string;
   zonaHoraria: string;
   actualizadoProveedorEn: string | null;

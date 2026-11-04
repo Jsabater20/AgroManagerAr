@@ -376,7 +376,7 @@ function ForecastPanel({
       </div>
 
       <div className="border-t border-slate-100 p-5 dark:border-slate-800">
-        <div className="flex items-center justify-between gap-3"><div><h2 className="font-bold text-slate-900 dark:text-white">Pronóstico de 7 días</h2><p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Máxima, mínima y precipitación esperada.</p></div><Gauge className="text-sky-600 dark:text-sky-300" size={21} /></div>
+        <div className="flex items-center justify-between gap-3"><div><h2 className="font-bold text-slate-900 dark:text-white">Pronóstico de {diario.length} días</h2><p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Máxima, mínima y precipitación esperada.</p></div><Gauge className="text-sky-600 dark:text-sky-300" size={21} /></div>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
           {diario.map((dia, indice) => {
             const info = wmoInfo(dia.codigoMeteorologico);
