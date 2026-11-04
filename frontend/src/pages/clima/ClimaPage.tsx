@@ -239,17 +239,19 @@ export default function ClimaPage() {
         organizacionId={organizacionId}
       />
 
+      <AutomaticRainPanel respuesta={pronostico} />
+
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-2">
             <span className="rounded-xl bg-sky-100 p-2 text-sky-700 dark:bg-sky-950 dark:text-sky-200"><Droplets size={18} /></span>
             <div>
-              <h2 className="font-bold text-slate-900 dark:text-white">Lluvias registradas</h2>
-              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Datos reales cargados por el equipo de {campoSeleccionado?.nombre}.</p>
+              <h2 className="font-bold text-slate-900 dark:text-white">Lluvias medidas en el campo</h2>
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Datos reales cargados por el equipo de {campoSeleccionado?.nombre}. No se mezclan con la estimación automática.</p>
             </div>
           </div>
           <button type="button" onClick={abrirNuevoRegistro} className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-sky-800">
-            <Plus size={16} /> Registrar lluvia
+            <Plus size={16} /> Registrar lluvia medida
           </button>
         </div>
 
@@ -265,8 +267,8 @@ export default function ClimaPage() {
           ) : registros.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-7 text-center dark:border-slate-700 dark:bg-slate-950/40">
               <CloudRain className="mx-auto h-9 w-9 text-sky-500" />
-              <h3 className="mt-3 font-bold text-slate-900 dark:text-white">Todavía no hay lluvias registradas</h3>
-              <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500 dark:text-slate-400">Cuando llueva, cargá la cantidad medida para construir el historial hídrico de este campo.</p>
+              <h3 className="mt-3 font-bold text-slate-900 dark:text-white">Todavía no hay mediciones de lluvia</h3>
+              <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500 dark:text-slate-400">Cuando llueva, cargá la cantidad medida para construir el historial hídrico real de este campo.</p>
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
@@ -384,6 +386,42 @@ function ForecastPanel({
           })}
         </div>
         <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">{respuesta.datos.atribucion}{respuesta.obtenidoEn ? ` Actualizado ${fechaHora(respuesta.obtenidoEn)}.` : ''}</p>
+      </div>
+    </section>
+  );
+}
+
+function AutomaticRainPanel({ respuesta }: { respuesta?: RespuestaPronostico }) {
+  const datos = respuesta?.datos;
+  if (!respuesta || !datos?.diario.length) return null;
+
+  const localidad = respuesta.campo.localidad ?? respuesta.campo.ubicacion ?? respuesta.campo.nombre;
+  const dias = datos.diario.slice(0, 3);
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-5 shadow-sm dark:border-cyan-900/70 dark:from-cyan-950/20 dark:via-slate-900 dark:to-sky-950/20 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="rounded-xl bg-cyan-100 p-2.5 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-200"><CloudRain size={20} /></span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-bold text-slate-900 dark:text-white">Lluvia automática</h2>
+              <span className="rounded-full bg-cyan-100 px-2.5 py-1 text-[11px] font-bold text-cyan-800 dark:bg-cyan-950 dark:text-cyan-200">WeatherAPI</span>
+            </div>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Estimación meteorológica para {localidad}. Se actualiza automáticamente; no reemplaza la medición real del campo.</p>
+          </div>
+        </div>
+        {respuesta?.obtenidoEn && <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Actualizado {fechaHora(respuesta.obtenidoEn)}</p>}
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {dias.map((dia, indice) => (
+          <article key={dia.fecha} className="rounded-xl border border-cyan-100 bg-white/90 p-4 dark:border-cyan-900/70 dark:bg-slate-950/50">
+            <p className="text-xs font-bold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">{indice === 0 ? 'Hoy' : fechaCorta(dia.fecha)}</p>
+            <p className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">{numero(dia.precipitacionMm, ' mm', 1)}</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Precipitación estimada{dia.probabilidadPrecipitacionMax === null ? '' : ` · ${dia.probabilidadPrecipitacionMax}% de prob.`}</p>
+          </article>
+        ))}
       </div>
     </section>
   );
