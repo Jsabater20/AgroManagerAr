@@ -1,6 +1,13 @@
-import { IsDateString, IsIn, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDateString, IsIn, IsInt, IsOptional, Min } from 'class-validator';
 
 export class ReportePeriodicoQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  organizacionId?: number;
+
   @IsOptional()
   @IsDateString()
   fechaReferencia?: string;
