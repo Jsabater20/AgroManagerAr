@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BellRing, ChevronRight, ClipboardCheck, CloudRain, Droplets, MapPinned, ShieldAlert } from 'lucide-react';
+import { BellRing, CalendarDays, ChevronRight, ClipboardCheck, CloudRain, Droplets, MapPinned, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { camposApi, type NivelRiesgoHidrico } from '../../api/campos.api';
 
@@ -13,6 +13,19 @@ const etiquetaRiesgo: Record<NivelRiesgoHidrico, string> = {
   BAJO: 'Riesgo bajo',
   MEDIO: 'Riesgo medio',
   ALTO: 'Riesgo alto',
+};
+
+const etiquetaFechaLimite = (fecha: string | null) => {
+  if (!fecha) return 'Sin fecha límite';
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const limite = new Date(fecha);
+  limite.setHours(0, 0, 0, 0);
+  const diferencia = Math.round((limite.getTime() - hoy.getTime()) / 86_400_000);
+  if (diferencia < 0) return `Vencida hace ${Math.abs(diferencia)} día${Math.abs(diferencia) === 1 ? '' : 's'}`;
+  if (diferencia === 0) return 'Para hoy';
+  if (diferencia === 1) return 'Para mañana';
+  return `Para el ${limite.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}`;
 };
 
 export function ResumenHidricoDashboard({ organizacionId }: { organizacionId: number }) {
@@ -51,6 +64,28 @@ export function ResumenHidricoDashboard({ organizacionId }: { organizacionId: nu
         <Metric icono={BellRing} etiqueta="Alertas hídricas" valor={resumen.alertasActivas} detalle={resumen.alertasActivas ? 'Pronóstico para revisar' : 'Sin alertas activas'} tono="sky" />
         <Metric icono={MapPinned} etiqueta="Perfiles pendientes" valor={resumen.sinPerfil} detalle={`${resumen.totalCampos} campo${resumen.totalCampos === 1 ? '' : 's'} en esta vista`} tono="slate" />
       </div>
+
+      {resumen.siguienteAccion && (
+        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <Link
+            to={`/org/${organizacionId}/campos/${resumen.siguienteAccion.campoId}`}
+            className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50/80 p-4 transition hover:border-amber-300 hover:bg-amber-100/70 dark:border-amber-900/70 dark:bg-amber-950/25 dark:hover:bg-amber-950/40"
+          >
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="mt-0.5 rounded-lg bg-amber-600 p-2 text-white"><ClipboardCheck size={17} /></span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-amber-800 dark:text-amber-200">Qué revisar ahora</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{resumen.siguienteAccion.titulo}</p>
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                  <span>{resumen.siguienteAccion.campoNombre}</span>
+                  <span className="inline-flex items-center gap-1 text-amber-800 dark:text-amber-200"><CalendarDays size={13} />{etiquetaFechaLimite(resumen.siguienteAccion.fechaLimite)}</span>
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={19} className="shrink-0 text-amber-700 dark:text-amber-300" />
+          </Link>
+        </div>
+      )}
 
       <div className="border-t border-slate-100 p-5 dark:border-slate-800 sm:p-6">
         {campos.length ? <div className="space-y-2">{campos.map((campo) => (

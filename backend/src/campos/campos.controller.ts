@@ -19,6 +19,7 @@ import {
   UpdatePerfilRiesgoHidricoDto,
 } from './dto/campos.dto';
 import {
+  CargarPlantillaPreventivaHidricaDto,
   CreateChecklistPreventivoHidricoDto,
   UpdateChecklistPreventivoHidricoDto,
   UpdateEstadoChecklistPreventivoHidricoDto,
@@ -173,10 +174,28 @@ export class CamposController {
   @Auditar('crear_plantilla_preventiva_hidrica', 'ChecklistPreventivoHidrico')
   crearPlantillaChecklistPreventivoHidrico(
     @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CargarPlantillaPreventivaHidricaDto,
     @Request() req: AuthRequest,
   ) {
     return this.camposService.crearPlantillaChecklistPreventivoHidrico(
       id,
+      req.user.id,
+      req.organizacionId,
+      dto?.tipo,
+    );
+  }
+
+  @Post(':id/checklist-hidrico/:itemId/crear-trabajo')
+  @UseGuards(DemoGuard)
+  @Auditar('crear_trabajo_desde_accion_preventiva_hidrica', 'ActividadMiembro')
+  crearTrabajoDesdeChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.crearTrabajoDesdeChecklistPreventivoHidrico(
+      id,
+      itemId,
       req.user.id,
       req.organizacionId,
     );

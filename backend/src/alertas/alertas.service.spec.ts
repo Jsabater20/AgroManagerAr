@@ -4,6 +4,7 @@ describe('AlertasService', () => {
   const prisma = {
     asignacionCampo: { findMany: jest.fn() },
     actividadMiembro: { findMany: jest.fn() },
+    checklistPreventivoHidrico: { findMany: jest.fn() },
     costoProductivo: { findMany: jest.fn() },
     organizacion: { findMany: jest.fn(), findUnique: jest.fn() },
     lote: { findMany: jest.fn() },
@@ -78,6 +79,7 @@ describe('AlertasService', () => {
         campania: null,
       },
     ]);
+    prisma.checklistPreventivoHidrico.findMany.mockResolvedValue([]);
     prisma.organizacion.findMany.mockResolvedValue([{ id: 1, propietarioId: 10 }]);
     prisma.organizacion.findUnique.mockResolvedValue({ propietarioId: 10 });
     prisma.maquinaria.findMany.mockResolvedValue([]);
@@ -116,6 +118,53 @@ describe('AlertasService', () => {
       }),
     ]));
     expect(notificacionesService.crearNotificacionSiNoExiste).toHaveBeenCalledTimes(2);
+  });
+
+  it('avisa acciones preventivas para hoy y vencidas', async () => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const ayer = new Date(hoy);
+    ayer.setDate(ayer.getDate() - 1);
+    const hoyMediodia = new Date(hoy);
+    hoyMediodia.setHours(12, 0, 0, 0);
+    const ayerMediodia = new Date(ayer);
+    ayerMediodia.setHours(12, 0, 0, 0);
+
+    prisma.actividadMiembro.findMany.mockReset();
+    prisma.actividadMiembro.findMany.mockResolvedValue([]);
+    prisma.costoProductivo.findMany.mockResolvedValue([]);
+    prisma.maquinaria.findMany.mockResolvedValue([]);
+    prisma.checklistPreventivoHidrico.findMany.mockResolvedValue([
+      {
+        id: 31,
+        organizacionId: 1,
+        campoId: 7,
+        titulo: 'Revisar drenajes',
+        fechaLimite: hoyMediodia,
+        campo: { nombre: 'Las Meninas' },
+      },
+      {
+        id: 32,
+        organizacionId: 1,
+        campoId: 7,
+        titulo: 'Controlar el acceso',
+        fechaLimite: ayerMediodia,
+        campo: { nombre: 'Las Meninas' },
+      },
+    ]);
+
+    const alertas = await service.listarParaOrganizaciones([1]);
+
+    expect(alertas).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        tipo: 'PLAN_PREVENTIVO_HIDRICO_HOY',
+        enlace: '/org/1/campos/7',
+      }),
+      expect.objectContaining({
+        tipo: 'PLAN_PREVENTIVO_HIDRICO_VENCIDO',
+        dedupeKey: 'alerta-plan-preventivo-vencido-32',
+      }),
+    ]));
   });
 
   it('prioriza alertas de inicio, seguimiento y vencimiento de trabajos', async () => {

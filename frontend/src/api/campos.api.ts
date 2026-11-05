@@ -29,6 +29,13 @@ export type CategoriaChecklistPreventivoHidrico =
 
 export type EstadoChecklistPreventivoHidrico = 'PENDIENTE' | 'COMPLETADO';
 
+export type TipoPlantillaPreventiva =
+  | 'LLUVIA_INTENSA'
+  | 'EXCESO_AGUA'
+  | 'SEQUIA'
+  | 'HELADA'
+  | 'VIENTO_FUERTE';
+
 export type ChecklistPreventivoHidrico = {
   id: number;
   organizacionId: number;
@@ -52,6 +59,8 @@ export type ChecklistPreventivoHidrico = {
   } | null;
   completadoPor: { id: number; nombre: string; apellido: string } | null;
   creadoPor: { id: number; nombre: string; apellido: string };
+  trabajo: { id: number; estado: string } | null;
+  puedeCrearTrabajo: boolean;
   puedeCompletar: boolean;
 };
 
@@ -98,6 +107,11 @@ export type ResumenHidricoCampo = {
   perfilConfigurado: boolean;
   accionesPendientes: number;
   accionesAutomaticasPendientes: number;
+  proximaAccion: {
+    id: number;
+    titulo: string;
+    fechaLimite: string | null;
+  } | null;
   alertasActivas: number;
   alertasPrioritarias: number;
   automatizacionActiva: boolean;
@@ -112,6 +126,12 @@ export type ResumenHidricoDashboard = {
     accionesAutomaticasPendientes: number;
     alertasActivas: number;
     automatizacionesActivas: number;
+    siguienteAccion: {
+      campoId: number;
+      campoNombre: string;
+      titulo: string;
+      fechaLimite: string | null;
+    } | null;
   };
   campos: ResumenHidricoCampo[];
 };
@@ -220,8 +240,25 @@ const removeChecklistPreventivoHidrico = async (campoId: number, itemId: number)
   return data;
 };
 
-const cargarPlantillaChecklistPreventivoHidrico = async (campoId: number) => {
-  const { data } = await api.post<{ creados: number }>(`/campos/${campoId}/checklist-hidrico/plantilla`);
+const cargarPlantillaChecklistPreventivoHidrico = async (
+  campoId: number,
+  tipo: TipoPlantillaPreventiva = 'LLUVIA_INTENSA',
+) => {
+  const { data } = await api.post<{ creados: number; tipo: TipoPlantillaPreventiva }>(
+    `/campos/${campoId}/checklist-hidrico/plantilla`,
+    { tipo },
+  );
+  return data;
+};
+
+const crearTrabajoDesdeChecklistPreventivoHidrico = async (
+  campoId: number,
+  itemId: number,
+) => {
+  const { data } = await api.post<{
+    trabajo: { id: number; estado: string };
+    creado: boolean;
+  }>(`/campos/${campoId}/checklist-hidrico/${itemId}/crear-trabajo`);
   return data;
 };
 
@@ -243,4 +280,5 @@ export const camposApi = {
   updateEstadoChecklistPreventivoHidrico,
   removeChecklistPreventivoHidrico,
   cargarPlantillaChecklistPreventivoHidrico,
+  crearTrabajoDesdeChecklistPreventivoHidrico,
 };

@@ -1,6 +1,13 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { EstadoActividad, Prisma, Prioridad, TipoCostoProductivo, TipoRecursoActividad } from '@prisma/client';
+import {
+  EstadoActividad,
+  EstadoChecklistPreventivoHidrico,
+  Prisma,
+  Prioridad,
+  TipoCostoProductivo,
+  TipoRecursoActividad,
+} from '@prisma/client';
 import { ActividadesService } from '../actividades/actividades.service';
 import { ClimaService } from '../clima/clima.service';
 import { CamposService } from '../campos/campos.service';
@@ -33,7 +40,9 @@ export type AlertaOperativa = {
     | 'CLIMA_LLUVIA_INTENSA'
     | 'CLIMA_LLUVIA_ACUMULADA'
     | 'CLIMA_PROBABILIDAD_LLUVIA'
-    | 'CLIMA_VIENTO_FUERTE';
+    | 'CLIMA_VIENTO_FUERTE'
+    | 'PLAN_PREVENTIVO_HIDRICO_HOY'
+    | 'PLAN_PREVENTIVO_HIDRICO_VENCIDO';
   severidad: 'ADVERTENCIA' | 'CRITICA';
   titulo: string;
   mensaje: string;
@@ -346,7 +355,13 @@ export class AlertasService {
     ))
       .filter((organizacion) => organizacion.esPro)
       .map((organizacion) => organizacion.organizacionId);
-    const [actividades, costos, actividadesCompletadasSinCosto, maquinarias] = await Promise.all([
+    const [
+      actividades,
+      costos,
+      actividadesCompletadasSinCosto,
+      maquinarias,
+      accionesPreventivas,
+    ] = await Promise.all([
       this.prisma.actividadMiembro.findMany({
         where: {
           organizacionId: { in: organizacionIds },
@@ -427,6 +442,24 @@ export class AlertasService {
             select: { id: true, proximoMantenimiento: true },
           },
         },
+      }),
+      this.prisma.checklistPreventivoHidrico.findMany({
+        where: {
+          organizacionId: { in: organizacionIds },
+          estado: EstadoChecklistPreventivoHidrico.PENDIENTE,
+          fechaLimite: { not: null, lt: inicioManana },
+          ...(campoIds ? { campoId: { in: campoIds } } : {}),
+        },
+        select: {
+          id: true,
+          organizacionId: true,
+          campoId: true,
+          titulo: true,
+          fechaLimite: true,
+          campo: { select: { nombre: true } },
+        },
+        orderBy: { fechaLimite: 'asc' },
+        take: 40,
       }),
     ]);
 
@@ -679,8 +712,48 @@ export class AlertasService {
         };
       });
 
+    const alertasPlanPreventivo = accionesPreventivas.flatMap((accion): AlertaOperativa[] => {
+      if (!accion.fechaLimite) return [];
+
+      const vencida = accion.fechaLimite < inicioHoy;
+      const base = {
+        enlace: `/org/${accion.organizacionId}/campos/${accion.campoId}`,
+        organizacionId: accion.organizacionId,
+        origenTipo: 'CHECKLIST_PREVENTIVO_HIDRICO',
+        origenId: String(accion.id),
+      };
+
+      if (vencida) {
+        const dias = Math.max(
+          1,
+          Math.floor(
+            (inicioHoy.getTime() - accion.fechaLimite.getTime()) / 86_400_000,
+          ),
+        );
+        return [{
+          id: `plan-preventivo-vencido-${accion.id}`,
+          tipo: 'PLAN_PREVENTIVO_HIDRICO_VENCIDO',
+          severidad: dias >= 3 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `Acción preventiva vencida: ${accion.titulo}`,
+          mensaje: `En ${accion.campo.nombre}, quedó pendiente hace ${dias} día${dias === 1 ? '' : 's'}.`,
+          dedupeKey: `alerta-plan-preventivo-vencido-${accion.id}`,
+          ...base,
+        }];
+      }
+
+      return [{
+        id: `plan-preventivo-hoy-${accion.id}`,
+        tipo: 'PLAN_PREVENTIVO_HIDRICO_HOY',
+        severidad: 'ADVERTENCIA',
+        titulo: `Acción preventiva para hoy: ${accion.titulo}`,
+        mensaje: `Revisá ${accion.campo.nombre} y confirmá la acción antes de que finalice el día.`,
+        dedupeKey: `alerta-plan-preventivo-hoy-${accion.id}`,
+        ...base,
+      }];
+    });
+
     const alertasClima = await this.listarAlertasClimaticas(organizacionIds, campoIds);
-    return [...alertasTrabajos, ...alertasCostosPendientes, ...alertasMaquinarias, ...alertasCostos, ...alertasClima]
+    return [...alertasTrabajos, ...alertasCostosPendientes, ...alertasMaquinarias, ...alertasCostos, ...alertasPlanPreventivo, ...alertasClima]
       .sort((a, b) => Number(b.severidad === 'CRITICA') - Number(a.severidad === 'CRITICA'));
   }
 

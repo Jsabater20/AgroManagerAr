@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -13,6 +14,22 @@ import {
   CategoriaChecklistPreventivoHidrico,
   EstadoChecklistPreventivoHidrico,
 } from '@prisma/client';
+
+export const TIPOS_PLANTILLA_PREVENTIVA = [
+  'LLUVIA_INTENSA',
+  'EXCESO_AGUA',
+  'SEQUIA',
+  'HELADA',
+  'VIENTO_FUERTE',
+] as const;
+
+export type TipoPlantillaPreventiva = (typeof TIPOS_PLANTILLA_PREVENTIVA)[number];
+
+export class CargarPlantillaPreventivaHidricaDto {
+  @IsOptional()
+  @IsIn(TIPOS_PLANTILLA_PREVENTIVA)
+  tipo?: TipoPlantillaPreventiva;
+}
 
 export class CreateChecklistPreventivoHidricoDto {
   @IsString()

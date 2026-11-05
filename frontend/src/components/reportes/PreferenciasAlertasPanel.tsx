@@ -93,7 +93,7 @@ export function PreferenciasAlertasPanel() {
         <div className="rounded-xl bg-amber-100 p-2.5 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"><ShieldAlert size={20} /></div>
         <div className="min-w-0 flex-1">
           <h2 className="font-semibold text-slate-900 dark:text-white">Preferencias de alertas</h2>
-          <p className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">Elegí cómo querés enterarte de vencimientos, tareas y situaciones que requieren atención. Las alertas siguen registradas aunque apagues los avisos.</p>
+          <p className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">Elegí cómo querés enterarte de vencimientos, tareas, alertas del clima y acciones preventivas. Las alertas siguen registradas aunque apagues los avisos.</p>
         </div>
       </div>
 
