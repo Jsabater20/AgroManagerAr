@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BellRing, Mail, Save, ShieldAlert, Smartphone } from 'lucide-react';
+import { BellRing, CloudSun, Mail, Save, ShieldAlert, Smartphone } from 'lucide-react';
 import { alertasApi } from '../../api/alertas.api';
 
 type ConfiguracionAlertas = {
@@ -9,6 +9,7 @@ type ConfiguracionAlertas = {
   notificacionPush: boolean;
   notificacionEmail: boolean;
   soloPrioritarias: boolean;
+  alertasClimaActivas: boolean;
 };
 
 const configuracionInicial: ConfiguracionAlertas = {
@@ -17,6 +18,7 @@ const configuracionInicial: ConfiguracionAlertas = {
   notificacionPush: true,
   notificacionEmail: false,
   soloPrioritarias: false,
+  alertasClimaActivas: false,
 };
 
 function Opcion({
@@ -69,6 +71,7 @@ export function PreferenciasAlertasPanel() {
       notificacionPush: preferencias.data.notificacionPush,
       notificacionEmail: preferencias.data.notificacionEmail,
       soloPrioritarias: preferencias.data.soloPrioritarias,
+      alertasClimaActivas: preferencias.data.alertasClimaActivas,
     });
   }, [preferencias.data]);
 
@@ -90,7 +93,7 @@ export function PreferenciasAlertasPanel() {
         <div className="rounded-xl bg-amber-100 p-2.5 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"><ShieldAlert size={20} /></div>
         <div className="min-w-0 flex-1">
           <h2 className="font-semibold text-slate-900 dark:text-white">Preferencias de alertas</h2>
-          <p className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">Elegí cómo querés enterarte de vencimientos, tareas y situaciones que requieren atención. Las alertas siguen registradas aunque apagues los avisos.</p>
+          <p className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">Elegí cómo querés enterarte de vencimientos, tareas, alertas del clima y acciones preventivas. Las alertas siguen registradas aunque apagues los avisos.</p>
         </div>
       </div>
 
@@ -103,6 +106,16 @@ export function PreferenciasAlertasPanel() {
               <span><span className="block text-sm font-semibold text-amber-950 dark:text-amber-100">Recibir alertas operativas</span><span className="mt-0.5 block text-xs text-amber-800/80 dark:text-amber-200/80">Podés pausarlas temporalmente sin perder ninguna información.</span></span>
               <input type="checkbox" checked={configuracion.alertasActivas} onChange={(event) => actualizar('alertasActivas', event.target.checked)} className="h-4 w-4 rounded border-amber-400 text-emerald-600 focus:ring-emerald-500" />
             </label>
+          </div>
+
+          <div className="mt-3">
+            <Opcion
+              icono={CloudSun}
+              titulo="Alertas climáticas por campo"
+              detalle="Analizamos el pronóstico de los campos con ubicación para avisarte por heladas, calor, tormentas, lluvias intensas o viento fuerte."
+              activa={configuracion.alertasClimaActivas}
+              onChange={(valor) => actualizar('alertasClimaActivas', valor)}
+            />
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">

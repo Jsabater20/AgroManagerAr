@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, AlertTriangle, Clock, PawPrint, X, Gift, UserPlus } from 'lucide-react';
+import { Bell, AlertTriangle, Clock, PawPrint, X, Gift, UserPlus, Sparkles } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { ganadoApi } from '../../api/ganado.api';
@@ -62,6 +62,7 @@ export default function NotificationBell() {
     .filter((notificacion) => !notificacion.leidaEn)
     .map((notificacion) => {
       const esAlertaOperativa = notificacion.tipo === 'ALERTA_OPERATIVA';
+      const esNovedadProducto = notificacion.tipo === 'NOVEDAD_PRODUCTO';
       return {
         id: `notificacion-${notificacion.id}`,
         tipo: 'referidos' as const,
@@ -70,14 +71,18 @@ export default function NotificationBell() {
         link: notificacion.enlace || '/',
         icon: esAlertaOperativa
           ? AlertTriangle
-          : notificacion.tipo === 'NUEVO_REGISTRO'
-            ? UserPlus
-            : Gift,
+          : esNovedadProducto
+            ? Sparkles
+            : notificacion.tipo === 'NUEVO_REGISTRO'
+              ? UserPlus
+              : Gift,
         color: esAlertaOperativa
           ? 'text-amber-700 bg-amber-50'
-          : notificacion.tipo === 'NUEVO_REGISTRO'
-            ? 'text-blue-700 bg-blue-50'
-            : 'text-emerald-700 bg-emerald-50',
+          : esNovedadProducto
+            ? 'text-violet-700 bg-violet-50'
+            : notificacion.tipo === 'NUEVO_REGISTRO'
+              ? 'text-blue-700 bg-blue-50'
+              : 'text-emerald-700 bg-emerald-50',
         notificacionId: notificacion.id,
       };
     });

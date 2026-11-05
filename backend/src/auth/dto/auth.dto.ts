@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsNotEmpty,
@@ -53,6 +54,10 @@ export class RegisterDto {
   @MinLength(3)
   @MaxLength(120)
   nombreEmpresa?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  recibeComunicaciones?: boolean;
 }
 
 export class LoginDto {

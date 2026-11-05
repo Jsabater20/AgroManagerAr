@@ -54,4 +54,70 @@ describe('ActividadesService', () => {
       44,
     );
   });
+
+  it('marca la acción preventiva como realizada al completar su trabajo', async () => {
+    const tx = {
+      checklistPreventivoHidrico: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      auditoriaLog: { create: jest.fn().mockResolvedValue({}) },
+    } as any;
+
+    await (service as any).sincronizarAccionPreventivaHidrica(
+      tx,
+      {
+        id: 90,
+        organizacionId: 1,
+        recursoTipo: 'CAMPO',
+        contexto: 'PREVENCION_HIDRICA:12',
+        estado: 'EN_PROGRESO',
+      },
+      'COMPLETADA',
+      10,
+    );
+
+    expect(tx.checklistPreventivoHidrico.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 12, organizacionId: 1 },
+        data: expect.objectContaining({
+          estado: 'COMPLETADO',
+          completadoPorId: 10,
+        }),
+      }),
+    );
+    expect(tx.auditoriaLog.create).toHaveBeenCalled();
+  });
+
+  it('reabre la acción preventiva al reabrir su trabajo', async () => {
+    const tx = {
+      checklistPreventivoHidrico: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      auditoriaLog: { create: jest.fn().mockResolvedValue({}) },
+    } as any;
+
+    await (service as any).sincronizarAccionPreventivaHidrica(
+      tx,
+      {
+        id: 90,
+        organizacionId: 1,
+        recursoTipo: 'CAMPO',
+        contexto: 'PREVENCION_HIDRICA:12',
+        estado: 'COMPLETADA',
+      },
+      'EN_PROGRESO',
+      10,
+    );
+
+    expect(tx.checklistPreventivoHidrico.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 12, organizacionId: 1 },
+        data: {
+          estado: 'PENDIENTE',
+          completadoEn: null,
+          completadoPorId: null,
+        },
+      }),
+    );
+  });
 });

@@ -23,7 +23,7 @@ ERP agrícola integral para el mercado argentino. Gestión de campos, cultivos, 
 | Estado global | Zustand |
 | HTTP / Cache | Axios + TanStack Query |
 | IA | Google Gemini (gemini-2.5-flash-lite) |
-| Clima | Open-Meteo API (sin key) |
+| Clima | Pronóstico por campo vía backend con caché |
 | Mapa | React-Leaflet + OpenStreetMap |
 | Gráficos | Recharts |
 | Deploy backend | Railway |
@@ -46,6 +46,8 @@ ERP agrícola integral para el mercado argentino. Gestión de campos, cultivos, 
 | Módulo | Funcionalidad |
 |---|---|
 | **Dashboard** | Resumen general, strip de clima, insights de IA |
+| **AgroManager Clima** | Pronóstico por campo, lluvias medidas y alertas configurables |
+| **Novedades** | Historial de actualizaciones y lectura por usuario |
 | **Campos** | Establecimientos y lotes con hectáreas |
 | **Cultivos** | Catálogo de tipos de cultivo |
 | **Siembras** | Ciclo siembra → cosecha → aplicación de insumos |
@@ -117,6 +119,8 @@ npm run build
 \`\`\`
 
 La migración \`20260903110000_add_estado_comercial_empresa\` agrega el estado comercial y la vigencia de las empresas. Desplegar primero el backend y luego el frontend para que las nuevas rutas administrativas estén disponibles.
+
+Para AgroManager Clima y Novedades también deben aplicarse las migraciones aditivas \`20261103000000_add_agromanager_clima_core\`, \`20261103010000_add_alertas_climaticas\`, \`20261103020000_add_novedades_producto\` y \`20261103030000_add_envio_correo_novedades\`.
 
 ---
 
@@ -266,7 +270,8 @@ DATABASE_URL=           # Neon connection string
 JWT_SECRET=
 JWT_EXPIRATION=7d
 PORT=3001
-FRONTEND_URL=           # https://www.agromanagerar.com
+FRONTEND_URL=           # Lista separada por comas de orígenes exactos permitidos
+ALLOWED_ORIGINS=        # Alias opcional de FRONTEND_URL para compatibilidad
 GEMINI_API_KEY=
 RESEND_API_KEY=         # API key de Resend
 RESEND_FROM_EMAIL=      # noreply@tudominio.com (dominio verificado en Resend)
@@ -308,9 +313,10 @@ Campos en `Usuario`: `email`, `nombre`, `password`, `rol` (ADMIN/OPERADOR), `pla
 ## Notas técnicas
 
 - **AgroBot** consulta campos, siembras, animales, tareas y finanzas del usuario antes de cada respuesta para dar contexto personalizado.
-- **Clima** usa Open-Meteo (gratuito, sin key) con 15 regiones agrícolas de Argentina predefinidas.
+- **Clima** consulta el pronóstico únicamente desde el backend y conserva una caché de 30 minutos por campo. Se habilita solo al configurar \`WEATHER_PROVIDER=OPEN_METEO_COMMERCIAL\`, \`OPEN_METEO_API_KEY\` y, si corresponde, \`OPEN_METEO_API_URL\`. Antes de activarlo en producción verificá la licencia comercial y los límites del proveedor.
+- **Novedades** permite crear borradores y publicarlos desde el panel SUPERADMIN. Al publicar se crean avisos internos/push deduplicados únicamente para personas que aceptaron novedades. Los correos no se envían de forma automática: requieren consentimiento, email verificado, una revisión/confirmación manual y \`NOVEDADES_EMAILS_HABILITADOS=true\` en el backend.
 - **Emails** se envían vía Resend HTTP API (no SMTP). Railway bloquea conexiones SMTP salientes.
 - **Hidratación de auth**: al montar la app, si hay token en localStorage se hace `GET /api/auth/me` para restaurar el perfil completo (plan, rol, nombre). `PrivateRoute` muestra spinner durante la hidratación.
-- **CORS** acepta localhost:5173 y localhost:5174 en dev; en prod se sobreescribe con `FRONTEND_URL`.
+- **CORS** acepta orígenes exactos. En Railway cargá FRONTEND_URL (o ALLOWED_ORIGINS) con el dominio público y cada preview de Vercel que necesites usar, separados por comas y sin barra final.
 - **Rate limiting** con `@nestjs/throttler`: global 100 req/min, con límites más estrictos en rutas de auth.
 

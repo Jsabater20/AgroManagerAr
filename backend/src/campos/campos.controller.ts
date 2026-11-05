@@ -16,7 +16,15 @@ import {
   CreateCampoDto,
   UpdateCampoDto,
   CreateLoteDto,
+  UpdatePerfilRiesgoHidricoDto,
 } from './dto/campos.dto';
+import {
+  CargarPlantillaPreventivaHidricaDto,
+  CreateChecklistPreventivoHidricoDto,
+  UpdateChecklistPreventivoHidricoDto,
+  UpdateEstadoChecklistPreventivoHidricoDto,
+} from './dto/checklist-hidrico.dto';
+import { UpdateUmbralAlertaHidricaCampoDto } from './dto/umbrales-alerta-hidrica.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
@@ -53,6 +61,43 @@ export class CamposController {
     );
   }
 
+  @Get('resumen-hidrico')
+  obtenerResumenHidricoDashboard(@Request() req: AuthRequest) {
+    return this.camposService.obtenerResumenHidricoDashboard(
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Get(':id/riesgo-hidrico')
+  obtenerPerfilRiesgoHidrico(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
+    return this.camposService.obtenerPerfilRiesgoHidrico(id, req.user.id, req.organizacionId);
+  }
+
+  @Get(':id/checklist-hidrico')
+  listarChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.listarChecklistPreventivoHidrico(
+      id,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Get(':id/umbrales-alerta-hidrica')
+  obtenerUmbralAlertaHidrica(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.obtenerUmbralAlertaHidrica(
+      id,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.camposService.findOne(id, req.user.id, req.organizacionId);
@@ -74,6 +119,138 @@ export class CamposController {
     @Request() req: AuthRequest,
   ) {
     return this.camposService.update(id, dto, req.user.id, req.organizacionId);
+  }
+
+  @Patch(':id/riesgo-hidrico')
+  @UseGuards(DemoGuard)
+  @Auditar('actualizar_perfil_riesgo_hidrico', 'PerfilRiesgoHidricoCampo')
+  actualizarPerfilRiesgoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePerfilRiesgoHidricoDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.actualizarPerfilRiesgoHidrico(
+      id,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Patch(':id/umbrales-alerta-hidrica')
+  @UseGuards(DemoGuard)
+  @Auditar('actualizar_umbrales_alerta_hidrica', 'UmbralAlertaHidricaCampo')
+  actualizarUmbralAlertaHidrica(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateUmbralAlertaHidricaCampoDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.actualizarUmbralAlertaHidrica(
+      id,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Post(':id/checklist-hidrico')
+  @UseGuards(DemoGuard)
+  @Auditar('crear_accion_preventiva_hidrica', 'ChecklistPreventivoHidrico')
+  crearChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateChecklistPreventivoHidricoDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.crearChecklistPreventivoHidrico(
+      id,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Post(':id/checklist-hidrico/plantilla')
+  @UseGuards(DemoGuard)
+  @Auditar('crear_plantilla_preventiva_hidrica', 'ChecklistPreventivoHidrico')
+  crearPlantillaChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CargarPlantillaPreventivaHidricaDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.crearPlantillaChecklistPreventivoHidrico(
+      id,
+      req.user.id,
+      req.organizacionId,
+      dto?.tipo,
+    );
+  }
+
+  @Post(':id/checklist-hidrico/:itemId/crear-trabajo')
+  @UseGuards(DemoGuard)
+  @Auditar('crear_trabajo_desde_accion_preventiva_hidrica', 'ActividadMiembro')
+  crearTrabajoDesdeChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.crearTrabajoDesdeChecklistPreventivoHidrico(
+      id,
+      itemId,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Patch(':id/checklist-hidrico/:itemId/estado')
+  @UseGuards(DemoGuard)
+  @Auditar('actualizar_estado_accion_preventiva_hidrica', 'ChecklistPreventivoHidrico')
+  actualizarEstadoChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: UpdateEstadoChecklistPreventivoHidricoDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.actualizarEstadoChecklistPreventivoHidrico(
+      id,
+      itemId,
+      dto.estado,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Patch(':id/checklist-hidrico/:itemId')
+  @UseGuards(DemoGuard)
+  @Auditar('editar_accion_preventiva_hidrica', 'ChecklistPreventivoHidrico')
+  actualizarChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: UpdateChecklistPreventivoHidricoDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.actualizarChecklistPreventivoHidrico(
+      id,
+      itemId,
+      dto,
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
+  @Delete(':id/checklist-hidrico/:itemId')
+  @UseGuards(DemoGuard)
+  @Auditar('eliminar_accion_preventiva_hidrica', 'ChecklistPreventivoHidrico')
+  eliminarChecklistPreventivoHidrico(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: AuthRequest,
+  ) {
+    return this.camposService.eliminarChecklistPreventivoHidrico(
+      id,
+      itemId,
+      req.user.id,
+      req.organizacionId,
+    );
   }
 
   @Delete(':id')

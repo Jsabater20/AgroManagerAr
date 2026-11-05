@@ -61,6 +61,8 @@ export default function NuevoCampoWizard({ onClose }: Props) {
         nombre: nombre.trim(),
         hectareas: parseFloat(hectareas) || 0,
         ubicacion: ubicacion.trim() || undefined,
+        provincia: provincia || undefined,
+        localidad: localidad || undefined,
         propietario: propietario.trim() || undefined,
         latitud: latitud ?? undefined,
         longitud: longitud ?? undefined,

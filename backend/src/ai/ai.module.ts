@@ -5,10 +5,11 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { PlanModule } from '../plan/plan.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { AlertasModule } from '../alertas/alertas.module';
+import { ClimaModule } from '../clima/clima.module';
 import { AgroBotConsultasService } from './agrobot-consultas.service';
 
 @Module({
-  imports: [PrismaModule, PlanModule, OrganizationsModule, AlertasModule],
+  imports: [PrismaModule, PlanModule, OrganizationsModule, AlertasModule, ClimaModule],
   controllers: [AiController],
   providers: [AiService, AgroBotConsultasService],
 })

@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
 import { AlertasService } from '../alertas/alertas.service';
+import { ClimaService } from '../clima/clima.service';
 
 export type AgroBotIndicador = {
   etiqueta: string;
@@ -31,6 +32,25 @@ type CampoVisible = {
   id: number;
   nombre: string;
   hectareas: number;
+};
+
+type PronosticoDisponible = {
+  actual?: {
+    temperaturaC?: number | null;
+    sensacionTermicaC?: number | null;
+    humedadRelativa?: number | null;
+    precipitacionMm?: number | null;
+    vientoKmh?: number | null;
+    codigoMeteorologico?: number | null;
+  } | null;
+  diario?: Array<{
+    temperaturaMaxC?: number | null;
+    temperaturaMinC?: number | null;
+    precipitacionMm?: number | null;
+    probabilidadPrecipitacionMax?: number | null;
+    rafagasMaxKmh?: number | null;
+    codigoMeteorologico?: number | null;
+  }>;
 };
 
 type ActividadVisible = {
@@ -71,6 +91,7 @@ export class AgroBotConsultasService {
     private readonly prisma: PrismaService,
     private readonly memberAccessService: MemberAccessService,
     private readonly alertasService: AlertasService,
+    private readonly climaService: ClimaService,
   ) {}
 
   async responder(
@@ -80,6 +101,9 @@ export class AgroBotConsultasService {
   ): Promise<AgroBotRespuesta | null> {
     const consulta = this.normalizar(mensaje);
 
+    if (this.esConsultaClimatica(consulta)) {
+      return this.climaDelEstablecimiento(usuarioId, organizacionId, consulta);
+    }
     if (this.incluye(consulta, [
       'alerta',
       'alertas',
@@ -158,10 +182,11 @@ export class AgroBotConsultasService {
   }
 
   async contextoParaIa(usuarioId: number, organizacionId: number): Promise<string> {
-    const [campos, actividades, movimientos] = await Promise.all([
+    const [campos, actividades, movimientos, clima] = await Promise.all([
       this.camposAutorizados(usuarioId, organizacionId).catch((): CampoVisible[] => []),
       this.actividadesAutorizadas(usuarioId, organizacionId).catch((): ActividadVisible[] => []),
       this.movimientosAutorizados(usuarioId, organizacionId).catch((): MovimientoVisible[] => []),
+      this.contextoClimaDisponible(usuarioId, organizacionId).catch(() => 'Pronóstico climático: sin datos disponibles o sin acceso.'),
     ]);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -184,6 +209,7 @@ export class AgroBotConsultasService {
       `Campos visibles: ${campos.length}; superficie: ${this.numero(hectareas)} ha.`,
       `Trabajos activos visibles: ${pendientes.length}; atrasados: ${atrasadas.length}.`,
       `Movimientos visibles: ingresos ${this.dinero(ingresos)}; egresos ${this.dinero(egresos)}.`,
+      clima,
       'Estos datos son referencia. No inventes valores ni supongas registros no incluidos.',
     ].join('\n');
   }
@@ -210,6 +236,149 @@ export class AgroBotConsultasService {
       referencias,
       basadaEnDatos: true,
     };
+  }
+
+  private async climaDelEstablecimiento(
+    usuarioId: number,
+    organizacionId: number,
+    consulta: string,
+  ): Promise<AgroBotRespuesta> {
+    let campos: CampoVisible[];
+    try {
+      campos = await this.camposClimaAutorizados(usuarioId, organizacionId);
+    } catch {
+      return {
+        texto: 'No tenés acceso al módulo Clima de este establecimiento. Pedile al propietario que habilite ese acceso si necesitás consultar el pronóstico.',
+        basadaEnDatos: true,
+      };
+    }
+    if (!campos.length) {
+      return this.sinDatos('No hay campos visibles para consultar el clima.', organizacionId, 'clima');
+    }
+
+    const campoMencionado = campos
+      .map((campo) => ({ campo, nombre: this.normalizar(campo.nombre) }))
+      .sort((a, b) => b.nombre.length - a.nombre.length)
+      .find((item) => consulta.includes(item.nombre))?.campo;
+    const camposAConsultar = campoMencionado ? [campoMencionado] : campos.slice(0, 3);
+    const resultados = await Promise.all(camposAConsultar.map(async (campo) => ({
+      campo,
+      pronostico: await this.climaService.obtenerPronostico(usuarioId, organizacionId, campo.id)
+        .catch(() => null),
+    })));
+    const disponibles = resultados.filter((resultado) => resultado.pronostico?.datos);
+
+    if (!disponibles.length) {
+      const sinUbicacion = resultados.some((resultado) => resultado.pronostico?.estado === 'UBICACION_PENDIENTE');
+      return {
+        texto: sinUbicacion
+          ? 'No hay pronóstico disponible porque al menos uno de los campos consultados no tiene coordenadas válidas. Completá su ubicación para recibir datos de esa zona.'
+          : 'No hay un pronóstico actualizado disponible para los campos consultados. Podés revisarlo desde Clima e intentar actualizarlo nuevamente.',
+        referencias: resultados.map((resultado) => ({
+          etiqueta: `Abrir clima · ${resultado.campo.nombre}`,
+          href: `${this.ruta(organizacionId, 'clima')}?campoId=${resultado.campo.id}`,
+        })),
+        basadaEnDatos: true,
+      };
+    }
+
+    const resumenes = disponibles.map((resultado) => {
+      const datos = resultado.pronostico!.datos as PronosticoDisponible;
+      const actual = datos.actual;
+      const proximosDias = (datos.diario ?? []).slice(0, 2);
+      const maxLluvia = proximosDias.reduce((maximo, dia) => Math.max(maximo, Number(dia.precipitacionMm ?? 0)), 0);
+      const minima = proximosDias.reduce<number | null>((minimo, dia) => {
+        if (typeof dia.temperaturaMinC !== 'number') return minimo;
+        return minimo === null ? dia.temperaturaMinC : Math.min(minimo, dia.temperaturaMinC);
+      }, null);
+      return {
+        campo: resultado.campo,
+        temperatura: actual?.temperaturaC ?? null,
+        humedad: actual?.humedadRelativa ?? null,
+        viento: actual?.vientoKmh ?? null,
+        lluvia: maxLluvia,
+        minima,
+        condicion: this.descripcionClima(actual?.codigoMeteorologico),
+      };
+    });
+    const primerCampo = resumenes[0];
+    const detalle = resumenes.map((resumen) => {
+      const actual = resumen.temperatura === null ? 'sin temperatura actual' : `${resumen.temperatura.toFixed(1)} °C`;
+      const lluvia = resumen.lluvia > 0 ? `; hasta ${resumen.lluvia.toFixed(1)} mm previstos` : '';
+      const riesgoHelada = resumen.minima !== null && resumen.minima <= 3
+        ? `; mínima prevista de ${resumen.minima.toFixed(1)} °C`
+        : '';
+      return `${resumen.campo.nombre}: ${actual}, ${resumen.condicion}${lluvia}${riesgoHelada}`;
+    });
+
+    return {
+      texto: `Según el último pronóstico disponible, ${detalle.join('. ')}. El pronóstico es orientativo: revisá las alertas y el clima completo antes de tomar decisiones operativas.`,
+      indicadores: [
+        { etiqueta: 'Campo consultado', valor: primerCampo.campo.nombre },
+        { etiqueta: 'Temperatura actual', valor: primerCampo.temperatura === null ? 'Sin dato' : `${primerCampo.temperatura.toFixed(1)} °C`, detalle: primerCampo.condicion },
+        { etiqueta: 'Lluvia prevista (48 h)', valor: `${primerCampo.lluvia.toFixed(1)} mm` },
+        ...(primerCampo.minima !== null ? [{ etiqueta: 'Mínima prevista', valor: `${primerCampo.minima.toFixed(1)} °C` }] : []),
+      ],
+      referencias: resumenes.map((resumen) => ({
+        etiqueta: `Ver clima · ${resumen.campo.nombre}`,
+        href: `${this.ruta(organizacionId, 'clima')}?campoId=${resumen.campo.id}`,
+      })),
+      basadaEnDatos: true,
+    };
+  }
+
+  private async contextoClimaDisponible(usuarioId: number, organizacionId: number) {
+    const campoIds = await this.idsCamposAutorizados(usuarioId, organizacionId, 'Clima');
+    const haceSeisHoras = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const caches = await this.prisma.cachePronosticoClima.findMany({
+      where: {
+        organizacionId,
+        obtenidoEn: { gte: haceSeisHoras },
+        ...(campoIds ? { campoId: { in: campoIds } } : {}),
+      },
+      select: {
+        datos: true,
+        obtenidoEn: true,
+        campo: { select: { nombre: true } },
+      },
+      orderBy: { obtenidoEn: 'desc' },
+      take: 3,
+    });
+    if (!caches.length) return 'Pronóstico climático: no hay datos recientes disponibles.';
+
+    const detalle = caches.map((cache) => {
+      const datos = cache.datos as unknown as PronosticoDisponible;
+      const actual = datos.actual;
+      const primerDia = datos.diario?.[0];
+      return `${cache.campo.nombre}: ${actual?.temperaturaC ?? 'sin temperatura'} °C, ${this.descripcionClima(actual?.codigoMeteorologico)}; precipitación prevista ${primerDia?.precipitacionMm ?? 'sin dato'} mm.`;
+    });
+    return `Pronóstico climático disponible (actualizado recientemente): ${detalle.join(' ')}`;
+  }
+
+  private async camposClimaAutorizados(usuarioId: number, organizacionId: number): Promise<CampoVisible[]> {
+    const campoIds = await this.idsCamposAutorizados(usuarioId, organizacionId, 'Clima');
+    return this.prisma.campo.findMany({
+      where: { organizacionId, ...(campoIds ? { id: { in: campoIds } } : {}) },
+      select: { id: true, nombre: true, hectareas: true },
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  private esConsultaClimatica(consulta: string) {
+    return this.incluye(consulta, [
+      'clima', 'pronostico', 'temperatura', 'lluvia', 'helada', 'granizo', 'tormenta', 'viento', 'rafaga',
+    ]);
+  }
+
+  private descripcionClima(codigo: number | null | undefined) {
+    if (codigo === 0) return 'despejado';
+    if (codigo === 1 || codigo === 2) return 'parcialmente nublado';
+    if (codigo === 3) return 'nublado';
+    if (codigo === 45 || codigo === 48) return 'niebla';
+    if (codigo !== undefined && codigo !== null && codigo >= 51 && codigo <= 55) return 'llovizna';
+    if (codigo !== undefined && codigo !== null && codigo >= 61 && codigo <= 82) return 'lluvias';
+    if (codigo !== undefined && codigo !== null && codigo >= 95) return 'tormenta';
+    return 'condiciones variables';
   }
 
   private async alertasActuales(usuarioId: number, organizacionId: number): Promise<AgroBotRespuesta> {

@@ -41,6 +41,9 @@ import { CalculosModule } from './calculos/calculos.module';
 import { CostosProductivosModule } from './costos-productivos/costos-productivos.module';
 import { AlertasModule } from './alertas/alertas.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { PromocionesModule } from './promociones/promociones.module';
+import { ClimaModule } from './clima/clima.module';
+import { NovedadesModule } from './novedades/novedades.module';
 
 @Module({
   imports: [
@@ -89,6 +92,9 @@ import { ReportesModule } from './reportes/reportes.module';
     CostosProductivosModule,
     AlertasModule,
     ReportesModule,
+    PromocionesModule,
+    ClimaModule,
+    NovedadesModule,
   ],
   controllers: [AppController],
   providers: [

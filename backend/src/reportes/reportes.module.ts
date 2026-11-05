@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AlertasModule } from '../alertas/alertas.module';
+import { CamposModule } from '../campos/campos.module';
 import { EmpresasModule } from '../empresas/empresas.module';
 import { MailerModule } from '../mailer/mailer.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
@@ -11,7 +12,7 @@ import { ReportesEmpresaController } from './reportes-empresa.controller';
 import { ReportesEmpresaService } from './reportes-empresa.service';
 
 @Module({
-  imports: [AlertasModule, EmpresasModule, MailerModule, OrganizationsModule, PlanModule],
+  imports: [AlertasModule, CamposModule, EmpresasModule, MailerModule, OrganizationsModule, PlanModule],
   controllers: [ReportesController, ReportesEmpresaController],
   providers: [ReportesService, ReportesAutomaticosService, ReportesEmpresaService],
   exports: [ReportesService],

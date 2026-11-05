@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { wmoInfo } from '../clima/ClimaPage';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -25,6 +24,8 @@ import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import AiInsights from '../../components/ui/AiInsights';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { AlertasOperativasPanel } from '../../components/dashboard/AlertasOperativasPanel';
+import { PromocionBienvenida } from '../../components/promociones/PromocionBienvenida';
+import { ResumenHidricoDashboard } from '../../components/dashboard/ResumenHidricoDashboard';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -144,6 +145,7 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-shell space-y-6">
+      <PromocionBienvenida organizacionId={orgIdNum} />
       {/* Header banner */}
       <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-slate-800 via-slate-700 to-emerald-800 shadow-lg">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(52,211,153,0.15),transparent_60%)]" />
@@ -171,6 +173,8 @@ export default function DashboardPage() {
       </div>
 
       <AlertasOperativasPanel organizacionId={orgIdNum} />
+
+      <ResumenHidricoDashboard organizacionId={orgIdNum} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -204,7 +208,7 @@ export default function DashboardPage() {
       )}
 
       {/* Weather strip */}
-      <WeatherStrip orgId={orgId} />
+      <WeatherStrip orgId={orgId} campo={campos[0]} />
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -668,44 +672,7 @@ function EmptyChart({ label }: { label: string }) {
 }
 
 // ─── Weather strip ─────────────────────────────────────────────────────────────
-interface WeatherCurrent {
-  temperature_2m: number;
-  apparent_temperature: number;
-  relative_humidity_2m: number;
-  wind_speed_10m: number;
-  weather_code: number;
-  precipitation: number;
-}
-
-async function fetchDashboardWeather(): Promise<WeatherCurrent> {
-  // Default: Buenos Aires (zona agrícola central)
-  const url =
-    'https://api.open-meteo.com/v1/forecast' +
-    '?latitude=-34.6037&longitude=-58.3816' +
-    '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,precipitation' +
-    '&timezone=America%2FArgentina%2FBuenos_Aires';
-  const res = await fetch(url);
-  if (!res.ok) throw new Error();
-  const data = await res.json();
-  return data.current as WeatherCurrent;
-}
-
-function WeatherStrip({ orgId }: { orgId?: string }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['weather-dashboard'],
-    queryFn: fetchDashboardWeather,
-    staleTime: 15 * 60 * 1000,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
-    );
-  }
-  if (!data) return null;
-
-  const wmo = wmoInfo(data.weather_code);
-
+function WeatherStrip({ orgId, campo }: { orgId?: string; campo?: { id: number; nombre: string } }) {
   return (
     <Link
       to={orgId ? `/org/${orgId}/clima` : '/clima'}
@@ -714,18 +681,11 @@ function WeatherStrip({ orgId }: { orgId?: string }) {
       <div className="flex items-center gap-3">
         <Cloud size={20} className="opacity-70 shrink-0" />
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-base font-bold">{Math.round(data.temperature_2m)}°C</span>
-          <span className="text-xl">{wmo.emoji}</span>
-          <span className="text-sm font-medium opacity-90">{wmo.label}</span>
-          <span className="hidden sm:inline text-xs opacity-60">·</span>
-          <span className="hidden sm:inline text-xs opacity-70">Buenos Aires</span>
+          <span className="text-sm font-bold">Clima del establecimiento</span>
+          {campo && <><span className="hidden sm:inline text-xs opacity-60">·</span><span className="hidden sm:inline text-xs opacity-80">{campo.nombre}</span></>}
         </div>
       </div>
-      <div className="hidden md:flex items-center gap-4 text-xs opacity-80">
-        <span>💧 {data.relative_humidity_2m}%</span>
-        <span>💨 {Math.round(data.wind_speed_10m)} km/h</span>
-        <span>🌧️ {data.precipitation} mm</span>
-      </div>
+      <div className="hidden md:block text-xs opacity-80">Consultá el pronóstico y registrá lluvias reales</div>
       <div className="flex items-center gap-1 text-xs font-medium opacity-80 group-hover:opacity-100 shrink-0">
         Ver clima completo <ArrowRight size={13} />
       </div>

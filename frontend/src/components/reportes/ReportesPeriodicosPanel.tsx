@@ -4,6 +4,7 @@ import {
   CalendarRange,
   CheckCircle2,
   CircleAlert,
+  CloudRain,
   Download,
   LockKeyhole,
   RefreshCw,
@@ -87,6 +88,39 @@ function AnalisisInteligente({ reporte }: { reporte: ReportePeriodico }) {
   );
 }
 
+function SeguimientoHidrico({ reporte }: { reporte: ReportePeriodico }) {
+  const { resumen, campos } = reporte.riesgoHidrico;
+  const haySeguimiento = resumen.alertasActivas || resumen.accionesPendientes || resumen.altoRiesgo || resumen.sinPerfil;
+
+  if (!haySeguimiento) return null;
+
+  return (
+    <section className="rounded-xl border border-sky-200 bg-sky-50/60 p-5 shadow-sm dark:border-sky-900/70 dark:bg-sky-950/20">
+      <div className="flex items-start gap-3">
+        <span className="rounded-xl bg-sky-700 p-2 text-white"><CloudRain size={18} /></span>
+        <div>
+          <h3 className="font-semibold text-slate-900 dark:text-white">Seguimiento hídrico</h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Priorizá los campos que requieren prevención antes de que cambie el pronóstico.</p>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Metrica etiqueta="Riesgo alto" valor={resumen.altoRiesgo} detalle="Campos a revisar primero" tono={resumen.altoRiesgo ? 'rose' : 'emerald'} />
+        <Metrica etiqueta="Acciones pendientes" valor={resumen.accionesPendientes} detalle={resumen.accionesAutomaticasPendientes ? `${resumen.accionesAutomaticasPendientes} creadas por alerta` : 'Plan preventivo'} tono={resumen.accionesPendientes ? 'amber' : 'emerald'} />
+        <Metrica etiqueta="Alertas por lluvia" valor={resumen.alertasActivas} detalle="Pronóstico activo" tono={resumen.alertasActivas ? 'amber' : 'blue'} />
+        <Metrica etiqueta="Perfiles pendientes" valor={resumen.sinPerfil} detalle={`${resumen.totalCampos} campos considerados`} tono={resumen.sinPerfil ? 'amber' : 'emerald'} />
+      </div>
+      {campos.length > 0 && <div className="mt-4 grid gap-2 lg:grid-cols-2">
+        {campos.slice(0, 4).map((campo) => (
+          <div key={campo.id} className="rounded-lg border border-sky-100 bg-white/80 px-3 py-2.5 dark:border-sky-900/60 dark:bg-slate-900/75">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">{campo.nombre}</p>
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{campo.alertasActivas} alerta{campo.alertasActivas === 1 ? '' : 's'} · {campo.accionesPendientes} acción{campo.accionesPendientes === 1 ? '' : 'es'} pendiente{campo.accionesPendientes === 1 ? '' : 's'}</p>
+          </div>
+        ))}
+      </div>}
+    </section>
+  );
+}
+
 function Resultado({ reporte }: { reporte: ReportePeriodico }) {
   const actividades = [...reporte.actividad.realizadas, ...reporte.actividad.proximas].slice(0, 5);
 
@@ -120,6 +154,8 @@ function Resultado({ reporte }: { reporte: ReportePeriodico }) {
           </div>
         </section>
       )}
+
+      <SeguimientoHidrico reporte={reporte} />
 
       <AnalisisInteligente reporte={reporte} />
 

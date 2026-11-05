@@ -15,6 +15,22 @@ process.on('unhandledRejection', (reason) => {
 
 // Configuración de CORS más permisiva para desarrollo
 const isDev = process.env.NODE_ENV !== 'production';
+const originsPublicos = [
+  'https://agromanagerar.com',
+  'https://www.agromanagerar.com',
+];
+const patronPreviewVercel = /^https:\/\/agro-manager-ar-px8f(?:-[a-z0-9-]+)?\.vercel\.app$/;
+const originsConfigurados = [process.env.FRONTEND_URL, process.env.ALLOWED_ORIGINS]
+  .flatMap((valor) => valor?.split(',') ?? [])
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+const originsPermitidos = new Set([...originsPublicos, ...originsConfigurados]);
+
+function originPermitido(origin: string) {
+  if (originsPermitidos.has(origin)) return true;
+  if (patronPreviewVercel.test(origin)) return true;
+  return isDev && /^http:\/\/localhost(?::\d+)?$/.test(origin);
+}
 
 async function bootstrap() {
   console.log('[BOOT] Creating NestJS app...');
@@ -30,30 +46,8 @@ async function bootstrap() {
           return;
         }
 
-        // En desarrollo, permitir localhost y Vercel
-        if (isDev) {
-          if (
-            origin.includes('localhost') ||
-            origin.includes('vercel.app') ||
-            origin.includes('agromanagerar.com')
-          ) {
-            callback(null, true);
-            return;
-          }
-        }
-
-        // Siempre permitir agromanagerar.com en producción también
-        if (origin.includes('agromanagerar.com')) {
-          callback(null, true);
-          return;
-        }
-
-        // En producción, validar contra variable de entorno
-        const allowedOrigins = process.env.ALLOWED_ORIGINS
-          ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-          : [];
-
-        if (allowedOrigins.includes(origin)) {
+        // Validar únicamente orígenes exactos de producción y configuración.
+        if (originPermitido(origin)) {
           callback(null, true);
           return;
         }

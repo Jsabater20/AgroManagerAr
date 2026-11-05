@@ -12,6 +12,8 @@ import { useAuthStore } from '../../store/auth.store';
 import { Link, Navigate } from 'react-router-dom';
 import { Trash2, AlertCircle, Building2, Lock, Gift, Database } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PromocionLanzamientoPanel } from '../../components/admin/PromocionLanzamientoPanel';
+import { NovedadesProductoPanel } from '../../components/admin/NovedadesProductoPanel';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────
 const DEMO_EMAIL = 'demo@agromanager.ar';
@@ -185,6 +187,10 @@ export default function AdminPage() {
           {msg}
         </div>
       )}
+
+      <PromocionLanzamientoPanel />
+
+      <NovedadesProductoPanel />
 
       {mostrarEjemplos && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">

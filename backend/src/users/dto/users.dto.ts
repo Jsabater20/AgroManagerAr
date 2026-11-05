@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsNumber,
@@ -30,6 +31,20 @@ export class ChangePasswordDto {
   @IsString()
   @MinLength(8)
   passwordNueva!: string;
+}
+
+export class UpdatePreferenciasComunicacionesDto {
+  @IsOptional()
+  @IsBoolean()
+  recibeComunicaciones?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recibeNovedades?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recibePromociones?: boolean;
 }
 
 export class PrepararFotoPerfilDto {

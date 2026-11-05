@@ -20,7 +20,7 @@ interface DisplayMessage {
 
 const WELCOME: DisplayMessage = {
   role: 'model',
-  text: '¡Hola! Soy **AgroBot** 🌱\nPuedo consultar los datos visibles de este establecimiento: gastos, trabajos, lotes, campañas y maquinarias. También puedo ayudarte con consultas agropecuarias generales. ¿Qué necesitás revisar?',
+  text: '¡Hola! Soy **AgroBot** 🌱\nPuedo consultar los datos visibles de este establecimiento: gastos, trabajos, lotes, campañas, maquinarias y el pronóstico disponible por campo. También puedo ayudarte con consultas agropecuarias generales. ¿Qué necesitás revisar?',
 };
 
 export default function AiChat() {
@@ -115,8 +115,7 @@ export default function AiChat() {
       {/* Panel */}
       {open && (
         <div
-          className="fixed bottom-24 right-6 z-50 w-90 max-w-[calc(100vw-1.5rem)] flex flex-col rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-          style={{ height: '520px', background: 'var(--chat-bg, white)' }}
+          className="fixed bottom-24 right-6 z-50 flex h-[520px] w-90 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
         >
           {/* Header */}
           <div className="flex items-center gap-2.5 px-4 py-3 bg-green-700 text-white shrink-0">
@@ -196,7 +195,7 @@ export default function AiChat() {
                       {m.basadaEnDatos && (
                         <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 dark:text-gray-500">
                           <Database size={10} />
-                          Datos del establecimiento activo
+                          Datos visibles del establecimiento y pronóstico disponible
                         </span>
                       )}
                     </>
@@ -254,6 +253,8 @@ export default function AiChat() {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
+  '¿Cómo está el clima de mis campos?',
+  '¿Hay riesgo de helada o lluvia?',
   '¿Qué alertas urgentes tengo?',
   '¿Cuánto gasté este mes?',
   '¿Qué tareas tengo pendientes?',

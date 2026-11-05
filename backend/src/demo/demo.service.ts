@@ -103,6 +103,10 @@ export class DemoService implements OnModuleInit {
         cultivoFrutiCount,
         cuadroYerbaCount,
         calculoCount,
+        perfilesHidricosCount,
+        checklistHidricoCount,
+        precipitacionesCount,
+        alertasHidricasCount,
       ] =
         await Promise.all([
           this.prisma.campo.count({ where: { usuarioId: demo.id } }),
@@ -123,6 +127,15 @@ export class DemoService implements OnModuleInit {
           this.prisma.cultivoFrutihorticola.count({ where: { organizacionId: demoOrg.id } }),
           this.prisma.cuadroYerba.count({ where: { organizacionId: demoOrg.id } }),
           this.prisma.calculoGuardado.count({ where: { organizacionId: demoOrg.id } }),
+          this.prisma.perfilRiesgoHidricoCampo.count({ where: { organizacionId: demoOrg.id } }),
+          this.prisma.checklistPreventivoHidrico.count({ where: { organizacionId: demoOrg.id } }),
+          this.prisma.registroPrecipitacion.count({ where: { organizacionId: demoOrg.id } }),
+          this.prisma.alertaGestion.count({
+            where: {
+              organizacionId: demoOrg.id,
+              tipo: { in: ['CLIMA_LLUVIA_INTENSA', 'CLIMA_LLUVIA_ACUMULADA', 'CLIMA_PROBABILIDAD_LLUVIA'] },
+            },
+          }),
         ]);
       const campoSinGps = await this.prisma.campo.findFirst({
         where: { usuarioId: demo.id, latitud: null },
@@ -140,6 +153,10 @@ export class DemoService implements OnModuleInit {
         cultivoFrutiCount < 1 ||
         cuadroYerbaCount < 1 ||
         calculoCount < 6 ||
+        perfilesHidricosCount < 4 ||
+        checklistHidricoCount < 4 ||
+        precipitacionesCount < 8 ||
+        alertasHidricasCount < 2 ||
         campoSinGps
       ) {
         this.logger.log('Demo incompleta — ejecutando reset...');
@@ -208,6 +225,12 @@ export class DemoService implements OnModuleInit {
     const demoOrgId = orgDemo.id;
 
     await this.prisma.evidencia.deleteMany({
+      where: { organizacionId: demoOrgId },
+    });
+    await this.prisma.alertaGestion.deleteMany({
+      where: { organizacionId: demoOrgId },
+    });
+    await this.prisma.registroPrecipitacion.deleteMany({
       where: { organizacionId: demoOrgId },
     });
     await this.prisma.calculoGuardado.deleteMany({
@@ -1210,6 +1233,223 @@ export class DemoService implements OnModuleInit {
     const [p1, p2] = campoProgreso.lotes;
     const [lMolino, lArboleda] = campoLasMeninas.lotes;
     const [lOmbu] = campoElOmbu.lotes;
+
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    const haceDosDias = new Date();
+    haceDosDias.setDate(haceDosDias.getDate() - 2);
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+
+    await Promise.all([
+      this.prisma.perfilRiesgoHidricoCampo.createMany({
+        data: [
+          {
+            organizacionId,
+            campoId: campoEsperanza.id,
+            nivel: 'ALTO',
+            zonasBajas: 'Bajo del lote sur y acceso junto a la alcantarilla principal.',
+            drenajes: 'Limpiar zanja perimetral y revisar desagüe del casco.',
+            caminosYAccesos: 'El camino de ingreso se vuelve intransitable luego de lluvias persistentes.',
+            infraestructuraCritica: 'Galpón de insumos, bomba y tablero eléctrico.',
+            sectoresSeguros: 'Loma del lote norte y corral elevado.',
+            observaciones: 'Priorizar recorrida ante acumulados superiores a 50 mm.',
+            actualizadoPorId: uid,
+          },
+          {
+            organizacionId,
+            campoId: campoProgreso.id,
+            nivel: 'MEDIO',
+            zonasBajas: 'Sector oeste del potrero 2.',
+            drenajes: 'Mantener libre la cuneta del camino interno.',
+            caminosYAccesos: 'Acceso principal transitable con precaución.',
+            infraestructuraCritica: 'Aguada y depósito de herramientas.',
+            sectoresSeguros: 'Loma junto al monte.',
+            observaciones: 'Revisar escurrimiento antes de mover maquinaria pesada.',
+            actualizadoPorId: uid,
+          },
+          {
+            organizacionId,
+            campoId: campoLasMeninas.id,
+            nivel: 'MEDIO',
+            zonasBajas: 'Cabecera sur del lote Molino.',
+            drenajes: 'Alcantarilla del camino vecinal.',
+            caminosYAccesos: 'Ingreso secundario recomendado si llueve fuerte.',
+            infraestructuraCritica: 'Tanque de combustible y alambrado sur.',
+            sectoresSeguros: 'Franja alta junto a la arboleda.',
+            observaciones: 'Controlar malezas y residuos que obstruyan las cunetas.',
+            actualizadoPorId: uid,
+          },
+          {
+            organizacionId,
+            campoId: campoElOmbu.id,
+            nivel: 'BAJO',
+            zonasBajas: 'Bajo del Ombú, con drenaje natural hacia el sur.',
+            drenajes: 'Canal lateral en buen estado.',
+            caminosYAccesos: 'Acceso estabilizado por el sector este.',
+            infraestructuraCritica: 'Tolva y bebederos del potrero.',
+            sectoresSeguros: 'Loma sur y monte perimetral.',
+            observaciones: 'Mantener monitoreo en eventos consecutivos.',
+            actualizadoPorId: uid,
+          },
+        ],
+      }),
+      this.prisma.umbralAlertaHidricaCampo.createMany({
+        data: [
+          { organizacionId, campoId: campoEsperanza.id, activo: true, lluviaDiariaMm: 22, lluviaAcumulada48hMm: 45, probabilidadLluviaPct: 65, crearAccionesAutomaticas: true, actualizadoPorId: uid },
+          { organizacionId, campoId: campoProgreso.id, activo: true, lluviaDiariaMm: 30, lluviaAcumulada48hMm: 60, probabilidadLluviaPct: 70, crearAccionesAutomaticas: false, actualizadoPorId: uid },
+          { organizacionId, campoId: campoLasMeninas.id, activo: true, lluviaDiariaMm: 28, lluviaAcumulada48hMm: 55, probabilidadLluviaPct: 70, crearAccionesAutomaticas: true, actualizadoPorId: uid },
+          { organizacionId, campoId: campoElOmbu.id, activo: true, lluviaDiariaMm: 35, lluviaAcumulada48hMm: 70, probabilidadLluviaPct: 75, crearAccionesAutomaticas: false, actualizadoPorId: uid },
+        ],
+      }),
+      this.prisma.checklistPreventivoHidrico.createMany({
+        data: [
+          {
+            organizacionId,
+            campoId: campoEsperanza.id,
+            titulo: 'Revisar drenajes y alcantarilla del acceso',
+            descripcion: 'Acción creada por una alerta de acumulado previsto. Confirmar que no haya obstrucciones.',
+            categoria: 'DRENAJE',
+            fechaLimite: manana,
+            creadoPorId: uid,
+            origenAutomatico: 'ALERTA_HIDRICA',
+            actualizadoAutomaticamenteEn: ayer,
+          },
+          {
+            organizacionId,
+            campoId: campoEsperanza.id,
+            titulo: 'Elevar insumos y proteger el tablero eléctrico',
+            descripcion: 'Dejar a resguardo los materiales sensibles y verificar la alimentación de la bomba.',
+            categoria: 'INFRAESTRUCTURA',
+            fechaLimite: manana,
+            creadoPorId: uid,
+          },
+          {
+            organizacionId,
+            campoId: campoProgreso.id,
+            titulo: 'Definir recorrido alternativo para maquinaria',
+            descripcion: 'Evitar el sector oeste si el suelo queda saturado.',
+            categoria: 'ACCESO',
+            estado: 'COMPLETADO',
+            completadoEn: haceDosDias,
+            completadoPorId: uid,
+            creadoPorId: uid,
+          },
+          {
+            organizacionId,
+            campoId: campoLasMeninas.id,
+            titulo: 'Recorrer cunetas y tranqueras del lote Molino',
+            descripcion: 'Registrar el estado luego de las lluvias y dejar evidencia si se detecta un problema.',
+            categoria: 'ACCESO',
+            fechaLimite: manana,
+            creadoPorId: uid,
+          },
+        ],
+      }),
+      this.prisma.registroPrecipitacion.createMany({
+        data: [
+          {
+            organizacionId,
+            campoId: campoEsperanza.id,
+            loteId: lSur.id,
+            usuarioId: uid,
+            fecha: haceDosDias,
+            milimetros: 18.5,
+            observaciones: 'Lluvia medida en el pluviómetro del casco. Acceso principal transitable.',
+          },
+          {
+            organizacionId,
+            campoId: campoEsperanza.id,
+            loteId: lSur.id,
+            usuarioId: uid,
+            fecha: ayer,
+            milimetros: 31,
+            observaciones: 'Acumulado importante. Se revisaron drenajes y alcantarilla del acceso.',
+          },
+          {
+            organizacionId,
+            campoId: campoProgreso.id,
+            loteId: p2.id,
+            usuarioId: uid,
+            fecha: haceDosDias,
+            milimetros: 9,
+            observaciones: 'Lluvia leve, sin anegamientos en el potrero oeste.',
+          },
+          {
+            organizacionId,
+            campoId: campoProgreso.id,
+            loteId: p1.id,
+            usuarioId: uid,
+            fecha: ayer,
+            milimetros: 14.5,
+            observaciones: 'Registro de la recorrida de la mañana.',
+          },
+          {
+            organizacionId,
+            campoId: campoLasMeninas.id,
+            loteId: lMolino.id,
+            usuarioId: uid,
+            fecha: haceDosDias,
+            milimetros: 24,
+            observaciones: 'Precipitación moderada en la cabecera sur del lote Molino.',
+          },
+          {
+            organizacionId,
+            campoId: campoLasMeninas.id,
+            loteId: lArboleda.id,
+            usuarioId: uid,
+            fecha: ayer,
+            milimetros: 42,
+            observaciones: 'Se corrigió la lectura luego de verificar el pluviómetro.',
+            corregidoEn: new Date(),
+          },
+          {
+            organizacionId,
+            campoId: campoElOmbu.id,
+            loteId: lOmbu.id,
+            usuarioId: uid,
+            fecha: haceDosDias,
+            milimetros: 6.5,
+            observaciones: 'Lluvia aislada. El canal lateral se mantiene en buen estado.',
+          },
+          {
+            organizacionId,
+            campoId: campoElOmbu.id,
+            loteId: lOmbu.id,
+            usuarioId: uid,
+            fecha: ayer,
+            milimetros: 11,
+            observaciones: 'Medición tomada durante la recorrida diaria.',
+          },
+        ],
+      }),
+      this.prisma.alertaGestion.createMany({
+        data: [
+          {
+            organizacionId,
+            clave: `demo-clima-lluvia-acumulada-${campoEsperanza.id}`,
+            tipo: 'CLIMA_LLUVIA_ACUMULADA',
+            severidad: 'ADVERTENCIA',
+            titulo: `Acumulado de lluvia relevante en ${campoEsperanza.nombre}`,
+            mensaje: 'El pronóstico prevé un acumulado que puede afectar drenajes y accesos. La demo incluye una acción preventiva para mostrar el flujo completo.',
+            enlace: `/org/${organizacionId}/clima?campoId=${campoEsperanza.id}`,
+            origenTipo: 'CAMPO',
+            origenId: String(campoEsperanza.id),
+          },
+          {
+            organizacionId,
+            clave: `demo-clima-probabilidad-lluvia-${campoLasMeninas.id}`,
+            tipo: 'CLIMA_PROBABILIDAD_LLUVIA',
+            severidad: 'CRITICA',
+            titulo: `Alta probabilidad de lluvia en ${campoLasMeninas.nombre}`,
+            mensaje: 'Se recomienda revisar las cunetas, tranqueras y el acceso alternativo antes de un evento intenso.',
+            enlace: `/org/${organizacionId}/clima?campoId=${campoLasMeninas.id}`,
+            origenTipo: 'CAMPO',
+            origenId: String(campoLasMeninas.id),
+          },
+        ],
+      }),
+    ]);
 
     // ─── Campañas ────────────────────────────────────────────────────────────
     const camp2425 = await this.prisma.campania.create({
@@ -2319,7 +2559,7 @@ export class DemoService implements OnModuleInit {
 
   private async asegurarDemoEmpresa() {
     const contexto = await this.prepararDemoEmpresa();
-    const [campos, actividades, ordenes, galpones, cultivosFrutihorticolas, cuadrosYerba, calculos] = await Promise.all([
+    const [campos, actividades, ordenes, galpones, cultivosFrutihorticolas, cuadrosYerba, calculos, perfilesHidricos, checklistHidrico, precipitaciones, alertasHidricas] = await Promise.all([
       this.prisma.campo.count({
         where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
       }),
@@ -2341,6 +2581,21 @@ export class DemoService implements OnModuleInit {
       this.prisma.calculoGuardado.count({
         where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
       }),
+      this.prisma.perfilRiesgoHidricoCampo.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+      this.prisma.checklistPreventivoHidrico.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+      this.prisma.registroPrecipitacion.count({
+        where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
+      }),
+      this.prisma.alertaGestion.count({
+        where: {
+          organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) },
+          tipo: { in: ['CLIMA_LLUVIA_INTENSA', 'CLIMA_LLUVIA_ACUMULADA', 'CLIMA_PROBABILIDAD_LLUVIA'] },
+        },
+      }),
     ]);
 
     if (
@@ -2350,7 +2605,11 @@ export class DemoService implements OnModuleInit {
       galpones < 1 ||
       cultivosFrutihorticolas < 1 ||
       cuadrosYerba < 1 ||
-      calculos < 18
+      calculos < 18 ||
+      perfilesHidricos < 12 ||
+      checklistHidrico < 12 ||
+      precipitaciones < 24 ||
+      alertasHidricas < 6
     ) {
       this.logger.log('Demo Empresa incompleta — ejecutando reset...');
       await this.reiniciarDemoEmpresa(contexto);
@@ -2879,6 +3138,12 @@ export class DemoService implements OnModuleInit {
       where: { evidencia: { organizacionId: { in: organizacionesIds } } },
     });
     await this.prisma.evidencia.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.alertaGestion.deleteMany({
+      where: { organizacionId: { in: organizacionesIds } },
+    });
+    await this.prisma.registroPrecipitacion.deleteMany({
       where: { organizacionId: { in: organizacionesIds } },
     });
     await this.prisma.calculoGuardado.deleteMany({

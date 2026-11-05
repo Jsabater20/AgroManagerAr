@@ -25,6 +25,7 @@ import {
   Shield,
   ChevronDown,
   Calculator,
+  Sparkles,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 import { useState } from 'react';
@@ -252,6 +253,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="flex items-center justify-center gap-6 pt-2">
+          <NavLink
+            to="/novedades"
+            onClick={onClose}
+            className="text-green-300 hover:text-white transition-colors"
+            title="Novedades"
+          >
+            <Sparkles size={20} />
+          </NavLink>
+
           <NavLink
             to="/perfil"
             onClick={onClose}

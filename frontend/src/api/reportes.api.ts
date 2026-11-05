@@ -60,6 +60,28 @@ export interface ReportePeriodico {
     comparacionAnterior: { ingresos: number | null; egresos: number | null; saldo: number | null } | null;
   } | null;
   alertas: { total: number; prioritarias: number; items: AlertaReporte[] };
+  riesgoHidrico: {
+    resumen: {
+      totalCampos: number;
+      altoRiesgo: number;
+      sinPerfil: number;
+      accionesPendientes: number;
+      accionesAutomaticasPendientes: number;
+      alertasActivas: number;
+      automatizacionesActivas: number;
+    };
+    campos: Array<{
+      id: number;
+      nombre: string;
+      nivelRiesgo: 'BAJO' | 'MEDIO' | 'ALTO' | null;
+      perfilConfigurado: boolean;
+      accionesPendientes: number;
+      accionesAutomaticasPendientes: number;
+      alertasActivas: number;
+      alertasPrioritarias: number;
+      automatizacionActiva: boolean;
+    }>;
+  };
   resumen: string[];
   resumenInteligente?: {
     nivelGeneral: 'POSITIVO' | 'INFORMACION' | 'ATENCION' | 'CRITICO';

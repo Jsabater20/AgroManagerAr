@@ -23,7 +23,11 @@ const PARES_RECURSO_VALIDOS: Record<
   GANADERIA: [TipoRecursoEvidencia.ANIMAL],
   MAQUINARIAS: [TipoRecursoEvidencia.MAQUINARIA],
   INSUMOS: [TipoRecursoEvidencia.INSUMO],
-  CAMPOS: [TipoRecursoEvidencia.CAMPO, TipoRecursoEvidencia.LOTE],
+  CAMPOS: [
+    TipoRecursoEvidencia.CAMPO,
+    TipoRecursoEvidencia.LOTE,
+    TipoRecursoEvidencia.CHECKLIST_HIDRICO,
+  ],
   SIEMBRAS: [TipoRecursoEvidencia.SIEMBRA],
 };
 
@@ -344,6 +348,9 @@ export class EvidenciasService {
       case TipoRecursoEvidencia.LOTE:
         await this.validarLote(organizacionId, usuarioId, recursoId);
         return;
+      case TipoRecursoEvidencia.CHECKLIST_HIDRICO:
+        await this.validarChecklistHidrico(organizacionId, usuarioId, recursoId);
+        return;
       case TipoRecursoEvidencia.SIEMBRA:
         await this.validarSiembra(organizacionId, usuarioId, recursoId);
         return;
@@ -449,6 +456,25 @@ export class EvidenciasService {
       throw new NotFoundException('Lote no encontrado');
     }
     await this.memberAccessService.requireCampo(usuarioId, organizacionId, lote.campoId);
+  }
+
+  private async validarChecklistHidrico(
+    organizacionId: number,
+    usuarioId: number,
+    checklistId: number,
+  ): Promise<void> {
+    const checklist = await this.prisma.checklistPreventivoHidrico.findFirst({
+      where: { id: checklistId, organizacionId },
+      select: { campoId: true },
+    });
+    if (!checklist) {
+      throw new NotFoundException('Acción preventiva no encontrada');
+    }
+    await this.memberAccessService.requireCampo(
+      usuarioId,
+      organizacionId,
+      checklist.campoId,
+    );
   }
 
   private async validarSiembra(

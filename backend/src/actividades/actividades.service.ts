@@ -10,6 +10,7 @@ import { NotificacionesService } from '../notificaciones/notificaciones.service'
 import {
   ActividadMiembro,
   EstadoActividad,
+  EstadoChecklistPreventivoHidrico,
   Prisma,
   TipoRecursoActividad,
   ObservacionActividad,
@@ -206,16 +207,17 @@ export class ActividadesService {
   validarContexto(recursoTipo: TipoRecursoActividad, contexto?: string): void {
     if (!contexto) return;
 
-    const contextos_validos = ['FINANZAS'];
+    const esPrevencionHidrica = /^PREVENCION_HIDRICA:\d+$/.test(contexto);
+    const contextosValidos = ['FINANZAS'];
 
-    if (!contextos_validos.includes(contexto)) {
+    if (!contextosValidos.includes(contexto) && !esPrevencionHidrica) {
       throw new BadRequestException(`Contexto no válido: ${contexto}`);
     }
 
-    if (contexto === 'FINANZAS') {
+    if (contexto === 'FINANZAS' || esPrevencionHidrica) {
       if (recursoTipo !== TipoRecursoActividad.CAMPO) {
         throw new BadRequestException(
-          'FINANZAS solamente es válido con recursoTipo CAMPO',
+          'Este contexto solamente es válido con recursoTipo CAMPO',
         );
       }
     }
@@ -239,6 +241,60 @@ export class ActividadesService {
         'fechaEstimadaFin debe ser posterior a la fecha actual',
       );
     }
+  }
+
+  private async sincronizarAccionPreventivaHidrica(
+    tx: Prisma.TransactionClient,
+    actividad: Pick<
+      ActividadMiembro,
+      'id' | 'organizacionId' | 'recursoTipo' | 'contexto' | 'estado'
+    >,
+    nuevoEstado: EstadoActividad,
+    userId: number,
+  ): Promise<void> {
+    if (actividad.recursoTipo !== TipoRecursoActividad.CAMPO) return;
+
+    const coincidencia = /^PREVENCION_HIDRICA:(\d+)$/.exec(
+      actividad.contexto ?? '',
+    );
+    if (!coincidencia) return;
+
+    const itemId = Number(coincidencia[1]);
+    const completar = nuevoEstado === EstadoActividad.COMPLETADA;
+    const reabrir =
+      nuevoEstado === EstadoActividad.EN_PROGRESO &&
+      actividad.estado === EstadoActividad.COMPLETADA;
+    if (!completar && !reabrir) return;
+
+    const resultado = await tx.checklistPreventivoHidrico.updateMany({
+      where: { id: itemId, organizacionId: actividad.organizacionId },
+      data: completar
+        ? {
+            estado: EstadoChecklistPreventivoHidrico.COMPLETADO,
+            completadoEn: new Date(),
+            completadoPorId: userId,
+          }
+        : {
+            estado: EstadoChecklistPreventivoHidrico.PENDIENTE,
+            completadoEn: null,
+            completadoPorId: null,
+          },
+    });
+
+    if (!resultado.count) return;
+
+    await tx.auditoriaLog.create({
+      data: {
+        usuarioId: userId,
+        organizacionId: actividad.organizacionId,
+        accion: completar
+          ? 'CHECKLIST_PREVENTIVO_COMPLETADO_DESDE_TAREA'
+          : 'CHECKLIST_PREVENTIVO_REABIERTO_DESDE_TAREA',
+        entidad: 'ChecklistPreventivoHidrico',
+        entidadId: itemId,
+        cambios: JSON.stringify({ actividadId: actividad.id, nuevoEstado }),
+      },
+    });
   }
 
   private puedeCambiarA(
@@ -771,6 +827,13 @@ export class ActividadesService {
           }),
         },
       });
+
+      await this.sincronizarAccionPreventivaHidrica(
+        tx,
+        actividad,
+        dto.estado,
+        userId,
+      );
 
       return actualizada;
     });

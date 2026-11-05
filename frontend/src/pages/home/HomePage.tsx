@@ -24,6 +24,15 @@ import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
+<<<<<<< HEAD
+=======
+import TeamSection from '../../components/marketing/TeamSection';
+import FertilizerCalculatorPreview from '../../components/marketing/FertilizerCalculatorPreview';
+import ActivityExplorer from '../../components/marketing/ActivityExplorer';
+import WorkflowTour from '../../components/marketing/WorkflowTour';
+import PlanSimulator from '../../components/marketing/PlanSimulator';
+import { PromocionLanzamientoBanner } from '../../components/promociones/PromocionLanzamientoBanner';
+>>>>>>> develop
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -35,7 +44,7 @@ const FREE_FEATURES = [
   '1 miembro adicional + hasta 3 trabajos activos',
   'Asigná recursos y trabajos con fechas y estados',
   'Fotos de perfil para tu equipo',
-  'Clima actual',
+  'Clima actual y alertas climáticas',
   'Dashboard básico',
 ];
 const PRO_FEATURES = [
@@ -47,7 +56,6 @@ const PRO_FEATURES = [
   'AgroBot IA',
   'Cálculos guardados y vinculados a tu operación',
   'Analytics avanzados + rentabilidad',
-  'Alertas climáticas',
   'Exportar CSV/PDF',
   'Reportes avanzados',
   'Soporte prioritario',
@@ -326,6 +334,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
       <PublicNav />
+      <PromocionLanzamientoBanner />
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gray-950 text-white">

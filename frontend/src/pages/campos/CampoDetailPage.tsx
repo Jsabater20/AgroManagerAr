@@ -10,6 +10,9 @@ import type { CreateLoteDto, CreateCampoDto } from '../../api/types';
 import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 import { ResponsablesRecurso } from '../../components/equipo/ResponsablesEquipo';
 import { ActividadCampoReciente } from '../../components/equipo/ActividadCampoReciente';
+import { PerfilRiesgoHidricoCampo } from '../../components/campos/PerfilRiesgoHidricoCampo';
+import { ChecklistPreventivoHidricoCampo } from '../../components/campos/ChecklistPreventivoHidricoCampo';
+import { UmbralesAlertaHidricaCampo } from '../../components/campos/UmbralesAlertaHidricaCampo';
 
 const emptyLote: CreateLoteDto = { nombre: '', hectareas: 0 };
 
@@ -137,6 +140,12 @@ export default function CampoDetailPage() {
         detalle
         nombreRecurso={campo.nombre}
       />
+
+      <PerfilRiesgoHidricoCampo campoId={campoId} />
+
+      <UmbralesAlertaHidricaCampo campoId={campoId} organizacionId={Number(orgId)} />
+
+      <ChecklistPreventivoHidricoCampo campoId={campoId} organizacionId={Number(orgId)} />
 
       <ActividadCampoReciente organizacionId={Number(orgId)} campoId={campoId} />
 

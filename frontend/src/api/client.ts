@@ -30,7 +30,8 @@ api.interceptors.request.use((config) => {
     organizacionId &&
     !config.url?.includes('/auth/') &&
     !config.url?.includes('/users/') &&
-    !config.url?.includes('/organizaciones')
+    !config.url?.includes('/organizaciones') &&
+    !config.url?.includes('/novedades')
   ) {
     config.params = config.params || {};
     config.params.organizacionId = organizacionId;

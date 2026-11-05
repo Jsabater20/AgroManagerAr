@@ -14,7 +14,14 @@ export interface AlertaOperativa {
     | 'MAQUINARIA_SEGURO_PROXIMO_A_VENCER'
     | 'MAQUINARIA_VTV_VENCIDA'
     | 'MAQUINARIA_VTV_PROXIMA_A_VENCER'
-    | 'COSTO_SUPERA_ESTIMADO';
+    | 'COSTO_SUPERA_ESTIMADO'
+    | 'CLIMA_TORMENTA'
+    | 'CLIMA_HELADA'
+    | 'CLIMA_CALOR_EXTREMO'
+    | 'CLIMA_LLUVIA_INTENSA'
+    | 'CLIMA_LLUVIA_ACUMULADA'
+    | 'CLIMA_PROBABILIDAD_LLUVIA'
+    | 'CLIMA_VIENTO_FUERTE';
   severidad: 'ADVERTENCIA' | 'CRITICA';
   titulo: string;
   mensaje: string;
@@ -36,6 +43,7 @@ export interface AlertaGestion {
   enlace: string;
   origenTipo: string;
   origenId: string;
+  actividadMiembroId: number | null;
   ciclo: number;
   detectadaEn: string;
   ultimaEvaluacionEn: string;
@@ -61,12 +69,13 @@ export interface PreferenciasAlertas {
   notificacionPush: boolean;
   notificacionEmail: boolean;
   soloPrioritarias: boolean;
+  alertasClimaActivas: boolean;
   emailVerificado: boolean;
 }
 
 export type ActualizarPreferenciasAlertas = Partial<Pick<
   PreferenciasAlertas,
-  'alertasActivas' | 'notificacionEnApp' | 'notificacionPush' | 'notificacionEmail' | 'soloPrioritarias'
+  'alertasActivas' | 'notificacionEnApp' | 'notificacionPush' | 'notificacionEmail' | 'soloPrioritarias' | 'alertasClimaActivas'
 >>;
 
 export const alertasApi = {
@@ -83,6 +92,10 @@ export const alertasApi = {
     api.patch(`/alertas/gestion/${id}/leida`).then((response) => response.data),
   revisarGestion: (id: string): Promise<{ ok: boolean }> =>
     api.patch(`/alertas/gestion/${id}/revisada`).then((response) => response.data),
+  crearTareaClimatica: (
+    id: string,
+    datos: { usuarioOrganizacionId: number; fechaInicio?: string; observacion?: string },
+  ) => api.post(`/alertas/gestion/${id}/tarea-climatica`, datos).then((response) => response.data),
   preferencias: (): Promise<PreferenciasAlertas> =>
     api.get('/alertas/preferencias').then((response) => response.data),
   actualizarPreferencias: (datos: ActualizarPreferenciasAlertas): Promise<PreferenciasAlertas> =>

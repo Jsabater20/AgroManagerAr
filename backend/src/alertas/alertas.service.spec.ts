@@ -4,6 +4,7 @@ describe('AlertasService', () => {
   const prisma = {
     asignacionCampo: { findMany: jest.fn() },
     actividadMiembro: { findMany: jest.fn() },
+    checklistPreventivoHidrico: { findMany: jest.fn() },
     costoProductivo: { findMany: jest.fn() },
     organizacion: { findMany: jest.fn(), findUnique: jest.fn() },
     lote: { findMany: jest.fn() },
@@ -18,15 +19,26 @@ describe('AlertasService', () => {
       count: jest.fn(),
     },
     alertaLectura: { upsert: jest.fn() },
+    preferenciaAlerta: { findMany: jest.fn(), findUnique: jest.fn() },
+    cachePronosticoClima: { findMany: jest.fn() },
+    umbralAlertaHidricaCampo: { findMany: jest.fn() },
   } as any;
   const memberAccessService = { requireModule: jest.fn() } as any;
   const planService = { isOrgPro: jest.fn() } as any;
   const notificacionesService = { crearNotificacionSiNoExiste: jest.fn() } as any;
+  const mailerService = { enviarCorreo: jest.fn() } as any;
+  const climaService = { actualizarPronosticosParaAlertas: jest.fn() } as any;
+  const actividadesService = { crear: jest.fn() } as any;
+  const camposService = { asegurarAccionPreventivaAutomatica: jest.fn() } as any;
   const service = new AlertasService(
     prisma,
     memberAccessService,
     planService,
     notificacionesService,
+    mailerService,
+    climaService,
+    actividadesService,
+    camposService,
   );
 
   beforeEach(() => {
@@ -67,12 +79,16 @@ describe('AlertasService', () => {
         campania: null,
       },
     ]);
+    prisma.checklistPreventivoHidrico.findMany.mockResolvedValue([]);
     prisma.organizacion.findMany.mockResolvedValue([{ id: 1, propietarioId: 10 }]);
     prisma.organizacion.findUnique.mockResolvedValue({ propietarioId: 10 });
     prisma.maquinaria.findMany.mockResolvedValue([]);
     prisma.alertaGestion.findMany.mockResolvedValue([]);
     prisma.alertaGestion.findFirst.mockResolvedValue({ id: 'alerta-1' });
     prisma.alertaLectura.upsert.mockResolvedValue({ id: 'lectura-1' });
+    prisma.preferenciaAlerta.findMany.mockResolvedValue([]);
+    prisma.preferenciaAlerta.findUnique.mockResolvedValue(null);
+    prisma.umbralAlertaHidricaCampo.findMany.mockResolvedValue([]);
     prisma.alertaGestion.create.mockImplementation(({ data }) => Promise.resolve({
       id: 'alerta-1',
       ciclo: 1,
@@ -88,6 +104,7 @@ describe('AlertasService', () => {
       enlace: data.enlace,
     }));
     notificacionesService.crearNotificacionSiNoExiste.mockResolvedValue(true);
+    camposService.asegurarAccionPreventivaAutomatica.mockResolvedValue({ creada: false });
   });
 
   it('detecta trabajos vencidos y costos reales por encima de la proyección', async () => {
@@ -101,6 +118,53 @@ describe('AlertasService', () => {
       }),
     ]));
     expect(notificacionesService.crearNotificacionSiNoExiste).toHaveBeenCalledTimes(2);
+  });
+
+  it('avisa acciones preventivas para hoy y vencidas', async () => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const ayer = new Date(hoy);
+    ayer.setDate(ayer.getDate() - 1);
+    const hoyMediodia = new Date(hoy);
+    hoyMediodia.setHours(12, 0, 0, 0);
+    const ayerMediodia = new Date(ayer);
+    ayerMediodia.setHours(12, 0, 0, 0);
+
+    prisma.actividadMiembro.findMany.mockReset();
+    prisma.actividadMiembro.findMany.mockResolvedValue([]);
+    prisma.costoProductivo.findMany.mockResolvedValue([]);
+    prisma.maquinaria.findMany.mockResolvedValue([]);
+    prisma.checklistPreventivoHidrico.findMany.mockResolvedValue([
+      {
+        id: 31,
+        organizacionId: 1,
+        campoId: 7,
+        titulo: 'Revisar drenajes',
+        fechaLimite: hoyMediodia,
+        campo: { nombre: 'Las Meninas' },
+      },
+      {
+        id: 32,
+        organizacionId: 1,
+        campoId: 7,
+        titulo: 'Controlar el acceso',
+        fechaLimite: ayerMediodia,
+        campo: { nombre: 'Las Meninas' },
+      },
+    ]);
+
+    const alertas = await service.listarParaOrganizaciones([1]);
+
+    expect(alertas).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        tipo: 'PLAN_PREVENTIVO_HIDRICO_HOY',
+        enlace: '/org/1/campos/7',
+      }),
+      expect.objectContaining({
+        tipo: 'PLAN_PREVENTIVO_HIDRICO_VENCIDO',
+        dedupeKey: 'alerta-plan-preventivo-vencido-32',
+      }),
+    ]));
   });
 
   it('prioriza alertas de inicio, seguimiento y vencimiento de trabajos', async () => {
@@ -234,6 +298,93 @@ describe('AlertasService', () => {
       'MAQUINARIA_VTV_VENCIDA',
     ]));
     expect(alertas).toHaveLength(3);
+  });
+
+  it('genera alertas climáticas solo para organizaciones que las activaron', async () => {
+    prisma.preferenciaAlerta.findMany.mockResolvedValue([{ organizacionId: 1 }]);
+    prisma.cachePronosticoClima.findMany.mockResolvedValue([{
+      organizacionId: 1,
+      campoId: 4,
+      campo: { nombre: 'Las Meninas' },
+      datos: {
+        diario: [{
+          temperaturaMinC: -1,
+          temperaturaMaxC: 38,
+          precipitacionMm: 56,
+          rafagasMaxKmh: 72,
+          codigoMeteorologico: 95,
+        }],
+      },
+    }]);
+
+    const alertas = await (service as any).listarAlertasClimaticas([1]);
+
+    expect(alertas.map((alerta: any) => alerta.tipo)).toEqual(expect.arrayContaining([
+      'CLIMA_TORMENTA',
+      'CLIMA_HELADA',
+      'CLIMA_CALOR_EXTREMO',
+      'CLIMA_LLUVIA_INTENSA',
+      'CLIMA_VIENTO_FUERTE',
+    ]));
+    expect(alertas.every((alerta: any) => alerta.enlace === '/org/1/clima?campoId=4')).toBe(true);
+  });
+
+  it('aplica los umbrales hídricos configurados para cada campo', async () => {
+    prisma.preferenciaAlerta.findMany.mockResolvedValue([{ organizacionId: 1 }]);
+    prisma.umbralAlertaHidricaCampo.findMany.mockResolvedValue([{
+      campoId: 4,
+      activo: true,
+      lluviaDiariaMm: 80,
+      lluviaAcumulada48hMm: 90,
+      probabilidadLluviaPct: 80,
+    }]);
+    prisma.cachePronosticoClima.findMany.mockResolvedValue([{
+      organizacionId: 1,
+      campoId: 4,
+      campo: { nombre: 'Las Meninas' },
+      datos: {
+        diario: [
+          { precipitacionMm: 40, probabilidadPrecipitacionMax: 85 },
+          { precipitacionMm: 60, probabilidadPrecipitacionMax: 40 },
+        ],
+      },
+    }]);
+
+    const alertas = await (service as any).listarAlertasClimaticas([1]);
+
+    expect(alertas.map((alerta: any) => alerta.tipo)).toEqual(expect.arrayContaining([
+      'CLIMA_LLUVIA_ACUMULADA',
+      'CLIMA_PROBABILIDAD_LLUVIA',
+    ]));
+    expect(alertas.map((alerta: any) => alerta.tipo)).not.toContain('CLIMA_LLUVIA_INTENSA');
+  });
+
+  it('crea como máximo una acción automática por campo ante alertas hídricas simultáneas', async () => {
+    await (service as any).asegurarAccionesPreventivasHidricas([
+      {
+        tipo: 'CLIMA_LLUVIA_INTENSA',
+        severidad: 'ADVERTENCIA',
+        titulo: 'Lluvias previstas',
+        mensaje: 'Se esperan 35 mm.',
+        organizacionId: 1,
+        origenId: '4',
+      },
+      {
+        tipo: 'CLIMA_LLUVIA_ACUMULADA',
+        severidad: 'CRITICA',
+        titulo: 'Acumulado relevante',
+        mensaje: 'Se esperan 90 mm en 48 h.',
+        organizacionId: 1,
+        origenId: '4',
+      },
+    ]);
+
+    expect(camposService.asegurarAccionPreventivaAutomatica).toHaveBeenCalledTimes(1);
+    expect(camposService.asegurarAccionPreventivaAutomatica).toHaveBeenCalledWith(
+      1,
+      4,
+      expect.objectContaining({ titulo: 'Acumulado relevante' }),
+    );
   });
 
   it('marca como leída una alerta persistente dentro de la organización activa', async () => {

@@ -11,6 +11,7 @@ import PublicFooter from '../../components/layout/PublicFooter';
 import PlanSimulator from '../../components/marketing/PlanSimulator';
 import { WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
+import { EstadoPromocionProCard } from '../../components/promociones/EstadoPromocionProCard';
 
 type ValorFeature = boolean | string;
 type Feature = {
@@ -163,6 +164,10 @@ export default function PreciosPage() {
           )}
         </div>
       )}
+
+      <div className="mb-8">
+        <EstadoPromocionProCard organizacionId={activeOrgId} compact />
+      </div>
 
       {/* Plans grid */}
       <div className="grid gap-6 mb-10 lg:grid-cols-3">

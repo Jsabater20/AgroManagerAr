@@ -53,7 +53,21 @@ export class MemberAccessService {
     organizacionId: number,
     campoId: number,
   ): Promise<void> {
-    const acceso = await this.requireModule(usuarioId, organizacionId, 'Campos');
+    return this.requireCampoParaModulo(
+      usuarioId,
+      organizacionId,
+      campoId,
+      'Campos',
+    );
+  }
+
+  async requireCampoParaModulo(
+    usuarioId: number,
+    organizacionId: number,
+    campoId: number,
+    moduloNombre: string,
+  ): Promise<void> {
+    const acceso = await this.requireModule(usuarioId, organizacionId, moduloNombre);
 
     if (acceso.esOwner) {
       return;

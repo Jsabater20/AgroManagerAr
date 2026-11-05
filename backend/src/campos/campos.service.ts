@@ -1,17 +1,86 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import {
+  CategoriaChecklistPreventivoHidrico,
+  EstadoActividad,
+  EstadoChecklistPreventivoHidrico,
+  Prioridad,
+  TipoRecursoActividad,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlanService } from '../plan/plan.service';
 import { MemberAccessService } from '../organizations/member-access.service';
 import { ReferidosService } from '../referidos/referidos.service';
+import { ActividadesService } from '../actividades/actividades.service';
 import {
   CreateCampoDto,
   UpdateCampoDto,
   CreateLoteDto,
+  UpdatePerfilRiesgoHidricoDto,
 } from './dto/campos.dto';
+import {
+  CreateChecklistPreventivoHidricoDto,
+  TipoPlantillaPreventiva,
+  UpdateChecklistPreventivoHidricoDto,
+} from './dto/checklist-hidrico.dto';
+import { UpdateUmbralAlertaHidricaCampoDto } from './dto/umbrales-alerta-hidrica.dto';
+
+const UMBRALES_ALERTA_HIDRICA_POR_DEFECTO = {
+  activo: true,
+  lluviaDiariaMm: 25,
+  lluviaAcumulada48hMm: 50,
+  probabilidadLluviaPct: 70,
+  crearAccionesAutomaticas: false,
+};
+
+const TIPOS_ALERTA_HIDRICA = [
+  'CLIMA_LLUVIA_INTENSA',
+  'CLIMA_LLUVIA_ACUMULADA',
+  'CLIMA_PROBABILIDAD_LLUVIA',
+];
+
+type AccionPlantillaPreventiva = {
+  titulo: string;
+  descripcion: string;
+  categoria: CategoriaChecklistPreventivoHidrico;
+};
+
+const PLANTILLAS_PREVENTIVAS: Record<TipoPlantillaPreventiva, AccionPlantillaPreventiva[]> = {
+  LLUVIA_INTENSA: [
+    { titulo: 'Revisar drenajes, zanjas y alcantarillas', descripcion: 'Limpiar obstrucciones y verificar que el agua pueda escurrir.', categoria: CategoriaChecklistPreventivoHidrico.DRENAJE },
+    { titulo: 'Verificar accesos, caminos y tranqueras', descripcion: 'Identificar los accesos que podrían cortarse y una alternativa segura.', categoria: CategoriaChecklistPreventivoHidrico.ACCESO },
+    { titulo: 'Resguardar insumos, maquinaria y tableros eléctricos', descripcion: 'Revisar techos, elevación, coberturas y puntos de riesgo.', categoria: CategoriaChecklistPreventivoHidrico.INFRAESTRUCTURA },
+    { titulo: 'Confirmar sectores altos para la hacienda', descripcion: 'Dejar definida la alternativa para resguardar animales si el agua sube.', categoria: CategoriaChecklistPreventivoHidrico.GANADERIA },
+  ],
+  EXCESO_AGUA: [
+    { titulo: 'Recorrer sectores bajos y detectar anegamientos', descripcion: 'Registrar los lugares donde el agua se acumula y señalizar los riesgos.', categoria: CategoriaChecklistPreventivoHidrico.DRENAJE },
+    { titulo: 'Suspender el tránsito por suelos saturados', descripcion: 'Evitar maquinaria pesada para no romper caminos ni compactar el suelo.', categoria: CategoriaChecklistPreventivoHidrico.ACCESO },
+    { titulo: 'Controlar bombas, bebederos y energía', descripcion: 'Verificar que los equipos críticos estén secos, accesibles y funcionando.', categoria: CategoriaChecklistPreventivoHidrico.INFRAESTRUCTURA },
+    { titulo: 'Registrar daños y dejar evidencia', descripcion: 'Tomar fotos y anotar la evolución para planificar las reparaciones.', categoria: CategoriaChecklistPreventivoHidrico.GENERAL },
+  ],
+  SEQUIA: [
+    { titulo: 'Revisar disponibilidad de agua', descripcion: 'Controlar tanques, molinos, bombas, bebederos y reservas de agua.', categoria: CategoriaChecklistPreventivoHidrico.GANADERIA },
+    { titulo: 'Priorizar lotes y cultivos más sensibles', descripcion: 'Definir dónde conviene recorrer primero o concentrar los recursos disponibles.', categoria: CategoriaChecklistPreventivoHidrico.GENERAL },
+    { titulo: 'Planificar el uso de forraje e insumos', descripcion: 'Revisar existencias y anticipar necesidades para los próximos días.', categoria: CategoriaChecklistPreventivoHidrico.MAQUINARIA_E_INSUMOS },
+    { titulo: 'Controlar el funcionamiento del riego', descripcion: 'Revisar filtros, mangueras, pérdidas y horarios de riego si corresponde.', categoria: CategoriaChecklistPreventivoHidrico.INFRAESTRUCTURA },
+  ],
+  HELADA: [
+    { titulo: 'Confirmar el pronóstico y recorrer temprano', descripcion: 'Revisar las zonas bajas y los cultivos más sensibles después de la helada.', categoria: CategoriaChecklistPreventivoHidrico.GENERAL },
+    { titulo: 'Proteger equipos, bombas y cañerías expuestas', descripcion: 'Evitar daños por congelamiento en instalaciones de agua o riego.', categoria: CategoriaChecklistPreventivoHidrico.INFRAESTRUCTURA },
+    { titulo: 'Revisar el estado de los animales', descripcion: 'Comprobar reparo, agua disponible y condición general de la hacienda.', categoria: CategoriaChecklistPreventivoHidrico.GANADERIA },
+    { titulo: 'Registrar daños visibles en cultivos', descripcion: 'Tomar fotos y anotar el lote afectado para seguir su evolución.', categoria: CategoriaChecklistPreventivoHidrico.GENERAL },
+  ],
+  VIENTO_FUERTE: [
+    { titulo: 'Asegurar techos, portones y coberturas', descripcion: 'Revisar chapas, lonas, silos bolsa, puertas y elementos sueltos.', categoria: CategoriaChecklistPreventivoHidrico.INFRAESTRUCTURA },
+    { titulo: 'Guardar maquinaria y herramientas expuestas', descripcion: 'Dejar los equipos en un lugar seguro y evitar traslados innecesarios.', categoria: CategoriaChecklistPreventivoHidrico.MAQUINARIA_E_INSUMOS },
+    { titulo: 'Evitar aplicaciones y trabajos riesgosos', descripcion: 'Reprogramar tareas que puedan verse afectadas por deriva o baja visibilidad.', categoria: CategoriaChecklistPreventivoHidrico.GENERAL },
+    { titulo: 'Revisar alambrados y árboles al finalizar', descripcion: 'Recorrer el campo y registrar daños antes de retomar la operación normal.', categoria: CategoriaChecklistPreventivoHidrico.ACCESO },
+  ],
+};
 
 @Injectable()
 export class CamposService {
@@ -20,6 +89,7 @@ export class CamposService {
     private planService: PlanService,
     private memberAccessService: MemberAccessService,
     private referidosService: ReferidosService,
+    private actividadesService: ActividadesService,
   ) {}
 
   async findAll(usuarioId: number, organizacionId: number, usuarioOrganizacionId?: number) {
@@ -172,5 +242,811 @@ export class CamposService {
     return this.prisma.lote.create({
       data: { ...dto, campoId },
     });
+  }
+
+  async obtenerPerfilRiesgoHidrico(
+    campoId: number,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(campoId, usuarioId, organizacionId);
+    const perfil = await this.prisma.perfilRiesgoHidricoCampo.findUnique({
+      where: { campoId },
+      include: {
+        actualizadoPor: {
+          select: { id: true, nombre: true, apellido: true },
+        },
+      },
+    });
+
+    if (!perfil) {
+      return {
+        campoId,
+        nivel: 'MEDIO' as const,
+        zonasBajas: null,
+        drenajes: null,
+        caminosYAccesos: null,
+        infraestructuraCritica: null,
+        sectoresSeguros: null,
+        observaciones: null,
+        actualizadoPor: null,
+        updatedAt: null,
+        configurado: false,
+        puedeEditar: acceso.esOwner,
+      };
+    }
+
+    return {
+      ...perfil,
+      configurado: true,
+      puedeEditar: acceso.esOwner,
+    };
+  }
+
+  async actualizarPerfilRiesgoHidrico(
+    campoId: number,
+    dto: UpdatePerfilRiesgoHidricoDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(campoId, usuarioId, organizacionId);
+    if (!acceso.esOwner) {
+      throw new ForbiddenException('Solo el owner puede actualizar el perfil de riesgo hídrico');
+    }
+
+    const datos = {
+      nivel: dto.nivel,
+      ...(dto.zonasBajas !== undefined ? { zonasBajas: this.normalizarTextoOpcional(dto.zonasBajas) } : {}),
+      ...(dto.drenajes !== undefined ? { drenajes: this.normalizarTextoOpcional(dto.drenajes) } : {}),
+      ...(dto.caminosYAccesos !== undefined ? { caminosYAccesos: this.normalizarTextoOpcional(dto.caminosYAccesos) } : {}),
+      ...(dto.infraestructuraCritica !== undefined ? { infraestructuraCritica: this.normalizarTextoOpcional(dto.infraestructuraCritica) } : {}),
+      ...(dto.sectoresSeguros !== undefined ? { sectoresSeguros: this.normalizarTextoOpcional(dto.sectoresSeguros) } : {}),
+      ...(dto.observaciones !== undefined ? { observaciones: this.normalizarTextoOpcional(dto.observaciones) } : {}),
+    };
+
+    return this.prisma.perfilRiesgoHidricoCampo.upsert({
+      where: { campoId },
+      create: {
+        organizacionId,
+        campoId,
+        actualizadoPorId: usuarioId,
+        ...datos,
+      },
+      update: {
+        ...datos,
+        actualizadoPorId: usuarioId,
+      },
+      include: {
+        actualizadoPor: {
+          select: { id: true, nombre: true, apellido: true },
+        },
+      },
+    });
+  }
+
+  async obtenerUmbralAlertaHidrica(
+    campoId: number,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    const esPro = await this.planService.isOrgPro(organizacionId);
+    if (!esPro) {
+      return {
+        campoId,
+        ...UMBRALES_ALERTA_HIDRICA_POR_DEFECTO,
+        actualizadoPor: null,
+        updatedAt: null,
+        configurado: false,
+        puedeEditar: false,
+        esPro: false,
+      };
+    }
+    const umbral = await this.prisma.umbralAlertaHidricaCampo.findUnique({
+      where: { campoId },
+      include: {
+        actualizadoPor: { select: { id: true, nombre: true, apellido: true } },
+      },
+    });
+
+    if (!umbral) {
+      return {
+        campoId,
+        ...UMBRALES_ALERTA_HIDRICA_POR_DEFECTO,
+        actualizadoPor: null,
+        updatedAt: null,
+        configurado: false,
+        puedeEditar: acceso.esOwner,
+        esPro: true,
+      };
+    }
+
+    return { ...umbral, configurado: true, puedeEditar: acceso.esOwner, esPro: true };
+  }
+
+  async actualizarUmbralAlertaHidrica(
+    campoId: number,
+    dto: UpdateUmbralAlertaHidricaCampoDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    this.requerirOwner(acceso.esOwner, 'configurar las alertas hídricas');
+    await this.planService.checkProAccess(
+      organizacionId,
+      'Los umbrales de alertas hídricas por campo',
+    );
+
+    if (dto.lluviaAcumulada48hMm < dto.lluviaDiariaMm) {
+      throw new BadRequestException(
+        'El acumulado de 48 horas debe ser igual o mayor al umbral diario',
+      );
+    }
+
+    return this.prisma.umbralAlertaHidricaCampo.upsert({
+      where: { campoId },
+      create: {
+        organizacionId,
+        campoId,
+        actualizadoPorId: usuarioId,
+        ...dto,
+      },
+      update: {
+        actualizadoPorId: usuarioId,
+        ...dto,
+      },
+      include: {
+        actualizadoPor: { select: { id: true, nombre: true, apellido: true } },
+      },
+    });
+  }
+
+  async asegurarAccionPreventivaAutomatica(
+    organizacionId: number,
+    campoId: number,
+    alerta: { titulo: string; mensaje: string },
+  ) {
+    if (!await this.planService.isOrgPro(organizacionId)) {
+      return { creada: false, motivo: 'PLAN_FREE' as const };
+    }
+    const automatizacion = await this.prisma.umbralAlertaHidricaCampo.findFirst({
+      where: {
+        organizacionId,
+        campoId,
+        activo: true,
+        crearAccionesAutomaticas: true,
+      },
+      select: { id: true },
+    });
+    if (!automatizacion) return { creada: false, motivo: 'DESACTIVADA' as const };
+
+    const pendiente = await this.prisma.checklistPreventivoHidrico.findFirst({
+      where: {
+        organizacionId,
+        campoId,
+        estado: EstadoChecklistPreventivoHidrico.PENDIENTE,
+        origenAutomatico: 'ALERTA_HIDRICA',
+      },
+      select: { id: true },
+    });
+    if (pendiente) return { creada: false, motivo: 'YA_EXISTE' as const, itemId: pendiente.id };
+
+    const organizacion = await this.prisma.organizacion.findUnique({
+      where: { id: organizacionId },
+      select: { propietarioId: true },
+    });
+    if (!organizacion) return { creada: false, motivo: 'ORGANIZACION_NO_ENCONTRADA' as const };
+
+    const fechaLimite = new Date();
+    fechaLimite.setHours(23, 59, 59, 999);
+    const creada = await this.prisma.checklistPreventivoHidrico.create({
+      data: {
+        organizacionId,
+        campoId,
+        titulo: 'Preparar el campo ante alerta hídrica',
+        descripcion: `${alerta.titulo}. ${alerta.mensaje}`,
+        categoria: CategoriaChecklistPreventivoHidrico.DRENAJE,
+        fechaLimite,
+        creadoPorId: organizacion.propietarioId,
+        origenAutomatico: 'ALERTA_HIDRICA',
+        actualizadoAutomaticamenteEn: new Date(),
+      },
+      select: { id: true },
+    });
+
+    return { creada: true, itemId: creada.id };
+  }
+
+  async obtenerResumenHidricoDashboard(usuarioId: number, organizacionId: number) {
+    const acceso = await this.memberAccessService.requireModule(
+      usuarioId,
+      organizacionId,
+      'Dashboard',
+    );
+    const campoIds = acceso.esOwner
+      ? undefined
+      : (await this.prisma.asignacionCampo.findMany({
+          where: {
+            usuarioOrganizacionId: acceso.usuarioOrganizacionId,
+            activo: true,
+          },
+          select: { campoId: true },
+        })).map((asignacion) => asignacion.campoId);
+
+    return this.obtenerResumenHidricoParaCampos(organizacionId, campoIds);
+  }
+
+  async obtenerResumenHidricoParaCampos(
+    organizacionId: number,
+    campoIds?: number[],
+  ) {
+    const esPro = await this.planService.isOrgPro(organizacionId);
+    if (campoIds && !campoIds.length) {
+      return {
+        resumen: {
+          totalCampos: 0,
+          altoRiesgo: 0,
+          sinPerfil: 0,
+          accionesPendientes: 0,
+          accionesAutomaticasPendientes: 0,
+          alertasActivas: 0,
+          automatizacionesActivas: 0,
+          siguienteAccion: null,
+        },
+        campos: [],
+      };
+    }
+
+    const filtroCampo = campoIds ? { id: { in: campoIds } } : {};
+    const [campos, alertas] = await Promise.all([
+      this.prisma.campo.findMany({
+        where: { organizacionId, ...filtroCampo },
+        select: {
+          id: true,
+          nombre: true,
+          perfilRiesgoHidrico: { select: { nivel: true } },
+          umbralAlertaHidrica: {
+            select: { activo: true, crearAccionesAutomaticas: true },
+          },
+          checklistHidrico: {
+            where: { estado: EstadoChecklistPreventivoHidrico.PENDIENTE },
+            select: {
+              id: true,
+              titulo: true,
+              fechaLimite: true,
+              origenAutomatico: true,
+            },
+          },
+        },
+        orderBy: { nombre: 'asc' },
+      }),
+      this.prisma.alertaGestion.findMany({
+        where: {
+          organizacionId,
+          estado: { in: ['ACTIVA', 'REVISADA'] },
+          tipo: { in: TIPOS_ALERTA_HIDRICA },
+          ...(campoIds ? { origenId: { in: campoIds.map(String) } } : {}),
+        },
+        select: { origenId: true, severidad: true },
+      }),
+    ]);
+
+    const alertasPorCampo = new Map<number, Array<{ severidad: string }>>();
+    for (const alerta of alertas) {
+      const campoId = Number(alerta.origenId);
+      if (!Number.isInteger(campoId)) continue;
+      const actuales = alertasPorCampo.get(campoId) ?? [];
+      actuales.push({ severidad: alerta.severidad });
+      alertasPorCampo.set(campoId, actuales);
+    }
+
+    const prioridadRiesgo: Record<string, number> = { ALTO: 0, MEDIO: 1, BAJO: 2 };
+    const detalleCampos = campos.map((campo) => {
+      const alertasCampo = alertasPorCampo.get(campo.id) ?? [];
+      const accionesAutomaticas = campo.checklistHidrico.filter(
+        (item) => item.origenAutomatico === 'ALERTA_HIDRICA',
+      ).length;
+      const proximaAccion = [...campo.checklistHidrico]
+        .sort((primera, segunda) => {
+          if (!primera.fechaLimite && !segunda.fechaLimite) return 0;
+          if (!primera.fechaLimite) return 1;
+          if (!segunda.fechaLimite) return -1;
+          return primera.fechaLimite.getTime() - segunda.fechaLimite.getTime();
+        })[0] ?? null;
+      const nivelRiesgo = campo.perfilRiesgoHidrico?.nivel ?? null;
+      return {
+        id: campo.id,
+        nombre: campo.nombre,
+        nivelRiesgo,
+        perfilConfigurado: Boolean(campo.perfilRiesgoHidrico),
+        accionesPendientes: campo.checklistHidrico.length,
+        accionesAutomaticasPendientes: esPro ? accionesAutomaticas : 0,
+        proximaAccion: proximaAccion
+          ? {
+              id: proximaAccion.id,
+              titulo: proximaAccion.titulo,
+              fechaLimite: proximaAccion.fechaLimite,
+            }
+          : null,
+        alertasActivas: alertasCampo.length,
+        alertasPrioritarias: alertasCampo.filter(
+          (alerta) => alerta.severidad === 'PRIORITARIA',
+        ).length,
+        automatizacionActiva: Boolean(
+          esPro && campo.umbralAlertaHidrica?.activo &&
+            campo.umbralAlertaHidrica.crearAccionesAutomaticas,
+        ),
+      };
+    });
+
+    const camposParaMostrar = detalleCampos
+      .filter((campo) =>
+        campo.alertasActivas > 0 ||
+        campo.accionesPendientes > 0 ||
+        campo.nivelRiesgo === 'ALTO' ||
+        !campo.perfilConfigurado,
+      )
+      .sort((primero, segundo) => {
+        if (segundo.alertasPrioritarias !== primero.alertasPrioritarias) {
+          return segundo.alertasPrioritarias - primero.alertasPrioritarias;
+        }
+        if (segundo.alertasActivas !== primero.alertasActivas) {
+          return segundo.alertasActivas - primero.alertasActivas;
+        }
+        const prioridadPrimero = primero.nivelRiesgo ? prioridadRiesgo[primero.nivelRiesgo] : 3;
+        const prioridadSegundo = segundo.nivelRiesgo ? prioridadRiesgo[segundo.nivelRiesgo] : 3;
+        return prioridadPrimero - prioridadSegundo;
+      })
+      .slice(0, 5);
+
+    const siguienteAccion = detalleCampos
+      .filter((campo) => Boolean(campo.proximaAccion))
+      .sort((primero, segundo) => {
+        const fechaPrimero =
+          primero.proximaAccion?.fechaLimite?.getTime() ?? Number.POSITIVE_INFINITY;
+        const fechaSegundo =
+          segundo.proximaAccion?.fechaLimite?.getTime() ?? Number.POSITIVE_INFINITY;
+        return fechaPrimero - fechaSegundo;
+      })[0]?.proximaAccion;
+    const campoSiguienteAccion = siguienteAccion
+      ? detalleCampos.find((campo) => campo.proximaAccion?.id === siguienteAccion.id)
+      : null;
+
+    return {
+      resumen: {
+        totalCampos: campos.length,
+        altoRiesgo: detalleCampos.filter((campo) => campo.nivelRiesgo === 'ALTO').length,
+        sinPerfil: detalleCampos.filter((campo) => !campo.perfilConfigurado).length,
+        accionesPendientes: detalleCampos.reduce(
+          (total, campo) => total + campo.accionesPendientes,
+          0,
+        ),
+        accionesAutomaticasPendientes: detalleCampos.reduce(
+          (total, campo) => total + campo.accionesAutomaticasPendientes,
+          0,
+        ),
+        alertasActivas: alertas.length,
+        automatizacionesActivas: detalleCampos.filter(
+          (campo) => campo.automatizacionActiva,
+        ).length,
+        siguienteAccion: siguienteAccion && campoSiguienteAccion
+          ? {
+              campoId: campoSiguienteAccion.id,
+              campoNombre: campoSiguienteAccion.nombre,
+              titulo: siguienteAccion.titulo,
+              fechaLimite: siguienteAccion.fechaLimite,
+            }
+          : null,
+      },
+      campos: camposParaMostrar,
+    };
+  }
+
+  async listarChecklistPreventivoHidrico(
+    campoId: number,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    const [items, trabajos] = await Promise.all([
+      this.prisma.checklistPreventivoHidrico.findMany({
+        where: { campoId, organizacionId },
+        include: {
+          responsable: {
+            select: {
+              id: true,
+              cargo: true,
+              cargoPersonalizado: true,
+              usuario: { select: { id: true, nombre: true, apellido: true } },
+            },
+          },
+          completadoPor: { select: { id: true, nombre: true, apellido: true } },
+          creadoPor: { select: { id: true, nombre: true, apellido: true } },
+        },
+        orderBy: [{ estado: 'asc' }, { fechaLimite: 'asc' }, { createdAt: 'asc' }],
+      }),
+      this.prisma.actividadMiembro.findMany({
+        where: {
+          organizacionId,
+          recursoTipo: TipoRecursoActividad.CAMPO,
+          recursoId: campoId,
+          contexto: { startsWith: 'PREVENCION_HIDRICA:' },
+          activo: true,
+        },
+        select: { id: true, estado: true, contexto: true },
+      }),
+    ]);
+
+    const trabajosPorAccion = new Map<string, { id: number; estado: string }>();
+    for (const trabajo of trabajos) {
+      if (trabajo.contexto) {
+        trabajosPorAccion.set(trabajo.contexto, {
+          id: trabajo.id,
+          estado: trabajo.estado,
+        });
+      }
+    }
+
+    return {
+      puedeEditar: acceso.esOwner,
+      items: items.map((item) => {
+        const trabajo = trabajosPorAccion.get(`PREVENCION_HIDRICA:${item.id}`) ?? null;
+        return {
+          ...item,
+          trabajo,
+          puedeCrearTrabajo:
+            acceso.esOwner &&
+            item.estado === EstadoChecklistPreventivoHidrico.PENDIENTE &&
+            Boolean(item.responsableId) &&
+            !trabajo,
+          puedeCompletar:
+            acceso.esOwner || item.responsableId === acceso.usuarioOrganizacionId,
+        };
+      }),
+    };
+  }
+
+  async crearChecklistPreventivoHidrico(
+    campoId: number,
+    dto: CreateChecklistPreventivoHidricoDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    this.requerirOwner(acceso.esOwner, 'crear acciones preventivas');
+    await this.validarResponsableChecklist(dto.responsableId, organizacionId);
+
+    return this.prisma.checklistPreventivoHidrico.create({
+      data: {
+        organizacionId,
+        campoId,
+        titulo: this.normalizarTitulo(dto.titulo),
+        descripcion: this.normalizarTextoOpcional(dto.descripcion),
+        categoria: dto.categoria ?? CategoriaChecklistPreventivoHidrico.GENERAL,
+        responsableId: dto.responsableId ?? null,
+        fechaLimite: this.normalizarFechaOpcional(dto.fechaLimite),
+        creadoPorId: usuarioId,
+      },
+    });
+  }
+
+  async actualizarChecklistPreventivoHidrico(
+    campoId: number,
+    itemId: number,
+    dto: UpdateChecklistPreventivoHidricoDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    this.requerirOwner(acceso.esOwner, 'editar acciones preventivas');
+    await this.obtenerChecklistPreventivoHidrico(campoId, itemId, organizacionId);
+
+    if (dto.responsableId !== undefined) {
+      await this.validarResponsableChecklist(dto.responsableId, organizacionId);
+    }
+
+    return this.prisma.checklistPreventivoHidrico.update({
+      where: { id: itemId },
+      data: {
+        ...(dto.titulo !== undefined ? { titulo: this.normalizarTitulo(dto.titulo) } : {}),
+        ...(dto.descripcion !== undefined
+          ? { descripcion: this.normalizarTextoOpcional(dto.descripcion) }
+          : {}),
+        ...(dto.categoria !== undefined ? { categoria: dto.categoria } : {}),
+        ...(dto.responsableId !== undefined
+          ? { responsableId: dto.responsableId }
+          : {}),
+        ...(dto.fechaLimite !== undefined
+          ? { fechaLimite: this.normalizarFechaOpcional(dto.fechaLimite) }
+          : {}),
+      },
+    });
+  }
+
+  async crearTrabajoDesdeChecklistPreventivoHidrico(
+    campoId: number,
+    itemId: number,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    this.requerirOwner(acceso.esOwner, 'crear trabajos desde el plan preventivo');
+
+    const item = await this.prisma.checklistPreventivoHidrico.findFirst({
+      where: { id: itemId, campoId, organizacionId },
+      select: {
+        id: true,
+        titulo: true,
+        descripcion: true,
+        responsableId: true,
+        fechaLimite: true,
+        estado: true,
+        campo: { select: { nombre: true } },
+      },
+    });
+
+    if (!item) throw new NotFoundException('Acción preventiva no encontrada');
+    if (item.estado === EstadoChecklistPreventivoHidrico.COMPLETADO) {
+      throw new BadRequestException('La acción ya está marcada como realizada.');
+    }
+    if (!item.responsableId) {
+      throw new BadRequestException(
+        'Asigná una persona a esta acción antes de crear el trabajo.',
+      );
+    }
+
+    const contexto = `PREVENCION_HIDRICA:${item.id}`;
+    const trabajoExistente = await this.prisma.actividadMiembro.findFirst({
+      where: { organizacionId, recursoTipo: TipoRecursoActividad.CAMPO, recursoId: campoId, contexto, activo: true },
+      select: { id: true, estado: true },
+    });
+    if (trabajoExistente) return { trabajo: trabajoExistente, creado: false };
+
+    const ahora = new Date();
+    const fechaInicio =
+      item.fechaLimite && item.fechaLimite < ahora ? item.fechaLimite : ahora;
+    const descripcion = [
+      `Trabajo preventivo del campo ${item.campo.nombre}.`,
+      item.descripcion?.trim(),
+    ]
+      .filter((texto): texto is string => Boolean(texto))
+      .join('\n\n');
+
+    const trabajo = await this.actividadesService.crear(
+      organizacionId,
+      {
+        titulo: `Prevención: ${item.titulo}`,
+        descripcion,
+        usuarioOrganizacionId: item.responsableId,
+        recursoTipo: TipoRecursoActividad.CAMPO,
+        recursoId: campoId,
+        contexto,
+        fechaInicio: fechaInicio.toISOString(),
+        ...(item.fechaLimite
+          ? { fechaEstimadaFin: item.fechaLimite.toISOString() }
+          : {}),
+        observacionInicial: 'Creado desde el plan de prevención del campo.',
+        prioridad: Prioridad.ALTA,
+      },
+      usuarioId,
+    );
+
+    return { trabajo, creado: true };
+  }
+
+  async actualizarEstadoChecklistPreventivoHidrico(
+    campoId: number,
+    itemId: number,
+    estado: EstadoChecklistPreventivoHidrico,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    const item = await this.obtenerChecklistPreventivoHidrico(
+      campoId,
+      itemId,
+      organizacionId,
+    );
+    const esResponsable = item.responsableId === acceso.usuarioOrganizacionId;
+
+    if (!acceso.esOwner && !esResponsable) {
+      throw new ForbiddenException('Solo el responsable asignado puede completar esta acción');
+    }
+    if (!acceso.esOwner && estado === EstadoChecklistPreventivoHidrico.PENDIENTE) {
+      throw new ForbiddenException('Solo el owner puede reabrir una acción completada');
+    }
+
+    const completada = estado === EstadoChecklistPreventivoHidrico.COMPLETADO;
+    const trabajoVinculado = await this.prisma.actividadMiembro.findFirst({
+      where: {
+        organizacionId,
+        recursoTipo: TipoRecursoActividad.CAMPO,
+        recursoId: campoId,
+        contexto: `PREVENCION_HIDRICA:${itemId}`,
+        activo: true,
+      },
+      select: { estado: true },
+    });
+
+    const trabajoEnCurso =
+      trabajoVinculado &&
+      trabajoVinculado.estado !== EstadoActividad.COMPLETADA &&
+      trabajoVinculado.estado !== EstadoActividad.CANCELADA;
+    if (completada && trabajoEnCurso) {
+      throw new BadRequestException(
+        'Completá el trabajo desde Tareas para actualizar esta acción automáticamente.',
+      );
+    }
+    if (!completada && trabajoVinculado?.estado === EstadoActividad.COMPLETADA) {
+      throw new BadRequestException(
+        'Reabrí el trabajo desde Tareas para volver esta acción a pendiente.',
+      );
+    }
+
+    return this.prisma.checklistPreventivoHidrico.update({
+      where: { id: itemId },
+      data: {
+        estado,
+        completadoEn: completada ? new Date() : null,
+        completadoPorId: completada ? usuarioId : null,
+      },
+    });
+  }
+
+  async eliminarChecklistPreventivoHidrico(
+    campoId: number,
+    itemId: number,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    this.requerirOwner(acceso.esOwner, 'eliminar acciones preventivas');
+    await this.obtenerChecklistPreventivoHidrico(campoId, itemId, organizacionId);
+
+    await this.prisma.checklistPreventivoHidrico.delete({ where: { id: itemId } });
+    return { eliminado: true };
+  }
+
+  async crearPlantillaChecklistPreventivoHidrico(
+    campoId: number,
+    usuarioId: number,
+    organizacionId: number,
+    tipo: TipoPlantillaPreventiva = 'LLUVIA_INTENSA',
+  ) {
+    const acceso = await this.validarAccesoPerfilRiesgoHidrico(
+      campoId,
+      usuarioId,
+      organizacionId,
+    );
+    this.requerirOwner(acceso.esOwner, 'cargar el checklist sugerido');
+
+    const plantilla = PLANTILLAS_PREVENTIVAS[tipo];
+
+    const existentes = await this.prisma.checklistPreventivoHidrico.findMany({
+      where: {
+        organizacionId,
+        campoId,
+        titulo: { in: plantilla.map((item) => item.titulo) },
+      },
+      select: { titulo: true },
+    });
+    const titulosExistentes = new Set(existentes.map((item) => item.titulo));
+    const nuevos = plantilla.filter((item) => !titulosExistentes.has(item.titulo));
+
+    if (nuevos.length) {
+      await this.prisma.checklistPreventivoHidrico.createMany({
+        data: nuevos.map((item) => ({
+          ...item,
+          organizacionId,
+          campoId,
+          creadoPorId: usuarioId,
+        })),
+      });
+    }
+
+    return { creados: nuevos.length, tipo };
+  }
+
+  private async validarAccesoPerfilRiesgoHidrico(
+    campoId: number,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const acceso = await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Campos');
+    if (!acceso.esOwner) {
+      await this.memberAccessService.requireCampo(usuarioId, organizacionId, campoId);
+    }
+
+    const campo = await this.prisma.campo.findFirst({
+      where: { id: campoId, organizacionId },
+      select: { id: true },
+    });
+    if (!campo) throw new NotFoundException('Campo no encontrado');
+    return acceso;
+  }
+
+  private async obtenerChecklistPreventivoHidrico(
+    campoId: number,
+    itemId: number,
+    organizacionId: number,
+  ) {
+    const item = await this.prisma.checklistPreventivoHidrico.findFirst({
+      where: { id: itemId, campoId, organizacionId },
+      select: { id: true, responsableId: true },
+    });
+    if (!item) throw new NotFoundException('Acción preventiva no encontrada');
+    return item;
+  }
+
+  private async validarResponsableChecklist(
+    responsableId: number | null | undefined,
+    organizacionId: number,
+  ) {
+    if (responsableId == null) return;
+
+    const responsable = await this.prisma.usuarioOrganizacion.findFirst({
+      where: { id: responsableId, organizacionId, activo: true },
+      select: { id: true },
+    });
+    if (!responsable) {
+      throw new BadRequestException('El responsable debe ser un miembro activo de la organización');
+    }
+  }
+
+  private requerirOwner(esOwner: boolean, accion: string) {
+    if (!esOwner) {
+      throw new ForbiddenException(`Solo el owner puede ${accion}`);
+    }
+  }
+
+  private normalizarTitulo(valor: string) {
+    const titulo = valor.trim();
+    if (!titulo) throw new BadRequestException('El título de la acción es requerido');
+    return titulo;
+  }
+
+  private normalizarTextoOpcional(valor?: string | null) {
+    return valor?.trim() || null;
+  }
+
+  private normalizarFechaOpcional(valor?: string | null) {
+    if (!valor) return null;
+    const fecha = new Date(valor);
+    if (Number.isNaN(fecha.getTime())) {
+      throw new BadRequestException('La fecha límite no es válida');
+    }
+    return fecha;
   }
 }

@@ -90,6 +90,8 @@ export interface Campo {
   id: number;
   nombre: string;
   ubicacion?: string;
+  provincia?: string;
+  localidad?: string;
   hectareas: number;
   lotes?: Lote[];
   usuarioId: number;
@@ -103,6 +105,8 @@ export interface CreateCampoDto {
   nombre: string;
   hectareas: number;
   ubicacion?: string;
+  provincia?: string;
+  localidad?: string;
   propietario?: string;
   latitud?: number;
   longitud?: number;
