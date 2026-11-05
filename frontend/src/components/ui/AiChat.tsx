@@ -115,8 +115,7 @@ export default function AiChat() {
       {/* Panel */}
       {open && (
         <div
-          className="fixed bottom-24 right-6 z-50 w-90 max-w-[calc(100vw-1.5rem)] flex flex-col rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-          style={{ height: '520px', background: 'var(--chat-bg, white)' }}
+          className="fixed bottom-24 right-6 z-50 flex h-[520px] w-90 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
         >
           {/* Header */}
           <div className="flex items-center gap-2.5 px-4 py-3 bg-green-700 text-white shrink-0">
