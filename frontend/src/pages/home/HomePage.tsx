@@ -24,15 +24,7 @@ import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { EMPRESA_STANDARD_PAYMENT_URL } from '../../constants/payments';
-<<<<<<< HEAD
-=======
-import TeamSection from '../../components/marketing/TeamSection';
-import FertilizerCalculatorPreview from '../../components/marketing/FertilizerCalculatorPreview';
-import ActivityExplorer from '../../components/marketing/ActivityExplorer';
-import WorkflowTour from '../../components/marketing/WorkflowTour';
-import PlanSimulator from '../../components/marketing/PlanSimulator';
 import { PromocionLanzamientoBanner } from '../../components/promociones/PromocionLanzamientoBanner';
->>>>>>> develop
 
 /* ─── PRICING DATA ───────────────────────────────────────────────── */
 const FREE_FEATURES = [
