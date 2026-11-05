@@ -8,88 +8,92 @@ datasource db {
 }
 
 model Usuario {
-  id                   Int       @id @default(autoincrement())
-  email                String    @unique
-  nombre               String
-  password             String
-  rol                  Rol       @default(OPERADOR)
-  rolGlobal            String    @default("USER")
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  resetToken           String?
-  resetTokenExpiry     DateTime?
-  mpSuscripcionId      String?
-  plan                 PlanTipo  @default(FREE)
-  planExpira           DateTime?
-  emailVerificado      Boolean   @default(false)
-  emailVerifToken      String?
-  apellido             String    @default("")
-  fotoPerfilStorageKey String?
-  fotoPerfilPosicionX  Int       @default(50)
-  fotoPerfilPosicionY  Int       @default(50)
-  fotoPerfilEscala     Float     @default(1)
-  trialUsado           Boolean   @default(false)
-  codigoReferido       String    @unique @default(cuid())
-  recibeComunicaciones Boolean   @default(false)
-  recibeNovedades      Boolean   @default(false)
-  recibePromociones    Boolean   @default(false)
-  comunicacionesConsentidasEn DateTime?
+  id                                       Int       @id @default(autoincrement())
+  email                                    String    @unique
+  nombre                                   String
+  password                                 String
+  rol                                      Rol       @default(OPERADOR)
+  rolGlobal                                String    @default("USER")
+  createdAt                                DateTime  @default(now())
+  updatedAt                                DateTime  @updatedAt
+  resetToken                               String?
+  resetTokenExpiry                         DateTime?
+  mpSuscripcionId                          String?
+  plan                                     PlanTipo  @default(FREE)
+  planExpira                               DateTime?
+  emailVerificado                          Boolean   @default(false)
+  emailVerifToken                          String?
+  apellido                                 String    @default("")
+  fotoPerfilStorageKey                     String?
+  fotoPerfilPosicionX                      Int       @default(50)
+  fotoPerfilPosicionY                      Int       @default(50)
+  fotoPerfilEscala                         Float     @default(1)
+  trialUsado                               Boolean   @default(false)
+  codigoReferido                           String    @unique @default(cuid())
+  recibeComunicaciones                     Boolean   @default(false)
+  recibeNovedades                          Boolean   @default(false)
+  recibePromociones                        Boolean   @default(false)
+  comunicacionesConsentidasEn              DateTime?
   preferenciasComunicacionesActualizadasEn DateTime?
 
-  animales                       Animal[]
-  auditoriasLogs                 AuditoriaLog[]           @relation("auditoriaLogs")
-  campanias                      Campania[]
-  campos                         Campo[]
-  invitaciones                   InvitacionOrganizacion[]
-  maquinarias                    Maquinaria[]
-  movimientos                    MovimientoFinanciero[]
-  cultivosFrutihorticolas        CultivoFrutihorticola[]
-  cosechasFrutihorticolas        CosechaFrutihorticola[]
-  ordenes                        RegistroOrdene[]
-  galponesAvicolas               GalponAvicola[]
-  registrosAvicolas              RegistroAvicolaDiario[]
-  cuadrosYerba                   CuadroYerba[]
-  cosechasYerba                  CosechaYerba[]
-  organizacionesQueEsDueno       Organizacion[]           @relation("organizacion_owner")
-  empresasQueEsDueno             Empresa[]                @relation("empresa_owner")
-  membresiasEmpresa              UsuarioEmpresa[]
-  tareas                         TareaRural[]
-  membresiasOrganizacion         UsuarioOrganizacion[]
-  actividadesCreadasParaMiembros ActividadMiembro[]       @relation("creadoPor")
-  observacionesActividades       ObservacionActividad[]   @relation("autorObservaciones")
-  dispositivosPush               DispositivoPush[]
-  evidencias                     Evidencia[]              @relation("evidenciasCreadasPor")
-  beneficiosProOtorgados         BeneficioProOrganizacion[] @relation("beneficiosProOtorgados")
-  campaniasPromocionalesCreadas  CampaniaPromocional[]      @relation("campaniasPromocionalesCreadas")
-  campaniasPromocionalesActivadas CampaniaPromocional[]     @relation("campaniasPromocionalesActivadas")
-  asignacionesPromocionales      AsignacionPromocion[]
-  referidosComoReferente         Referido[]                @relation("referenteReferido")
-  referidoRecibido               Referido?                 @relation("referidoReferido")
-  notificaciones                 Notificacion[]
-  lecturasAlertas                AlertaLectura[]
-  preferenciasAlertas            PreferenciaAlerta[]
-  calculosGuardados              CalculoGuardado[]
-  costosProductivosCreados       CostoProductivo[]       @relation("costo_productivo_creador")
-  preferenciasReportes           PreferenciaReporte[]
-  historialReportes              HistorialReporte[]
-  enviosReportesAutomaticos      EnvioReporteAutomatico[]
-  registrosPrecipitacion         RegistroPrecipitacion[]
-  historialPrecipitaciones       HistorialRegistroPrecipitacion[]
-  novedadesCreadas               NovedadProducto[]       @relation("novedades_creadas")
-  lecturasNovedades              NovedadProductoLectura[]
-  enviosCorreoNovedades          EnvioCorreoNovedad[]
+  animales                          Animal[]
+  auditoriasLogs                    AuditoriaLog[]                   @relation("auditoriaLogs")
+  campanias                         Campania[]
+  campos                            Campo[]
+  invitaciones                      InvitacionOrganizacion[]
+  maquinarias                       Maquinaria[]
+  movimientos                       MovimientoFinanciero[]
+  cultivosFrutihorticolas           CultivoFrutihorticola[]
+  cosechasFrutihorticolas           CosechaFrutihorticola[]
+  ordenes                           RegistroOrdene[]
+  galponesAvicolas                  GalponAvicola[]
+  registrosAvicolas                 RegistroAvicolaDiario[]
+  cuadrosYerba                      CuadroYerba[]
+  cosechasYerba                     CosechaYerba[]
+  organizacionesQueEsDueno          Organizacion[]                   @relation("organizacion_owner")
+  empresasQueEsDueno                Empresa[]                        @relation("empresa_owner")
+  membresiasEmpresa                 UsuarioEmpresa[]
+  tareas                            TareaRural[]
+  membresiasOrganizacion            UsuarioOrganizacion[]
+  actividadesCreadasParaMiembros    ActividadMiembro[]               @relation("creadoPor")
+  observacionesActividades          ObservacionActividad[]           @relation("autorObservaciones")
+  dispositivosPush                  DispositivoPush[]
+  evidencias                        Evidencia[]                      @relation("evidenciasCreadasPor")
+  beneficiosProOtorgados            BeneficioProOrganizacion[]       @relation("beneficiosProOtorgados")
+  campaniasPromocionalesCreadas     CampaniaPromocional[]            @relation("campaniasPromocionalesCreadas")
+  campaniasPromocionalesActivadas   CampaniaPromocional[]            @relation("campaniasPromocionalesActivadas")
+  asignacionesPromocionales         AsignacionPromocion[]
+  referidosComoReferente            Referido[]                       @relation("referenteReferido")
+  referidoRecibido                  Referido?                        @relation("referidoReferido")
+  notificaciones                    Notificacion[]
+  lecturasAlertas                   AlertaLectura[]
+  preferenciasAlertas               PreferenciaAlerta[]
+  calculosGuardados                 CalculoGuardado[]
+  costosProductivosCreados          CostoProductivo[]                @relation("costo_productivo_creador")
+  preferenciasReportes              PreferenciaReporte[]
+  historialReportes                 HistorialReporte[]
+  enviosReportesAutomaticos         EnvioReporteAutomatico[]
+  registrosPrecipitacion            RegistroPrecipitacion[]
+  historialPrecipitaciones          HistorialRegistroPrecipitacion[]
+  novedadesCreadas                  NovedadProducto[]                @relation("novedades_creadas")
+  lecturasNovedades                 NovedadProductoLectura[]
+  enviosCorreoNovedades             EnvioCorreoNovedad[]
+  perfilesRiesgoHidricoActualizados PerfilRiesgoHidricoCampo[]       @relation("perfil_riesgo_hidrico_actualizado_por")
+  checklistsHidricosCreados         ChecklistPreventivoHidrico[]    @relation("checklist_hidrico_creado_por")
+  checklistsHidricosCompletados     ChecklistPreventivoHidrico[]    @relation("checklist_hidrico_completado_por")
+  umbralesAlertaHidricaActualizados UmbralAlertaHidricaCampo[]      @relation("umbral_alerta_hidrica_actualizado_por")
 }
 
 model Referido {
-  id                    Int       @id @default(autoincrement())
-  referenteId           Int
-  referidoId            Int       @unique
-  registradoEn          DateTime  @default(now())
-  emailVerificadoEn     DateTime?
-  primerCampoCreadoEn   DateTime?
-  validadoEn            DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                  Int       @id @default(autoincrement())
+  referenteId         Int
+  referidoId          Int       @unique
+  registradoEn        DateTime  @default(now())
+  emailVerificadoEn   DateTime?
+  primerCampoCreadoEn DateTime?
+  validadoEn          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   referente Usuario @relation("referenteReferido", fields: [referenteId], references: [id], onDelete: Restrict)
   referido  Usuario @relation("referidoReferido", fields: [referidoId], references: [id], onDelete: Cascade)
@@ -98,16 +102,16 @@ model Referido {
 }
 
 model Notificacion {
-  id          String    @id @default(cuid())
-  usuarioId   Int
-  tipo        String
-  titulo      String
-  mensaje     String
-  enlace      String?
-  dedupeKey   String?   @unique
-  visibleEnApp Boolean  @default(true)
-  leidaEn     DateTime?
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(cuid())
+  usuarioId    Int
+  tipo         String
+  titulo       String
+  mensaje      String
+  enlace       String?
+  dedupeKey    String?   @unique
+  visibleEnApp Boolean   @default(true)
+  leidaEn      DateTime?
+  createdAt    DateTime  @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
@@ -115,22 +119,22 @@ model Notificacion {
 }
 
 model NovedadProducto {
-  id             String                    @id @default(cuid())
-  titulo         String
-  resumen        String
-  contenido      String                    @db.Text
-  categoria      CategoriaNovedadProducto  @default(GENERAL)
-  estado         EstadoNovedadProducto     @default(BORRADOR)
-  version        String?
-  destacada      Boolean                   @default(false)
-  publicadaEn    DateTime?
-  notificadaEn   DateTime?
-  creadoPorId    Int?
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
+  id           String                   @id @default(cuid())
+  titulo       String
+  resumen      String
+  contenido    String                   @db.Text
+  categoria    CategoriaNovedadProducto @default(GENERAL)
+  estado       EstadoNovedadProducto    @default(BORRADOR)
+  version      String?
+  destacada    Boolean                  @default(false)
+  publicadaEn  DateTime?
+  notificadaEn DateTime?
+  creadoPorId  Int?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
-  creadoPor Usuario?                 @relation("novedades_creadas", fields: [creadoPorId], references: [id], onDelete: SetNull)
-  lecturas  NovedadProductoLectura[]
+  creadoPor    Usuario?                 @relation("novedades_creadas", fields: [creadoPorId], references: [id], onDelete: SetNull)
+  lecturas     NovedadProductoLectura[]
   enviosCorreo EnvioCorreoNovedad[]
 
   @@index([estado, publicadaEn])
@@ -138,18 +142,18 @@ model NovedadProducto {
 }
 
 model EnvioCorreoNovedad {
-  id          String                    @id @default(cuid())
-  novedadId   String
-  usuarioId   Int
-  estado      EstadoEnvioCorreoNovedad  @default(PENDIENTE)
-  intentos    Int                       @default(0)
-  error       String?
-  enviadoEn   DateTime?
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
+  id        String                   @id @default(cuid())
+  novedadId String
+  usuarioId Int
+  estado    EstadoEnvioCorreoNovedad @default(PENDIENTE)
+  intentos  Int                      @default(0)
+  error     String?
+  enviadoEn DateTime?
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
 
   novedad NovedadProducto @relation(fields: [novedadId], references: [id], onDelete: Cascade)
-  usuario Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([novedadId, usuarioId])
   @@index([novedadId, estado])
@@ -157,44 +161,44 @@ model EnvioCorreoNovedad {
 }
 
 model NovedadProductoLectura {
-  id         String   @id @default(cuid())
-  novedadId  String
-  usuarioId  Int
-  leidaEn    DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  novedadId String
+  usuarioId Int
+  leidaEn   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   novedad NovedadProducto @relation(fields: [novedadId], references: [id], onDelete: Cascade)
-  usuario Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([novedadId, usuarioId])
   @@index([usuarioId, leidaEn])
 }
 
 model AlertaGestion {
-  id                    String    @id @default(cuid())
-  organizacionId        Int
-  clave                 String
-  tipo                  String
-  severidad             String
-  estado                String    @default("ACTIVA")
-  titulo                String
-  mensaje               String
-  enlace                String
-  origenTipo            String
-  origenId              String
-  actividadMiembroId    Int?
-  ciclo                 Int       @default(1)
-  detectadaEn           DateTime  @default(now())
-  ultimaEvaluacionEn    DateTime  @default(now())
-  revisadaEn            DateTime?
-  resueltaEn            DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  organizacionId     Int
+  clave              String
+  tipo               String
+  severidad          String
+  estado             String    @default("ACTIVA")
+  titulo             String
+  mensaje            String
+  enlace             String
+  origenTipo         String
+  origenId           String
+  actividadMiembroId Int?
+  ciclo              Int       @default(1)
+  detectadaEn        DateTime  @default(now())
+  ultimaEvaluacionEn DateTime  @default(now())
+  revisadaEn         DateTime?
+  resueltaEn         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  organizacion       Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  actividadMiembro   ActividadMiembro?  @relation("actividad_alerta_climatica", fields: [actividadMiembroId], references: [id], onDelete: SetNull)
-  lecturas           AlertaLectura[]
+  organizacion     Organizacion      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  actividadMiembro ActividadMiembro? @relation("actividad_alerta_climatica", fields: [actividadMiembroId], references: [id], onDelete: SetNull)
+  lecturas         AlertaLectura[]
 
   @@unique([organizacionId, clave])
   @@index([organizacionId, estado, severidad])
@@ -251,48 +255,51 @@ model DispositivoPush {
 }
 
 model Campo {
-  id              Int                    @id @default(autoincrement())
-  nombre          String
-  hectareas       Float
-  ubicacion       String?
-  propietario     String?
-  usuarioId       Int
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  latitud         Float?
-  longitud        Float?
-  provincia       String?
-  localidad       String?
-  organizacionId  Int?
-  AsignacionCampo AsignacionCampo[]
-  organizacion    Organizacion?          @relation(fields: [organizacionId], references: [id])
-  usuario         Usuario                @relation(fields: [usuarioId], references: [id])
-  lotes           Lote[]
-  maquinarias     Maquinaria[]
-  movimentos      MovimientoFinanciero[]
-  costosProductivos CostoProductivo[]
-  tareas          TareaRural[]
+  id                      Int                       @id @default(autoincrement())
+  nombre                  String
+  hectareas               Float
+  ubicacion               String?
+  propietario             String?
+  usuarioId               Int
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  latitud                 Float?
+  longitud                Float?
+  provincia               String?
+  localidad               String?
+  organizacionId          Int?
+  AsignacionCampo         AsignacionCampo[]
+  organizacion            Organizacion?             @relation(fields: [organizacionId], references: [id])
+  usuario                 Usuario                   @relation(fields: [usuarioId], references: [id])
+  lotes                   Lote[]
+  maquinarias             Maquinaria[]
+  movimentos              MovimientoFinanciero[]
+  costosProductivos       CostoProductivo[]
+  tareas                  TareaRural[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
-  cuadrosYerba           CuadroYerba[]
-  cachePronosticosClima  CachePronosticoClima[]
-  registrosPrecipitacion RegistroPrecipitacion[]
+  cuadrosYerba            CuadroYerba[]
+  cachePronosticosClima   CachePronosticoClima[]
+  registrosPrecipitacion  RegistroPrecipitacion[]
+  perfilRiesgoHidrico     PerfilRiesgoHidricoCampo?
+  checklistHidrico        ChecklistPreventivoHidrico[]
+  umbralAlertaHidrica     UmbralAlertaHidricaCampo?
 
   @@index([organizacionId])
 }
 
 model Lote {
-  id        Int       @id @default(autoincrement())
-  nombre    String
-  hectareas Float
-  campoId   Int
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  campo     Campo     @relation(fields: [campoId], references: [id])
-  siembras  Siembra[]
-  costosProductivos CostoProductivo[]
+  id                      Int                     @id @default(autoincrement())
+  nombre                  String
+  hectareas               Float
+  campoId                 Int
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  campo                   Campo                   @relation(fields: [campoId], references: [id])
+  siembras                Siembra[]
+  costosProductivos       CostoProductivo[]
   cultivosFrutihorticolas CultivoFrutihorticola[]
-  cuadrosYerba           CuadroYerba[]
-  registrosPrecipitacion RegistroPrecipitacion[]
+  cuadrosYerba            CuadroYerba[]
+  registrosPrecipitacion  RegistroPrecipitacion[]
 }
 
 model TipoCultivo {
@@ -304,23 +311,23 @@ model TipoCultivo {
 }
 
 model Siembra {
-  id            Int                    @id @default(autoincrement())
-  loteId        Int
-  tipoCultivoId Int
-  fechaSiembra  DateTime
-  densidad      Float?
-  observaciones String?
-  estado        EstadoSiembra          @default(EN_CURSO)
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  campaniaId    Int?
-  aplicaciones  AplicacionInsumo[]
-  cosechas      Cosecha[]
-  movimentos    MovimientoFinanciero[]
+  id                Int                    @id @default(autoincrement())
+  loteId            Int
+  tipoCultivoId     Int
+  fechaSiembra      DateTime
+  densidad          Float?
+  observaciones     String?
+  estado            EstadoSiembra          @default(EN_CURSO)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  campaniaId        Int?
+  aplicaciones      AplicacionInsumo[]
+  cosechas          Cosecha[]
+  movimentos        MovimientoFinanciero[]
   costosProductivos CostoProductivo[]
-  campania      Campania?              @relation(fields: [campaniaId], references: [id])
-  lote          Lote                   @relation(fields: [loteId], references: [id])
-  tipoCultivo   TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
+  campania          Campania?              @relation(fields: [campaniaId], references: [id])
+  lote              Lote                   @relation(fields: [loteId], references: [id])
+  tipoCultivo       TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
 }
 
 model Cosecha {
@@ -337,28 +344,28 @@ model Cosecha {
 }
 
 model CultivoFrutihorticola {
-  id                    Int                         @id @default(autoincrement())
-  organizacionId        Int
-  campoId               Int
-  loteId                Int?
-  usuarioId             Int
-  nombre                String
-  especie               String
-  variedad              String?
-  sistema               SistemaFrutihorticola
-  fechaInicio           DateTime
-  fechaEstimadaCosecha  DateTime?
-  estado                EstadoCultivoFrutihorticola @default(EN_CURSO)
-  superficieM2          Float?
-  cantidadPlantas       Int?
-  observaciones         String?
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  organizacion          Organizacion                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  campo                 Campo                       @relation(fields: [campoId], references: [id])
-  lote                  Lote?                       @relation(fields: [loteId], references: [id])
-  usuario               Usuario                     @relation(fields: [usuarioId], references: [id])
-  cosechas              CosechaFrutihorticola[]
+  id                   Int                         @id @default(autoincrement())
+  organizacionId       Int
+  campoId              Int
+  loteId               Int?
+  usuarioId            Int
+  nombre               String
+  especie              String
+  variedad             String?
+  sistema              SistemaFrutihorticola
+  fechaInicio          DateTime
+  fechaEstimadaCosecha DateTime?
+  estado               EstadoCultivoFrutihorticola @default(EN_CURSO)
+  superficieM2         Float?
+  cantidadPlantas      Int?
+  observaciones        String?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  organizacion         Organizacion                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo                Campo                       @relation(fields: [campoId], references: [id])
+  lote                 Lote?                       @relation(fields: [loteId], references: [id])
+  usuario              Usuario                     @relation(fields: [usuarioId], references: [id])
+  cosechas             CosechaFrutihorticola[]
 
   @@index([organizacionId, estado])
   @@index([campoId])
@@ -366,24 +373,24 @@ model CultivoFrutihorticola {
 }
 
 model CosechaFrutihorticola {
-  id                    Int                    @id @default(autoincrement())
-  cultivoId             Int
-  usuarioId             Int
-  fechaCosecha          DateTime
-  kgPrimera             Float                  @default(0)
-  kgSegunda             Float                  @default(0)
-  kgDescarte            Float                  @default(0)
-  destino               String?
-  observaciones         String?
-  createdAt             DateTime               @default(now())
-  cultivo               CultivoFrutihorticola @relation(fields: [cultivoId], references: [id], onDelete: Cascade)
-  usuario               Usuario                @relation(fields: [usuarioId], references: [id])
+  id            Int                   @id @default(autoincrement())
+  cultivoId     Int
+  usuarioId     Int
+  fechaCosecha  DateTime
+  kgPrimera     Float                 @default(0)
+  kgSegunda     Float                 @default(0)
+  kgDescarte    Float                 @default(0)
+  destino       String?
+  observaciones String?
+  createdAt     DateTime              @default(now())
+  cultivo       CultivoFrutihorticola @relation(fields: [cultivoId], references: [id], onDelete: Cascade)
+  usuario       Usuario               @relation(fields: [usuarioId], references: [id])
 
   @@index([cultivoId, fechaCosecha])
 }
 
 model CuadroYerba {
-  id             Int          @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   organizacionId Int
   campoId        Int
   loteId         Int?
@@ -391,14 +398,14 @@ model CuadroYerba {
   nombre         String
   superficieHa   Float?
   edadPlantacion Int?
-  activo         Boolean      @default(true)
+  activo         Boolean        @default(true)
   observaciones  String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  campo          Campo        @relation(fields: [campoId], references: [id])
-  lote           Lote?        @relation(fields: [loteId], references: [id])
-  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organizacion   Organizacion   @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo          Campo          @relation(fields: [campoId], references: [id])
+  lote           Lote?          @relation(fields: [loteId], references: [id])
+  usuario        Usuario        @relation(fields: [usuarioId], references: [id])
   cosechas       CosechaYerba[]
 
   @@index([organizacionId, activo])
@@ -407,33 +414,33 @@ model CuadroYerba {
 }
 
 model CosechaYerba {
-  id             Int          @id @default(autoincrement())
-  cuadroId       Int
-  usuarioId      Int
-  fechaCosecha   DateTime
-  kgHojaVerde    Float
-  kgCanchada     Float?
-  jornales       Float?
-  observaciones  String?
-  createdAt      DateTime     @default(now())
-  cuadro         CuadroYerba  @relation(fields: [cuadroId], references: [id], onDelete: Cascade)
-  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  id            Int         @id @default(autoincrement())
+  cuadroId      Int
+  usuarioId     Int
+  fechaCosecha  DateTime
+  kgHojaVerde   Float
+  kgCanchada    Float?
+  jornales      Float?
+  observaciones String?
+  createdAt     DateTime    @default(now())
+  cuadro        CuadroYerba @relation(fields: [cuadroId], references: [id], onDelete: Cascade)
+  usuario       Usuario     @relation(fields: [usuarioId], references: [id])
 
   @@index([cuadroId, fechaCosecha])
 }
 
 model Insumo {
-  organizacionId Int?
-  id             Int                @id @default(autoincrement())
-  nombre         String
-  tipo           TipoInsumo
-  unidad         String
-  descripcion    String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  aplicaciones   AplicacionInsumo[]
+  organizacionId    Int?
+  id                Int                @id @default(autoincrement())
+  nombre            String
+  tipo              TipoInsumo
+  unidad            String
+  descripcion       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  aplicaciones      AplicacionInsumo[]
   costosProductivos CostoProductivo[]
-  organizacion   Organizacion?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  organizacion      Organizacion?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 
   @@index([organizacionId])
 }
@@ -453,7 +460,7 @@ model AplicacionInsumo {
 }
 
 model Animal {
-  id              Int             @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
   usuarioId       Int
   nombre          String
   especie         Especie
@@ -462,11 +469,11 @@ model Animal {
   peso            Float?
   fechaNacimiento DateTime?
   observaciones   String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   organizacionId  Int?
-  organizacion    Organizacion?   @relation(fields: [organizacionId], references: [id])
-  usuario         Usuario         @relation(fields: [usuarioId], references: [id])
+  organizacion    Organizacion?    @relation(fields: [organizacionId], references: [id])
+  usuario         Usuario          @relation(fields: [usuarioId], references: [id])
   preneces        Prenez[]
   pesos           RegistroPeso[]
   ordenes         RegistroOrdene[]
@@ -567,43 +574,43 @@ model GastoMaquinaria {
 }
 
 model MovimientoFinanciero {
-  id             Int                 @id @default(autoincrement())
-  usuarioId      Int
-  tipo           TipoMovimiento
-  concepto       String
-  monto          Float
-  moneda         String              @default("ARS")
-  origen         OrigenMovimientoFinanciero @default(MANUAL)
-  fecha          DateTime
-  categoria      CategoriaMovimiento
-  campoId        Int?
-  siembraId      Int?
-  observaciones  String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  organizacionId Int?
-  campo          Campo?              @relation(fields: [campoId], references: [id])
-  organizacion   Organizacion?       @relation(fields: [organizacionId], references: [id])
-  siembra        Siembra?            @relation(fields: [siembraId], references: [id])
-  usuario        Usuario             @relation(fields: [usuarioId], references: [id])
+  id                Int                        @id @default(autoincrement())
+  usuarioId         Int
+  tipo              TipoMovimiento
+  concepto          String
+  monto             Float
+  moneda            String                     @default("ARS")
+  origen            OrigenMovimientoFinanciero @default(MANUAL)
+  fecha             DateTime
+  categoria         CategoriaMovimiento
+  campoId           Int?
+  siembraId         Int?
+  observaciones     String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  organizacionId    Int?
+  campo             Campo?                     @relation(fields: [campoId], references: [id])
+  organizacion      Organizacion?              @relation(fields: [organizacionId], references: [id])
+  siembra           Siembra?                   @relation(fields: [siembraId], references: [id])
+  usuario           Usuario                    @relation(fields: [usuarioId], references: [id])
   costosProductivos CostoProductivo[]
 
   @@index([organizacionId])
 }
 
 model Campania {
-  id             Int           @id @default(autoincrement())
-  usuarioId      Int
-  nombre         String
-  fechaInicio    DateTime
-  fechaFin       DateTime?
-  descripcion    String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  organizacionId Int?
-  organizacion   Organizacion? @relation(fields: [organizacionId], references: [id])
-  usuario        Usuario       @relation(fields: [usuarioId], references: [id])
-  siembras       Siembra[]
+  id                Int               @id @default(autoincrement())
+  usuarioId         Int
+  nombre            String
+  fechaInicio       DateTime
+  fechaFin          DateTime?
+  descripcion       String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  organizacionId    Int?
+  organizacion      Organizacion?     @relation(fields: [organizacionId], references: [id])
+  usuario           Usuario           @relation(fields: [usuarioId], references: [id])
+  siembras          Siembra[]
   costosProductivos CostoProductivo[]
 
   @@index([organizacionId])
@@ -639,107 +646,110 @@ model RegistroOrdene {
 }
 
 model GalponAvicola {
-  id             Int                @id @default(autoincrement())
+  id             Int                     @id @default(autoincrement())
   organizacionId Int
   usuarioId      Int
   nombre         String
   tipo           TipoGalponAvicola
   capacidad      Int?
-  activo         Boolean            @default(true)
+  activo         Boolean                 @default(true)
   observaciones  String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  organizacion   Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  usuario        Usuario            @relation(fields: [usuarioId], references: [id])
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  organizacion   Organizacion            @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario        Usuario                 @relation(fields: [usuarioId], references: [id])
   registros      RegistroAvicolaDiario[]
 
   @@index([organizacionId, activo])
 }
 
 model RegistroAvicolaDiario {
-  id             Int          @id @default(autoincrement())
+  id             Int           @id @default(autoincrement())
   organizacionId Int
   galponId       Int
   usuarioId      Int
   fecha          DateTime
   avesPresentes  Int
-  huevos         Int          @default(0)
-  mortandad      Int          @default(0)
-  alimentoKg     Float        @default(0)
+  huevos         Int           @default(0)
+  mortandad      Int           @default(0)
+  alimentoKg     Float         @default(0)
   pesoPromedioGr Float?
   observaciones  String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organizacion   Organizacion  @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   galpon         GalponAvicola @relation(fields: [galponId], references: [id], onDelete: Cascade)
-  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  usuario        Usuario       @relation(fields: [usuarioId], references: [id])
 
   @@unique([galponId, fecha])
   @@index([organizacionId, fecha])
 }
 
 model Organizacion {
-  id                    Int                          @id @default(autoincrement())
-  nombre                String
-  email                 String                       @unique
-  plan                  PlanTipo                     @default(FREE)
-  actividadPrincipal    ActividadProductiva?
-  propietarioId         Int
-  createdAt             DateTime                     @default(now())
-  updatedAt             DateTime                     @updatedAt
-  animales              Animal[]
-  asignacionesRecursos  AsignacionRecurso[]
-  auditoriasLogs        AuditoriaLog[]               @relation("auditoriaLogs")
-  campanias             Campania[]
-  campos                Campo[]
-  invitaciones          InvitacionOrganizacion[]
-  maquinarias           Maquinaria[]
-  movimientos           MovimientoFinanciero[]
-  insumos               Insumo[]
-  propietario           Usuario                      @relation("organizacion_owner", fields: [propietarioId], references: [id])
-  rolesPersonalizados   RolPersonalizado[]
-  tareas                TareaRural[]
-  miembros              UsuarioOrganizacion[]
-  actividades           ActividadMiembro[]
-  evidencias            Evidencia[]
-  beneficiosPro         BeneficioProOrganizacion[]
-  vinculacionEmpresa    EmpresaOrganizacion?
-  autorizacionesEmpresa UsuarioEmpresaOrganizacion[]
-  actividadesProductivas OrganizacionActividadProductiva[]
-  cultivosFrutihorticolas CultivoFrutihorticola[]
-  ordenes                 RegistroOrdene[]
-  galponesAvicolas        GalponAvicola[]
-  registrosAvicolas       RegistroAvicolaDiario[]
-  cuadrosYerba            CuadroYerba[]
-  calculosGuardados       CalculoGuardado[]
-  costosProductivos       CostoProductivo[]
-  alertasGestion          AlertaGestion[]
-  preferenciasAlertas     PreferenciaAlerta[]
-  preferenciasReportes    PreferenciaReporte[]
-  historialReportes       HistorialReporte[]
+  id                        Int                               @id @default(autoincrement())
+  nombre                    String
+  email                     String                            @unique
+  plan                      PlanTipo                          @default(FREE)
+  actividadPrincipal        ActividadProductiva?
+  propietarioId             Int
+  createdAt                 DateTime                          @default(now())
+  updatedAt                 DateTime                          @updatedAt
+  animales                  Animal[]
+  asignacionesRecursos      AsignacionRecurso[]
+  auditoriasLogs            AuditoriaLog[]                    @relation("auditoriaLogs")
+  campanias                 Campania[]
+  campos                    Campo[]
+  invitaciones              InvitacionOrganizacion[]
+  maquinarias               Maquinaria[]
+  movimientos               MovimientoFinanciero[]
+  insumos                   Insumo[]
+  propietario               Usuario                           @relation("organizacion_owner", fields: [propietarioId], references: [id])
+  rolesPersonalizados       RolPersonalizado[]
+  tareas                    TareaRural[]
+  miembros                  UsuarioOrganizacion[]
+  actividades               ActividadMiembro[]
+  evidencias                Evidencia[]
+  beneficiosPro             BeneficioProOrganizacion[]
+  vinculacionEmpresa        EmpresaOrganizacion?
+  autorizacionesEmpresa     UsuarioEmpresaOrganizacion[]
+  actividadesProductivas    OrganizacionActividadProductiva[]
+  cultivosFrutihorticolas   CultivoFrutihorticola[]
+  ordenes                   RegistroOrdene[]
+  galponesAvicolas          GalponAvicola[]
+  registrosAvicolas         RegistroAvicolaDiario[]
+  cuadrosYerba              CuadroYerba[]
+  calculosGuardados         CalculoGuardado[]
+  costosProductivos         CostoProductivo[]
+  alertasGestion            AlertaGestion[]
+  preferenciasAlertas       PreferenciaAlerta[]
+  preferenciasReportes      PreferenciaReporte[]
+  historialReportes         HistorialReporte[]
   enviosReportesAutomaticos EnvioReporteAutomatico[]
-  cachePronosticosClima    CachePronosticoClima[]
-  registrosPrecipitacion   RegistroPrecipitacion[]
+  cachePronosticosClima     CachePronosticoClima[]
+  registrosPrecipitacion    RegistroPrecipitacion[]
+  perfilesRiesgoHidrico     PerfilRiesgoHidricoCampo[]
+  checklistHidrico          ChecklistPreventivoHidrico[]
+  umbralesAlertaHidrica     UmbralAlertaHidricaCampo[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
 }
 
 model CalculoGuardado {
-  id             Int          @id @default(autoincrement())
-  organizacionId Int
-  usuarioId      Int
-  tipo           TipoCalculo
-  titulo         String
-  campoId        Int?
-  loteId         Int?
-  maquinariaId   Int?
-  datos          Json
-  resultado      Json
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  id                Int                @id @default(autoincrement())
+  organizacionId    Int
+  usuarioId         Int
+  tipo              TipoCalculo
+  titulo            String
+  campoId           Int?
+  loteId            Int?
+  maquinariaId      Int?
+  datos             Json
+  resultado         Json
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organizacion      Organizacion       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario           Usuario            @relation(fields: [usuarioId], references: [id])
   actividadesOrigen ActividadMiembro[] @relation("calculo_origen_actividad")
   costosProductivos CostoProductivo[]
 
@@ -748,12 +758,12 @@ model CalculoGuardado {
 }
 
 model OrganizacionActividadProductiva {
-  id             Int                  @id @default(autoincrement())
+  id             Int                 @id @default(autoincrement())
   organizacionId Int
   tipoActividad  ActividadProductiva
-  activo         Boolean              @default(true)
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  activo         Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 
@@ -762,19 +772,19 @@ model OrganizacionActividadProductiva {
 }
 
 model CachePronosticoClima {
-  id                    Int          @id @default(autoincrement())
-  organizacionId        Int
-  campoId               Int
-  proveedor             String
-  latitud               Float
-  longitud              Float
-  datos                 Json
-  obtenidoEn            DateTime
-  expiraEn              DateTime
+  id                     Int       @id @default(autoincrement())
+  organizacionId         Int
+  campoId                Int
+  proveedor              String
+  latitud                Float
+  longitud               Float
+  datos                  Json
+  obtenidoEn             DateTime
+  expiraEn               DateTime
   actualizadoProveedorEn DateTime?
-  errorUltimaConsulta   String?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  errorUltimaConsulta    String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   campo        Campo        @relation(fields: [campoId], references: [id], onDelete: Cascade)
@@ -796,24 +806,95 @@ model RegistroPrecipitacion {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  organizacion Organizacion                  @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  campo        Campo                         @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  lote         Lote?                         @relation(fields: [loteId], references: [id], onDelete: SetNull)
-  usuario      Usuario?                      @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  organizacion Organizacion                     @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo        Campo                            @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote         Lote?                            @relation(fields: [loteId], references: [id], onDelete: SetNull)
+  usuario      Usuario?                         @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   historial    HistorialRegistroPrecipitacion[]
 
   @@index([organizacionId, campoId, fecha])
   @@index([loteId, fecha])
 }
 
+model PerfilRiesgoHidricoCampo {
+  id                     Int                @id @default(autoincrement())
+  organizacionId         Int
+  campoId                Int                @unique
+  nivel                  NivelRiesgoHidrico @default(MEDIO)
+  zonasBajas             String?            @db.Text
+  drenajes               String?            @db.Text
+  caminosYAccesos        String?            @db.Text
+  infraestructuraCritica String?            @db.Text
+  sectoresSeguros        String?            @db.Text
+  observaciones          String?            @db.Text
+  actualizadoPorId       Int?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo          Campo        @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  actualizadoPor Usuario?     @relation("perfil_riesgo_hidrico_actualizado_por", fields: [actualizadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([organizacionId, nivel])
+}
+
+model ChecklistPreventivoHidrico {
+  id              Int                                  @id @default(autoincrement())
+  organizacionId  Int
+  campoId         Int
+  titulo          String
+  descripcion     String?                              @db.Text
+  categoria       CategoriaChecklistPreventivoHidrico @default(GENERAL)
+  responsableId   Int?
+  fechaLimite     DateTime?
+  estado          EstadoChecklistPreventivoHidrico    @default(PENDIENTE)
+  origenAutomatico String?
+  actualizadoAutomaticamenteEn DateTime?
+  completadoEn    DateTime?
+  completadoPorId Int?
+  creadoPorId     Int
+  createdAt       DateTime                             @default(now())
+  updatedAt       DateTime                             @updatedAt
+
+  organizacion  Organizacion         @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo         Campo                @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  responsable   UsuarioOrganizacion? @relation("checklist_hidrico_responsable", fields: [responsableId], references: [id], onDelete: SetNull)
+  completadoPor Usuario?             @relation("checklist_hidrico_completado_por", fields: [completadoPorId], references: [id], onDelete: SetNull)
+  creadoPor     Usuario              @relation("checklist_hidrico_creado_por", fields: [creadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([organizacionId, campoId, estado, fechaLimite])
+  @@index([responsableId, estado, fechaLimite])
+  @@index([organizacionId, campoId, origenAutomatico, estado])
+}
+
+model UmbralAlertaHidricaCampo {
+  id                       Int      @id @default(autoincrement())
+  organizacionId           Int
+  campoId                  Int      @unique
+  activo                   Boolean  @default(true)
+  lluviaDiariaMm           Float    @default(25)
+  lluviaAcumulada48hMm     Float    @default(50)
+  probabilidadLluviaPct    Int      @default(70)
+  crearAccionesAutomaticas Boolean  @default(false)
+  actualizadoPorId         Int?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  campo          Campo        @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  actualizadoPor Usuario?     @relation("umbral_alerta_hidrica_actualizado_por", fields: [actualizadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([organizacionId, activo])
+}
+
 model HistorialRegistroPrecipitacion {
-  id           Int       @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   registroId   Int
   usuarioId    Int?
   accion       String
   datosAntes   Json?
   datosDespues Json
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
   registro RegistroPrecipitacion @relation(fields: [registroId], references: [id], onDelete: Cascade)
   usuario  Usuario?              @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
@@ -822,25 +903,25 @@ model HistorialRegistroPrecipitacion {
 }
 
 model BeneficioProOrganizacion {
-  id             Int          @id @default(autoincrement())
-  organizacionId Int
-  otorgadoPorId  Int
+  id                    Int       @id @default(autoincrement())
+  organizacionId        Int
+  otorgadoPorId         Int
   asignacionPromocionId Int?
-  motivo         String?
-  fechaInicio    DateTime     @default(now())
-  fechaFin       DateTime
-  activo         Boolean      @default(true)
-  revocadoEn     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  motivo                String?
+  fechaInicio           DateTime  @default(now())
+  fechaFin              DateTime
+  activo                Boolean   @default(true)
+  revocadoEn            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  otorgadoPor  Usuario      @relation("beneficiosProOtorgados", fields: [otorgadoPorId], references: [id], onDelete: Restrict)
+  organizacion        Organizacion         @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  otorgadoPor         Usuario              @relation("beneficiosProOtorgados", fields: [otorgadoPorId], references: [id], onDelete: Restrict)
   asignacionPromocion AsignacionPromocion? @relation(fields: [asignacionPromocionId], references: [id], onDelete: SetNull)
 
+  @@unique([asignacionPromocionId, organizacionId])
   @@index([organizacionId, activo, fechaFin])
   @@index([otorgadoPorId])
-  @@unique([asignacionPromocionId, organizacionId])
 }
 
 model CampaniaPromocional {
@@ -868,21 +949,21 @@ model CampaniaPromocional {
 }
 
 model AsignacionPromocion {
-  id          Int                       @id @default(autoincrement())
-  campaniaId  Int
-  usuarioId   Int
-  fechaInicio DateTime
-  fechaFin    DateTime
-  origen      OrigenAsignacionPromocion
-  estado      EstadoAsignacionPromocion @default(ASIGNADA)
-  detalle     String?
+  id                Int                       @id @default(autoincrement())
+  campaniaId        Int
+  usuarioId         Int
+  fechaInicio       DateTime
+  fechaFin          DateTime
+  origen            OrigenAsignacionPromocion
+  estado            EstadoAsignacionPromocion @default(ASIGNADA)
+  detalle           String?
   bienvenidaVistaEn DateTime?
-  asignadaEn  DateTime                  @default(now())
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
+  asignadaEn        DateTime                  @default(now())
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
 
   campania   CampaniaPromocional        @relation(fields: [campaniaId], references: [id], onDelete: Cascade)
-  usuario    Usuario                     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario    Usuario                    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   beneficios BeneficioProOrganizacion[]
 
   @@unique([campaniaId, usuarioId])
@@ -891,15 +972,15 @@ model AsignacionPromocion {
 }
 
 model PreferenciaReporte {
-  id             Int          @id @default(autoincrement())
-  usuarioId      Int
-  organizacionId Int
-  tipoPeriodo    String       @default("MENSUAL")
-  vistaDesglose  String       @default("LOTES")
-  envioAutomatico Boolean     @default(false)
-  frecuenciaEnvio String      @default("MENSUAL")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id              Int      @id @default(autoincrement())
+  usuarioId       Int
+  organizacionId  Int
+  tipoPeriodo     String   @default("MENSUAL")
+  vistaDesglose   String   @default("LOTES")
+  envioAutomatico Boolean  @default(false)
+  frecuenciaEnvio String   @default("MENSUAL")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
@@ -909,17 +990,17 @@ model PreferenciaReporte {
 }
 
 model EnvioReporteAutomatico {
-  id             Int          @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   usuarioId      Int
   organizacionId Int
   tipoPeriodo    String
   periodoDesde   DateTime
   periodoHasta   DateTime
-  estado         String       @default("PROCESANDO")
+  estado         String    @default("PROCESANDO")
   error          String?
   enviadoEn      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
@@ -930,14 +1011,14 @@ model EnvioReporteAutomatico {
 }
 
 model HistorialReporte {
-  id              Int          @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   usuarioId       Int
   organizacionId  Int
   tipo            String
   fechaReferencia DateTime
   periodoDesde    DateTime
   periodoHasta    DateTime
-  createdAt       DateTime     @default(now())
+  createdAt       DateTime @default(now())
 
   usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
@@ -947,27 +1028,28 @@ model HistorialReporte {
 }
 
 model UsuarioOrganizacion {
-  id                  Int                 @id @default(autoincrement())
-  usuarioId           Int
-  organizacionId      Int
-  cargo               CargoEquipo         @default(OPERARIO_RURAL)
-  cargoPersonalizado  String?
-  responsableId       Int?
-  puedeGestionarEquipo Boolean             @default(false)
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  roles               String              @default("[]")
-  activo              Boolean             @default(true)
-  fechaInvitacion     DateTime            @default(now())
-  AsignacionCampo     AsignacionCampo[]
-  asignacionesPermiso AsignacionPermiso[] @relation("asignacionesPermiso")
-  asignaciones        AsignacionRecurso[]
-  organizacion        Organizacion        @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  usuario             Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  responsable         UsuarioOrganizacion? @relation("jerarquia_equipo", fields: [responsableId], references: [id], onDelete: SetNull)
-  equipoACargo        UsuarioOrganizacion[] @relation("jerarquia_equipo")
-  VisibilidadModulo   VisibilidadModulo[]
-  actividades         ActividadMiembro[]
+  id                   Int                   @id @default(autoincrement())
+  usuarioId            Int
+  organizacionId       Int
+  cargo                CargoEquipo           @default(OPERARIO_RURAL)
+  cargoPersonalizado   String?
+  responsableId        Int?
+  puedeGestionarEquipo Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  roles                String                @default("[]")
+  activo               Boolean               @default(true)
+  fechaInvitacion      DateTime              @default(now())
+  AsignacionCampo      AsignacionCampo[]
+  asignacionesPermiso  AsignacionPermiso[]   @relation("asignacionesPermiso")
+  asignaciones         AsignacionRecurso[]
+  organizacion         Organizacion          @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario              Usuario               @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  responsable          UsuarioOrganizacion?  @relation("jerarquia_equipo", fields: [responsableId], references: [id], onDelete: SetNull)
+  equipoACargo         UsuarioOrganizacion[] @relation("jerarquia_equipo")
+  VisibilidadModulo    VisibilidadModulo[]
+  actividades          ActividadMiembro[]
+  checklistHidricoAsignado ChecklistPreventivoHidrico[] @relation("checklist_hidrico_responsable")
 
   @@unique([usuarioId, organizacionId])
   @@index([usuarioId])
@@ -993,22 +1075,22 @@ model AsignacionRecurso {
 }
 
 model InvitacionOrganizacion {
-  id             Int              @id @default(autoincrement())
-  organizacionId Int
-  email          String
-  rol            RolOrganizacion  @default(OPERARIO)
-  token          String           @unique
-  estado         EstadoInvitacion @default(PENDIENTE)
-  mensaje        String?
-  cargo          CargoEquipo      @default(OPERARIO_RURAL)
+  id                 Int              @id @default(autoincrement())
+  organizacionId     Int
+  email              String
+  rol                RolOrganizacion  @default(OPERARIO)
+  token              String           @unique
+  estado             EstadoInvitacion @default(PENDIENTE)
+  mensaje            String?
+  cargo              CargoEquipo      @default(OPERARIO_RURAL)
   cargoPersonalizado String?
-  responsableId  Int?
-  expiresAt      DateTime
-  aceptadoEn     DateTime?
-  usuarioId      Int?
-  createdAt      DateTime         @default(now())
-  organizacion   Organizacion     @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  usuario        Usuario?         @relation(fields: [usuarioId], references: [id])
+  responsableId      Int?
+  expiresAt          DateTime
+  aceptadoEn         DateTime?
+  usuarioId          Int?
+  createdAt          DateTime         @default(now())
+  organizacion       Organizacion     @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario            Usuario?         @relation(fields: [usuarioId], references: [id])
 
   @@index([email])
   @@index([token])
@@ -1104,9 +1186,9 @@ model ActividadMiembro {
   titulo      String
   descripcion String?
 
-  recursoTipo TipoRecursoActividad
-  recursoId   Int?
-  contexto    String?
+  recursoTipo     TipoRecursoActividad
+  recursoId       Int?
+  contexto        String?
   calculoOrigenId Int?
 
   fechaInicio      DateTime
@@ -1139,43 +1221,43 @@ model ActividadMiembro {
 }
 
 model CostoProductivo {
-  id                      Int                         @id @default(autoincrement())
-  organizacionId          Int
-  actividadId             Int?
-  calculoGuardadoId       Int?
-  movimientoFinancieroId  Int?
-  campoId                 Int?
-  loteId                  Int?
-  siembraId               Int?
-  campaniaId              Int?
-  insumoId                Int?
-  maquinariaId            Int?
-  creadoPorId             Int
-  tipo                    TipoCostoProductivo
-  rubro                   RubroCostoProductivo
-  criterioDistribucion    CriterioDistribucionCosto  @default(MANUAL)
-  descripcion             String
-  cantidad                Decimal?                    @db.Decimal(16, 4)
-  unidad                  String?
-  costoUnitario           Decimal?                    @db.Decimal(16, 2)
-  monto                   Decimal                     @db.Decimal(16, 2)
-  superficieHa            Decimal?                    @db.Decimal(12, 2)
-  fecha                   DateTime                    @default(now())
-  idempotencyKey          String?                     @unique
-  createdAt               DateTime                    @default(now())
-  updatedAt               DateTime                    @updatedAt
+  id                     Int                       @id @default(autoincrement())
+  organizacionId         Int
+  actividadId            Int?
+  calculoGuardadoId      Int?
+  movimientoFinancieroId Int?
+  campoId                Int?
+  loteId                 Int?
+  siembraId              Int?
+  campaniaId             Int?
+  insumoId               Int?
+  maquinariaId           Int?
+  creadoPorId            Int
+  tipo                   TipoCostoProductivo
+  rubro                  RubroCostoProductivo
+  criterioDistribucion   CriterioDistribucionCosto @default(MANUAL)
+  descripcion            String
+  cantidad               Decimal?                  @db.Decimal(16, 4)
+  unidad                 String?
+  costoUnitario          Decimal?                  @db.Decimal(16, 2)
+  monto                  Decimal                   @db.Decimal(16, 2)
+  superficieHa           Decimal?                  @db.Decimal(12, 2)
+  fecha                  DateTime                  @default(now())
+  idempotencyKey         String?                   @unique
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
 
-  organizacion            Organizacion                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  actividad               ActividadMiembro?           @relation(fields: [actividadId], references: [id], onDelete: Restrict)
-  calculoGuardado         CalculoGuardado?            @relation(fields: [calculoGuardadoId], references: [id], onDelete: SetNull)
-  movimientoFinanciero    MovimientoFinanciero?       @relation(fields: [movimientoFinancieroId], references: [id], onDelete: Restrict)
-  campo                   Campo?                      @relation(fields: [campoId], references: [id], onDelete: Restrict)
-  lote                    Lote?                       @relation(fields: [loteId], references: [id], onDelete: Restrict)
-  siembra                 Siembra?                    @relation(fields: [siembraId], references: [id], onDelete: Restrict)
-  campania                Campania?                   @relation(fields: [campaniaId], references: [id], onDelete: SetNull)
-  insumo                  Insumo?                     @relation(fields: [insumoId], references: [id], onDelete: SetNull)
-  maquinaria              Maquinaria?                 @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
-  creadoPor               Usuario                      @relation("costo_productivo_creador", fields: [creadoPorId], references: [id], onDelete: Restrict)
+  organizacion         Organizacion          @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  actividad            ActividadMiembro?     @relation(fields: [actividadId], references: [id], onDelete: Restrict)
+  calculoGuardado      CalculoGuardado?      @relation(fields: [calculoGuardadoId], references: [id], onDelete: SetNull)
+  movimientoFinanciero MovimientoFinanciero? @relation(fields: [movimientoFinancieroId], references: [id], onDelete: Restrict)
+  campo                Campo?                @relation(fields: [campoId], references: [id], onDelete: Restrict)
+  lote                 Lote?                 @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  siembra              Siembra?              @relation(fields: [siembraId], references: [id], onDelete: Restrict)
+  campania             Campania?             @relation(fields: [campaniaId], references: [id], onDelete: SetNull)
+  insumo               Insumo?               @relation(fields: [insumoId], references: [id], onDelete: SetNull)
+  maquinaria           Maquinaria?           @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
+  creadoPor            Usuario               @relation("costo_productivo_creador", fields: [creadoPorId], references: [id], onDelete: Restrict)
 
   @@unique([actividadId, movimientoFinancieroId])
   @@index([organizacionId, tipo, fecha])
@@ -1685,9 +1767,30 @@ enum TipoRecursoEvidencia {
   ANIMAL
   MAQUINARIA
   INSUMO
+  CHECKLIST_HIDRICO
 }
 
 enum EstadoEvidencia {
   PENDIENTE
   CONFIRMADA
+}
+
+enum NivelRiesgoHidrico {
+  BAJO
+  MEDIO
+  ALTO
+}
+
+enum EstadoChecklistPreventivoHidrico {
+  PENDIENTE
+  COMPLETADO
+}
+
+enum CategoriaChecklistPreventivoHidrico {
+  DRENAJE
+  ACCESO
+  INFRAESTRUCTURA
+  GANADERIA
+  MAQUINARIA_E_INSUMOS
+  GENERAL
 }

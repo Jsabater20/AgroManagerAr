@@ -19,6 +19,8 @@ export interface AlertaOperativa {
     | 'CLIMA_HELADA'
     | 'CLIMA_CALOR_EXTREMO'
     | 'CLIMA_LLUVIA_INTENSA'
+    | 'CLIMA_LLUVIA_ACUMULADA'
+    | 'CLIMA_PROBABILIDAD_LLUVIA'
     | 'CLIMA_VIENTO_FUERTE';
   severidad: 'ADVERTENCIA' | 'CRITICA';
   titulo: string;

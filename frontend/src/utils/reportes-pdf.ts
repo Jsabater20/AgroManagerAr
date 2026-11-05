@@ -92,6 +92,19 @@ export function descargarReportePeriodicoPdf(reporte: ReportePeriodico) {
     y = siguienteY(doc) + 10;
   }
 
+  const resumenHidrico = reporte.riesgoHidrico.resumen;
+  const haySeguimientoHidrico = resumenHidrico.alertasActivas || resumenHidrico.accionesPendientes || resumenHidrico.altoRiesgo || resumenHidrico.sinPerfil;
+  if (haySeguimientoHidrico) {
+    seccion(doc, 'Seguimiento hídrico preventivo', y);
+    tabla(doc, y + 4, ['Riesgo alto', 'Acciones pendientes', 'Alertas por lluvia', 'Perfiles pendientes'], [[
+      resumenHidrico.altoRiesgo,
+      resumenHidrico.accionesPendientes,
+      resumenHidrico.alertasActivas,
+      resumenHidrico.sinPerfil,
+    ]]);
+    y = siguienteY(doc) + 10;
+  }
+
   seccion(doc, 'Trabajos del período', y);
   const actividades = [...reporte.actividad.realizadas, ...reporte.actividad.proximas];
   tabla(doc, y + 4, ['Trabajo', 'Responsable', 'Estado', 'Prioridad', 'Fecha estimada'], actividades.slice(0, 30).map((actividad) => [

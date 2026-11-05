@@ -16,7 +16,8 @@ export type TipoRecursoEvidencia =
   | 'SIEMBRA'
   | 'ANIMAL'
   | 'MAQUINARIA'
-  | 'INSUMO';
+  | 'INSUMO'
+  | 'CHECKLIST_HIDRICO';
 
 export interface ArchivoEvidencia {
   id: string;

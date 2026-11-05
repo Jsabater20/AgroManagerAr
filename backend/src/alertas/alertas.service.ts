@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { EstadoActividad, Prisma, Prioridad, TipoCostoProductivo, TipoRecursoActividad } from '@prisma/client';
 import { ActividadesService } from '../actividades/actividades.service';
 import { ClimaService } from '../clima/clima.service';
+import { CamposService } from '../campos/campos.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { MailerService } from '../mailer/mailer.service';
 import { MemberAccessService } from '../organizations/member-access.service';
@@ -30,6 +31,8 @@ export type AlertaOperativa = {
     | 'CLIMA_HELADA'
     | 'CLIMA_CALOR_EXTREMO'
     | 'CLIMA_LLUVIA_INTENSA'
+    | 'CLIMA_LLUVIA_ACUMULADA'
+    | 'CLIMA_PROBABILIDAD_LLUVIA'
     | 'CLIMA_VIENTO_FUERTE';
   severidad: 'ADVERTENCIA' | 'CRITICA';
   titulo: string;
@@ -51,9 +54,11 @@ type CostoAgrupado = {
 
 type PronosticoClimaticoCacheado = {
   diario?: Array<{
+    fecha?: string;
     temperaturaMaxC?: number | null;
     temperaturaMinC?: number | null;
     precipitacionMm?: number | null;
+    probabilidadPrecipitacionMax?: number | null;
     rafagasMaxKmh?: number | null;
     codigoMeteorologico?: number | null;
   }>;
@@ -94,6 +99,7 @@ export class AlertasService {
     private readonly mailerService: MailerService,
     private readonly climaService: ClimaService,
     private readonly actividadesService: ActividadesService,
+    private readonly camposService: CamposService,
   ) {}
 
   async obtenerPreferencias(usuarioId: number, organizacionId: number) {
@@ -692,6 +698,31 @@ export class AlertasService {
     const organizacionesConClima = [...new Set(preferencias.map((preferencia) => preferencia.organizacionId))];
     if (!organizacionesConClima.length) return [];
 
+    const organizacionesPro = new Set(
+      (await Promise.all(
+        organizacionesConClima.map(async (organizacionId) => (
+          await this.planService.isOrgPro(organizacionId) ? organizacionId : null
+        )),
+      )).filter((organizacionId): organizacionId is number => organizacionId !== null),
+    );
+    const umbralesHidricos = await this.prisma.umbralAlertaHidricaCampo.findMany({
+      where: {
+        organizacionId: { in: [...organizacionesPro] },
+        ...(campoIds ? { campoId: { in: campoIds } } : {}),
+      },
+      select: {
+        organizacionId: true,
+        campoId: true,
+        activo: true,
+        lluviaDiariaMm: true,
+        lluviaAcumulada48hMm: true,
+        probabilidadLluviaPct: true,
+      },
+    });
+    const umbralPorCampo = new Map(
+      umbralesHidricos.map((umbral) => [umbral.campoId, umbral]),
+    );
+
     const haceDosHoras = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const caches = await this.prisma.cachePronosticoClima.findMany({
       where: {
@@ -719,6 +750,8 @@ export class AlertasService {
         origenId: String(cache.campoId),
       };
       const nombreCampo = cache.campo.nombre;
+      const umbralHidrico = umbralPorCampo.get(cache.campoId);
+      const alertasHidricasActivas = umbralHidrico?.activo ?? true;
       const tormenta = dias.find((dia) => (dia.codigoMeteorologico ?? 0) >= 95);
       if (tormenta) {
         alertas.push({
@@ -760,16 +793,61 @@ export class AlertasService {
         });
       }
 
-      const lluvia = dias.find((dia) => typeof dia.precipitacionMm === 'number' && dia.precipitacionMm >= 25);
+      const umbralDiario = Number(umbralHidrico?.lluviaDiariaMm ?? 25);
+      const lluvia = alertasHidricasActivas
+        ? dias.find(
+            (dia) =>
+              typeof dia.precipitacionMm === 'number' &&
+              dia.precipitacionMm >= umbralDiario,
+          )
+        : undefined;
       if (lluvia) {
         const milimetros = Number(lluvia.precipitacionMm);
         alertas.push({
           id: `clima-lluvia-${cache.campoId}`,
           tipo: 'CLIMA_LLUVIA_INTENSA',
-          severidad: milimetros >= 50 ? 'CRITICA' : 'ADVERTENCIA',
+          severidad: milimetros >= umbralDiario * 1.8 ? 'CRITICA' : 'ADVERTENCIA',
           titulo: `Lluvias importantes previstas en ${nombreCampo}`,
-          mensaje: `Se esperan aproximadamente ${milimetros.toFixed(1)} mm. Revisá accesos, drenajes y tareas que puedan verse afectadas.`,
+          mensaje: `Se esperan aproximadamente ${milimetros.toFixed(1)} mm en un día (umbral configurado: ${umbralDiario.toFixed(1)} mm). Revisá accesos, drenajes y tareas que puedan verse afectadas.`,
           dedupeKey: `alerta-clima-lluvia-${cache.campoId}`,
+          ...base,
+        });
+      }
+
+      const umbralAcumulado = Number(umbralHidrico?.lluviaAcumulada48hMm ?? 50);
+      const acumulado48h = dias.reduce(
+        (total, dia) => total + (typeof dia.precipitacionMm === 'number' ? dia.precipitacionMm : 0),
+        0,
+      );
+      if (alertasHidricasActivas && acumulado48h >= umbralAcumulado) {
+        alertas.push({
+          id: `clima-lluvia-acumulada-${cache.campoId}`,
+          tipo: 'CLIMA_LLUVIA_ACUMULADA',
+          severidad: acumulado48h >= umbralAcumulado * 1.8 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `Acumulado de lluvia relevante en ${nombreCampo}`,
+          mensaje: `El pronóstico acumula aproximadamente ${acumulado48h.toFixed(1)} mm en las próximas 48 horas (umbral configurado: ${umbralAcumulado.toFixed(1)} mm). Prepará drenajes, accesos y sectores sensibles.`,
+          dedupeKey: `alerta-clima-lluvia-acumulada-${cache.campoId}`,
+          ...base,
+        });
+      }
+
+      const umbralProbabilidad = Number(umbralHidrico?.probabilidadLluviaPct ?? 70);
+      const probabilidad = alertasHidricasActivas
+        ? dias.find(
+            (dia) =>
+              typeof dia.probabilidadPrecipitacionMax === 'number' &&
+              dia.probabilidadPrecipitacionMax >= umbralProbabilidad,
+          )
+        : undefined;
+      if (probabilidad) {
+        const porcentaje = Number(probabilidad.probabilidadPrecipitacionMax);
+        alertas.push({
+          id: `clima-probabilidad-lluvia-${cache.campoId}`,
+          tipo: 'CLIMA_PROBABILIDAD_LLUVIA',
+          severidad: porcentaje >= Math.min(100, umbralProbabilidad + 20) ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `Alta probabilidad de lluvia en ${nombreCampo}`,
+          mensaje: `El pronóstico marca ${porcentaje}% de probabilidad de lluvia (umbral configurado: ${umbralProbabilidad}%). Revisá el plan preventivo del campo.`,
+          dedupeKey: `alerta-clima-probabilidad-lluvia-${cache.campoId}`,
           ...base,
         });
       }
@@ -885,6 +963,8 @@ export class AlertasService {
       data: { estado: 'RESUELTA', resueltaEn: ahora, ultimaEvaluacionEn: ahora },
     });
 
+    await this.asegurarAccionesPreventivasHidricas(alertas);
+
     if (!activadas.length) return;
 
     const organizacion = await this.prisma.organizacion.findUnique({
@@ -986,6 +1066,36 @@ export class AlertasService {
   private async actualizarAlertasGestion(organizacionId: number) {
     const alertas = await this.listarParaOrganizaciones([organizacionId]);
     await this.sincronizarAlertasPersistentes(organizacionId, alertas);
+  }
+
+  private async asegurarAccionesPreventivasHidricas(alertas: AlertaOperativa[]) {
+    const tiposHidricos = new Set<AlertaOperativa['tipo']>([
+      'CLIMA_LLUVIA_INTENSA',
+      'CLIMA_LLUVIA_ACUMULADA',
+      'CLIMA_PROBABILIDAD_LLUVIA',
+    ]);
+    const porCampo = new Map<number, AlertaOperativa>();
+
+    for (const alerta of alertas) {
+      if (!tiposHidricos.has(alerta.tipo)) continue;
+      const campoId = Number(alerta.origenId);
+      if (!Number.isInteger(campoId)) continue;
+
+      const actual = porCampo.get(campoId);
+      if (!actual || (alerta.severidad === 'CRITICA' && actual.severidad !== 'CRITICA')) {
+        porCampo.set(campoId, alerta);
+      }
+    }
+
+    await Promise.allSettled(
+      [...porCampo.entries()].map(([campoId, alerta]) =>
+        this.camposService.asegurarAccionPreventivaAutomatica(
+          alerta.organizacionId,
+          campoId,
+          { titulo: alerta.titulo, mensaje: alerta.mensaje },
+        ),
+      ),
+    );
   }
 
   private async requerirOwnerDashboard(usuarioId: number, organizacionId: number) {

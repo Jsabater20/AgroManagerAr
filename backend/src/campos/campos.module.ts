@@ -9,5 +9,6 @@ import { ReferidosModule } from '../referidos/referidos.module';
   imports: [PlanModule, OrganizationsModule, ReferidosModule],
   providers: [CamposService],
   controllers: [CamposController],
+  exports: [CamposService],
 })
 export class CamposModule {}

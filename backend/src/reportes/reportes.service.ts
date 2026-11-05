@@ -6,6 +6,7 @@ import {
   TipoMovimiento,
 } from '@prisma/client';
 import { AlertasService } from '../alertas/alertas.service';
+import { CamposService } from '../campos/campos.service';
 import { MemberAccessService } from '../organizations/member-access.service';
 import { PlanService } from '../plan/plan.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -39,6 +40,7 @@ export class ReportesService {
     private readonly memberAccessService: MemberAccessService,
     private readonly planService: PlanService,
     private readonly alertasService: AlertasService,
+    private readonly camposService: CamposService,
   ) {}
 
   async obtenerCapacidades(usuarioId: number, organizacionId: number) {
@@ -59,7 +61,7 @@ export class ReportesService {
         pdfProfesional: esPro,
         resumenInteligente: esPro,
         automatizacion: esPro,
-        envioPorCorreo: false,
+        envioPorCorreo: esPro,
       },
       periodosSugeridos: {
         semanal: periodoSemanalCerrado(),
@@ -392,7 +394,7 @@ export class ReportesService {
       select: { id: true, nombre: true },
     });
     const periodoAnterior = periodoAnteriorCerrado(periodo);
-    const [actividad, maquinaria, finanzas, finanzasAnteriores, alertas] = await Promise.all([
+    const [actividad, maquinaria, finanzas, finanzasAnteriores, alertas, riesgoHidrico] = await Promise.all([
       this.obtenerActividad(usuarioId, organizacionId, contexto, periodo),
       this.obtenerMaquinaria(organizacionId, contexto.campoIds, periodo),
       contexto.puedeVerFinanzas
@@ -402,6 +404,7 @@ export class ReportesService {
         ? this.obtenerFinanzas(organizacionId, contexto.campoIds, periodoAnterior)
         : null,
       this.obtenerAlertas(organizacionId, contexto.campoIds, contexto.puedeVerFinanzas),
+      this.camposService.obtenerResumenHidricoParaCampos(organizacionId, contexto.campoIds),
     ]);
 
     const comparacionAnterior = finanzas && finanzasAnteriores
@@ -425,7 +428,8 @@ export class ReportesService {
       maquinaria,
       finanzas: finanzas && { ...finanzas, comparacionAnterior },
       alertas,
-      resumen: this.crearResumen(actividad, maquinaria, finanzas, alertas),
+      riesgoHidrico,
+      resumen: this.crearResumen(actividad, maquinaria, finanzas, alertas, riesgoHidrico.resumen),
       resumenInteligente: generarResumenInteligente({
         actividad,
         maquinaria,
@@ -682,6 +686,7 @@ export class ReportesService {
     maquinaria: { mantenimientos: number; gastosRegistrados: number },
     finanzas: { saldo: number } | null,
     alertas: { prioritarias: number },
+    riesgoHidrico: { alertasActivas: number; accionesPendientes: number; altoRiesgo: number },
   ) {
     const partes = [`Se completaron ${actividad.completadas} trabajos en el período.`];
     if (actividad.vencidas) partes.push(`Hay ${actividad.vencidas} trabajos vencidos para revisar.`);
@@ -690,6 +695,11 @@ export class ReportesService {
       partes.push(`Se registraron ${maquinaria.mantenimientos} mantenimientos y ${maquinaria.gastosRegistrados} gastos de maquinaria.`);
     }
     if (alertas.prioritarias) partes.push(`Hay ${alertas.prioritarias} alertas prioritarias que requieren atención.`);
+    if (riesgoHidrico.alertasActivas || riesgoHidrico.accionesPendientes || riesgoHidrico.altoRiesgo) {
+      partes.push(
+        `Seguimiento hídrico: ${riesgoHidrico.alertasActivas} alertas, ${riesgoHidrico.accionesPendientes} acciones preventivas pendientes y ${riesgoHidrico.altoRiesgo} campos con riesgo alto.`,
+      );
+    }
     return partes;
   }
 

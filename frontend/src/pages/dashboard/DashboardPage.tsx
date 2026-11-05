@@ -25,6 +25,7 @@ import AiInsights from '../../components/ui/AiInsights';
 import { WhatsAppIcon, WHATSAPP_BUSINESS_URL } from '../../components/ui/WhatsAppButton';
 import { AlertasOperativasPanel } from '../../components/dashboard/AlertasOperativasPanel';
 import { PromocionBienvenida } from '../../components/promociones/PromocionBienvenida';
+import { ResumenHidricoDashboard } from '../../components/dashboard/ResumenHidricoDashboard';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -172,6 +173,8 @@ export default function DashboardPage() {
       </div>
 
       <AlertasOperativasPanel organizacionId={orgIdNum} />
+
+      <ResumenHidricoDashboard organizacionId={orgIdNum} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">

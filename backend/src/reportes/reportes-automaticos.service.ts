@@ -108,6 +108,7 @@ export class ReportesAutomaticosService {
           resumen: reporte.resumenInteligente?.resumen ?? reporte.resumen[0] ?? 'Informe disponible para revisar.',
           alertas: reporte.alertas.total,
           saldo: reporte.finanzas?.saldo ?? null,
+          riesgoHidrico: reporte.riesgoHidrico?.resumen,
           enlace,
         }),
       });
@@ -132,6 +133,7 @@ export class ReportesAutomaticosService {
     resumen,
     alertas,
     saldo,
+    riesgoHidrico,
     enlace,
   }: {
     nombreUsuario: string;
@@ -140,12 +142,32 @@ export class ReportesAutomaticosService {
     resumen: string;
     alertas: number;
     saldo: number | null;
+    riesgoHidrico?: {
+      altoRiesgo: number;
+      sinPerfil: number;
+      accionesPendientes: number;
+      accionesAutomaticasPendientes: number;
+      alertasActivas: number;
+      automatizacionesActivas: number;
+    };
     enlace: string;
   }) {
     const seguro = (valor: string) => this.escaparHtml(valor);
     const saldoHtml = saldo === null
       ? ''
       : `<p style="margin: 0 0 8px;"><strong>Saldo operativo:</strong> $${saldo.toLocaleString('es-AR')}</p>`;
+    const seguimientoHidricoHtml = riesgoHidrico && (
+      riesgoHidrico.alertasActivas ||
+      riesgoHidrico.accionesPendientes ||
+      riesgoHidrico.altoRiesgo ||
+      riesgoHidrico.sinPerfil
+    )
+      ? `<div style="background: #eff6ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0 0 8px;"><strong>Seguimiento hídrico</strong></p>
+          <p style="margin: 0 0 8px;">Alertas por lluvia activas: <strong>${riesgoHidrico.alertasActivas}</strong> · Acciones preventivas pendientes: <strong>${riesgoHidrico.accionesPendientes}</strong></p>
+          <p style="margin: 0;">Campos con riesgo alto: <strong>${riesgoHidrico.altoRiesgo}</strong> · Perfiles sin completar: <strong>${riesgoHidrico.sinPerfil}</strong></p>
+        </div>`
+      : '';
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
         <h1 style="color: #047857; margin-bottom: 8px;">Tu informe está listo</h1>
@@ -156,6 +178,7 @@ export class ReportesAutomaticosService {
           <p style="margin: 0 0 8px;"><strong>Alertas activas:</strong> ${alertas}</p>
           ${saldoHtml}
         </div>
+        ${seguimientoHidricoHtml}
         <p style="text-align: center; margin: 28px 0;">
           <a href="${seguro(enlace)}" style="display: inline-block; padding: 12px 24px; background: #059669; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">Ver informe completo</a>
         </p>

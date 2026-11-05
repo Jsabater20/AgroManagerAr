@@ -5,7 +5,8 @@ describe('ReportesService', () => {
   const memberAccessService = { requireModule: jest.fn() } as any;
   const planService = { isOrgPro: jest.fn() } as any;
   const alertasService = { listarParaOrganizaciones: jest.fn() } as any;
-  const service = new ReportesService(prisma, memberAccessService, planService, alertasService);
+  const camposService = { obtenerResumenHidricoParaCampos: jest.fn() } as any;
+  const service = new ReportesService(prisma, memberAccessService, planService, alertasService, camposService);
 
   beforeEach(() => {
     jest.clearAllMocks();
