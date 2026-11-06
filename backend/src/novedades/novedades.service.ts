@@ -218,7 +218,7 @@ export class NovedadesService {
     };
   }
 
-  async enviarCorreoPrueba(adminId: number, novedadId: string) {
+  async enviarCorreoPrueba(adminId: number, novedadId: string, emailPrueba?: string) {
     await this.requerirSuperadmin(adminId);
     this.requerirEnvioCorreoHabilitado();
     const [novedad, administrador] = await Promise.all([
@@ -228,16 +228,20 @@ export class NovedadesService {
         select: { email: true, nombre: true, emailVerificado: true },
       }),
     ]);
-    if (!administrador?.emailVerificado) {
+    const destinatario = emailPrueba?.trim().toLowerCase() || administrador?.email;
+    if (!destinatario) {
+      throw new BadRequestException('Indicá un email válido para recibir la prueba');
+    }
+    if (!emailPrueba && !administrador?.emailVerificado) {
       throw new BadRequestException('Verificá el email del superadmin antes de enviar una prueba');
     }
 
     await this.mailerService.enviarCorreo({
-      email: administrador.email,
+      email: destinatario,
       asunto: `[PRUEBA] AgroManager AR: ${novedad.titulo}`,
-      html: this.generarHtmlCorreo(novedad, administrador.nombre),
+      html: this.generarHtmlCorreo(novedad, administrador?.nombre ?? 'Productor/a'),
     });
-    return { ok: true, destinatario: administrador.email };
+    return { ok: true, destinatario };
   }
 
   async enviarCorreos(

@@ -5,6 +5,7 @@ import {
   ActualizarNovedadProductoDto,
   ConfirmarEnvioNovedadDto,
   CrearNovedadProductoDto,
+  EnviarCorreoPruebaNovedadDto,
 } from './dto/novedades.dto';
 import { NovedadesService } from './novedades.service';
 
@@ -71,8 +72,12 @@ export class NovedadesController {
 
   @Post('admin/:id/email-prueba')
   @Auditar('enviar_prueba_novedad_producto', 'NovedadProducto')
-  enviarCorreoPrueba(@Request() req: AuthRequest, @Param('id') id: string) {
-    return this.novedadesService.enviarCorreoPrueba(req.user.id, id);
+  enviarCorreoPrueba(
+    @Request() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() dto?: EnviarCorreoPruebaNovedadDto,
+  ) {
+    return this.novedadesService.enviarCorreoPrueba(req.user.id, id, dto?.email);
   }
 
   @Post('admin/:id/enviar-emails')

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { AlertTriangle, Mail, Send, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { novedadesApi, type NovedadProductoAdmin } from '../../api/novedades.api';
@@ -11,6 +12,7 @@ export function NovedadesCorreoModal({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const [emailPrueba, setEmailPrueba] = useState('');
   const vistaPrevia = useQuery({
     queryKey: ['admin', 'novedades', novedad.id, 'preview-email'],
     queryFn: () => novedadesApi.previsualizarCorreo(novedad.id),
@@ -24,7 +26,7 @@ export function NovedadesCorreoModal({
     queryClient.invalidateQueries({ queryKey: ['admin', 'novedades'] });
   };
   const prueba = useMutation({
-    mutationFn: () => novedadesApi.enviarCorreoPrueba(novedad.id),
+    mutationFn: (email?: string) => novedadesApi.enviarCorreoPrueba(novedad.id, email),
     onSuccess: ({ destinatario }) => toast.success(`Correo de prueba enviado a ${destinatario}.`),
     onError: () => toast.error('No se pudo enviar el correo de prueba.'),
   });
@@ -61,7 +63,19 @@ export function NovedadesCorreoModal({
           {vistaPrevia.isLoading ? <p className="p-5 text-sm text-slate-500">Generando vista previa...</p> : vistaPrevia.isError ? <p className="p-5 text-sm text-rose-700 dark:text-rose-300">No se pudo generar la vista previa.</p> : <iframe title="Vista previa del correo" sandbox="" srcDoc={vistaPrevia.data?.html} className="h-[360px] w-full bg-white" />}
         </div>
 
-        <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Cerrar</button><button type="button" onClick={() => prueba.mutate()} disabled={!envioHabilitado || prueba.isPending} className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-100"><Mail size={16} />{prueba.isPending ? 'Enviando prueba...' : 'Enviar prueba a mi email'}</button><button type="button" onClick={confirmarEnvio} disabled={!envioHabilitado || enviar.isPending || !resumen.data?.destinatariosElegibles} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"><Send size={16} />{enviar.isPending ? 'Enviando...' : 'Confirmar envío controlado'}</button></div>
+        <label className="mt-5 block rounded-xl border border-sky-200 bg-sky-50/70 p-4 dark:border-sky-900/70 dark:bg-sky-950/25">
+          <span className="block text-sm font-bold text-sky-950 dark:text-sky-100">Email para prueba</span>
+          <span className="mt-1 block text-xs leading-5 text-sky-800 dark:text-sky-200">Ingresá un correo al que tengas acceso, por ejemplo tu Gmail. Si lo dejás vacío, se usa el email de tu cuenta.</span>
+          <input
+            type="email"
+            value={emailPrueba}
+            onChange={(event) => setEmailPrueba(event.target.value)}
+            placeholder="tu-email@gmail.com"
+            className="mt-3 w-full rounded-lg border border-sky-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-sky-800 dark:bg-slate-900 dark:text-white dark:focus:border-sky-400 dark:focus:ring-sky-900"
+          />
+        </label>
+
+        <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Cerrar</button><button type="button" onClick={() => prueba.mutate(emailPrueba.trim() || undefined)} disabled={!envioHabilitado || prueba.isPending} className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-100"><Mail size={16} />{prueba.isPending ? 'Enviando prueba...' : 'Enviar prueba'}</button><button type="button" onClick={confirmarEnvio} disabled={!envioHabilitado || enviar.isPending || !resumen.data?.destinatariosElegibles} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"><Send size={16} />{enviar.isPending ? 'Enviando...' : 'Confirmar envío controlado'}</button></div>
       </section>
     </div>
   );

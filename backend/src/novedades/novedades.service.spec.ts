@@ -107,6 +107,38 @@ describe('NovedadesService', () => {
     expect(mailer.enviarCorreo).not.toHaveBeenCalled();
   });
 
+  it('permite enviar una prueba a un email indicado por el superadmin', async () => {
+    const configuracionAnterior = process.env.NOVEDADES_EMAILS_HABILITADOS;
+    process.env.NOVEDADES_EMAILS_HABILITADOS = 'true';
+    prisma.usuario.findUnique
+      .mockResolvedValueOnce({ rolGlobal: 'SUPERADMIN' })
+      .mockResolvedValueOnce({
+        email: 'cuenta-sin-buzon@agromanagerar.com',
+        nombre: 'Joaquín',
+        emailVerificado: false,
+      });
+    prisma.novedadProducto.findUnique.mockResolvedValue({
+      id: 'novedad-prueba',
+      titulo: 'AgroManager Clima',
+      resumen: 'Nuevo pronóstico',
+      contenido: 'Conocé las nuevas herramientas.',
+    });
+    mailer.enviarCorreo.mockResolvedValue({ id: 'resend-prueba' });
+
+    try {
+      await expect(
+        service.enviarCorreoPrueba(1, 'novedad-prueba', 'mi-email@gmail.com'),
+      ).resolves.toEqual({ ok: true, destinatario: 'mi-email@gmail.com' });
+      expect(mailer.enviarCorreo).toHaveBeenCalledWith(expect.objectContaining({
+        email: 'mi-email@gmail.com',
+        asunto: '[PRUEBA] AgroManager AR: AgroManager Clima',
+      }));
+    } finally {
+      if (configuracionAnterior === undefined) delete process.env.NOVEDADES_EMAILS_HABILITADOS;
+      else process.env.NOVEDADES_EMAILS_HABILITADOS = configuracionAnterior;
+    }
+  });
+
   it('envía en lote solo con confirmación y la habilitación explícita', async () => {
     const configuracionAnterior = process.env.NOVEDADES_EMAILS_HABILITADOS;
     process.env.NOVEDADES_EMAILS_HABILITADOS = 'true';

@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CategoriaNovedadProducto } from '@prisma/client';
-import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CrearNovedadProductoDto {
   @IsString()
@@ -37,4 +37,11 @@ export class ActualizarNovedadProductoDto extends PartialType(CrearNovedadProduc
 export class ConfirmarEnvioNovedadDto {
   @IsBoolean()
   confirmar!: boolean;
+}
+
+export class EnviarCorreoPruebaNovedadDto {
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(254)
+  email?: string;
 }

@@ -94,8 +94,8 @@ export const novedadesApi = {
     api.get(`/novedades/admin/${id}/preview-email`).then((response) => response.data),
   resumenEnvioCorreo: (id: string): Promise<ResumenEnvioCorreoNovedad> =>
     api.get(`/novedades/admin/${id}/resumen-envio-email`).then((response) => response.data),
-  enviarCorreoPrueba: (id: string): Promise<{ ok: boolean; destinatario: string }> =>
-    api.post(`/novedades/admin/${id}/email-prueba`).then((response) => response.data),
+  enviarCorreoPrueba: (id: string, email?: string): Promise<{ ok: boolean; destinatario: string }> =>
+    api.post(`/novedades/admin/${id}/email-prueba`, email ? { email } : {}).then((response) => response.data),
   enviarCorreos: (id: string): Promise<{ enviados: number; omitidos: number; errores: number }> =>
     api.post(`/novedades/admin/${id}/enviar-emails`, { confirmar: true }).then((response) => response.data),
 };
