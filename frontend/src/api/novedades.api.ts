@@ -96,6 +96,8 @@ export const novedadesApi = {
     api.get(`/novedades/admin/${id}/resumen-envio-email`).then((response) => response.data),
   enviarCorreoPrueba: (id: string, email?: string): Promise<{ ok: boolean; destinatario: string }> =>
     api.post(`/novedades/admin/${id}/email-prueba`, email ? { email } : {}).then((response) => response.data),
+  desuscribirDeNovedades: (usuarioId: number, firma: string): Promise<{ ok: boolean }> =>
+    api.post('/novedades-publicas/desuscribir', { usuarioId, firma }).then((response) => response.data),
   enviarCorreos: (id: string): Promise<{ enviados: number; omitidos: number; errores: number }> =>
     api.post(`/novedades/admin/${id}/enviar-emails`, { confirmar: true }).then((response) => response.data),
 };

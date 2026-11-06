@@ -1,5 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { EstadoEnvioCorreoNovedad, EstadoNovedadProducto, Prisma } from '@prisma/client';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { MailerService } from '../mailer/mailer.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -294,7 +295,11 @@ export class NovedadesService {
           await this.mailerService.enviarCorreo({
             email: destinatario.email,
             asunto: `AgroManager AR: ${novedad.titulo}`,
-            html: this.generarHtmlCorreo(novedad, destinatario.nombre),
+            html: this.generarHtmlCorreo(
+              novedad,
+              destinatario.nombre,
+              this.obtenerUrlDesuscripcion(destinatario),
+            ),
           });
           await this.prisma.envioCorreoNovedad.update({
             where: { id: envio.id },
@@ -419,9 +424,36 @@ export class NovedadesService {
     }
   }
 
+  async desuscribirDeNovedades(usuarioId: number, firma: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: {
+        id: true,
+        email: true,
+        recibePromociones: true,
+      },
+    });
+    if (!usuario || !this.firmaDesuscripcionValida(usuario, firma)) {
+      throw new BadRequestException('El enlace para dejar de recibir novedades no es válido');
+    }
+
+    const ahora = new Date();
+    await this.prisma.usuario.update({
+      where: { id: usuario.id },
+      data: {
+        recibeNovedades: false,
+        recibeComunicaciones: usuario.recibePromociones,
+        comunicacionesConsentidasEn: usuario.recibePromociones ? ahora : null,
+        preferenciasComunicacionesActualizadasEn: ahora,
+      },
+    });
+    return { ok: true };
+  }
+
   private generarHtmlCorreo(
     novedad: { id: string; titulo: string; resumen: string; contenido: string },
     nombreDestinatario: string,
+    urlDesuscripcion?: string,
   ) {
     const url = `${this.obtenerUrlFrontend()}/novedades?open=${encodeURIComponent(novedad.id)}`;
     const titulo = this.escapeHtml(novedad.titulo);
@@ -438,9 +470,33 @@ export class NovedadesService {
         <p><strong>${resumen}</strong></p>
         <p>${contenido}</p>
         <p style="margin:28px 0;text-align:center"><a href="${url}" style="display:inline-block;border-radius:10px;background:#047857;padding:12px 20px;color:#ffffff;text-decoration:none;font-weight:700">Ver novedad en AgroManager</a></p>
-        <p style="font-size:12px;color:#64748b">Recibís este correo porque aceptaste recibir novedades de AgroManager AR. Podés cambiar esta preferencia desde tu perfil.</p>
+        <p style="font-size:12px;color:#64748b">Recibís este correo porque tenés una cuenta en AgroManager AR. ${urlDesuscripcion ? `<a href="${urlDesuscripcion}" style="color:#047857">Dejar de recibir novedades</a>.` : 'Podés cambiar esta preferencia desde tu perfil.'}</p>
       </div>
     `;
+  }
+
+  private obtenerUrlDesuscripcion(usuario: { id: number; email: string }) {
+    const parametros = new URLSearchParams({
+      usuario: String(usuario.id),
+      firma: this.generarFirmaDesuscripcion(usuario),
+    });
+    return `${this.obtenerUrlFrontend()}/desuscribir-novedades?${parametros.toString()}`;
+  }
+
+  private generarFirmaDesuscripcion(usuario: { id: number; email: string }) {
+    const secreto = process.env.JWT_SECRET;
+    if (!secreto) {
+      throw new InternalServerErrorException('No se pudo configurar el enlace para dejar de recibir novedades');
+    }
+    return createHmac('sha256', secreto)
+      .update(`novedades:${usuario.id}:${usuario.email.toLowerCase()}`)
+      .digest('base64url');
+  }
+
+  private firmaDesuscripcionValida(usuario: { id: number; email: string }, firma: string) {
+    const esperada = Buffer.from(this.generarFirmaDesuscripcion(usuario));
+    const recibida = Buffer.from(firma);
+    return esperada.length === recibida.length && timingSafeEqual(esperada, recibida);
   }
 
   private obtenerUrlFrontend() {

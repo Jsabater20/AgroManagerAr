@@ -2,8 +2,9 @@ import { EstadoNovedadProducto } from '@prisma/client';
 import { NovedadesService } from './novedades.service';
 
 describe('NovedadesService', () => {
+  const jwtSecretAnterior = process.env.JWT_SECRET;
   const prisma = {
-    usuario: { findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn() },
+    usuario: { findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn(), update: jest.fn() },
     novedadProducto: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
@@ -22,6 +23,12 @@ describe('NovedadesService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    process.env.JWT_SECRET = 'jwt-secreto-pruebas-novedades';
+  });
+
+  afterAll(() => {
+    if (jwtSecretAnterior === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = jwtSecretAnterior;
   });
 
   it('lista únicamente novedades publicadas e informa la lectura del usuario', async () => {
@@ -139,6 +146,28 @@ describe('NovedadesService', () => {
     }
   });
 
+  it('permite anular las novedades desde un enlace firmado', async () => {
+    prisma.usuario.findUnique.mockResolvedValue({
+      id: 11,
+      email: 'productor@example.com',
+      recibePromociones: false,
+    });
+    const firma = (service as any).generarFirmaDesuscripcion({
+      id: 11,
+      email: 'productor@example.com',
+    });
+    prisma.usuario.update.mockResolvedValue({ id: 11 });
+
+    await expect(service.desuscribirDeNovedades(11, firma)).resolves.toEqual({ ok: true });
+    expect(prisma.usuario.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 11 },
+      data: expect.objectContaining({
+        recibeNovedades: false,
+        recibeComunicaciones: false,
+      }),
+    }));
+  });
+
   it('envía en lote solo con confirmación y la habilitación explícita', async () => {
     const configuracionAnterior = process.env.NOVEDADES_EMAILS_HABILITADOS;
     process.env.NOVEDADES_EMAILS_HABILITADOS = 'true';
@@ -166,6 +195,7 @@ describe('NovedadesService', () => {
         email: 'productor@example.com',
         asunto: 'AgroManager AR: Clima por campo',
       }));
+      expect(mailer.enviarCorreo.mock.calls[0][0].html).toContain('desuscribir-novedades?usuario=9');
       expect(prisma.envioCorreoNovedad.update).toHaveBeenCalledWith(expect.objectContaining({
         data: expect.objectContaining({ estado: 'ENVIADO' }),
       }));

@@ -79,6 +79,7 @@ import EconomicosCalculatorPage from './pages/calculos/EconomicosCalculatorPage'
 import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
 import AlertasPage from './pages/alertas/AlertasPage';
 import NovedadesPage from './pages/novedades/NovedadesPage';
+import DesuscribirNovedadesPage from './pages/novedades/DesuscribirNovedadesPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -154,6 +155,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/desuscribir-novedades" element={<DesuscribirNovedadesPage />} />
           <Route path="/suscripcion-exitosa" element={<SuscripcionExitosaPage />} />
           <Route path="/terminos" element={<TermsPage />} />
           <Route path="/privacidad" element={<PrivacyPage />} />
