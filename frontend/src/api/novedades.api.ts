@@ -3,12 +3,9 @@ import { api } from './client';
 export type CategoriaNovedadProducto =
   | 'GENERAL'
   | 'FUNCIONALIDAD'
-  | 'CLIMA'
-  | 'ALERTAS'
-  | 'AGROBOT'
-  | 'REPORTES'
-  | 'EMPRESAS'
-  | 'SEGURIDAD';
+  | 'ACTUALIZACION'
+  | 'ARREGLOS'
+  | 'PROMOCION';
 
 export type EstadoNovedadProducto = 'BORRADOR' | 'PUBLICADA';
 

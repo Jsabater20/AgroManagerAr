@@ -44,6 +44,9 @@ export class PlanService {
     : null;
   private fromEmail =
     process.env.RESEND_FROM_EMAIL ?? 'noreply@agromanagerar.com';
+  private adminSuscripcionesEmail =
+    process.env.ADMIN_SUSCRIPCIONES_EMAIL?.trim() ||
+    'joaquingsabater@gmail.com';
 
   private getMPClient() {
     const token = process.env.MP_ACCESS_TOKEN;
@@ -453,47 +456,12 @@ export class PlanService {
 
     const status = suscripcion.status;
     if (status === 'authorized') {
-      const expira = new Date();
-      expira.setDate(expira.getDate() + (tipo === 'anual' ? 400 : 45));
-
-      const usuario = await this.prisma.usuario.update({
-        where: { id: usuarioId },
-        data: {
-          plan: 'PRO',
-          planExpira: expira,
-          mpSuscripcionId: suscripcionId,
-          trialUsado: true,
-        },
-        select: { email: true, nombre: true, plan: true, planExpira: true },
+      await this.activarSuscripcionPro({
+        usuarioId,
+        organizacionId,
+        suscripcionId,
+        tipo: tipo as 'mensual' | 'anual',
       });
-
-      const org = organizacionId
-        ? await this.prisma.organizacion.findFirst({
-            where: { id: organizacionId, propietarioId: usuarioId },
-          })
-        : await this.prisma.organizacion.findFirst({ where: { propietarioId: usuarioId } });
-
-      if (org) {
-        await this.prisma.organizacion.update({
-          where: { id: org.id },
-          data: { plan: 'PRO' },
-        });
-      }
-
-      if (this.resend) {
-        this.resend.emails
-          .send({
-            from: this.fromEmail,
-            to: usuario.email,
-            subject: '¡Tu suscripción Pro está activa! — AgroManager AR',
-            html: this.buildProEmail(
-              usuario.nombre,
-              tipo as 'mensual' | 'anual',
-              expira,
-            ),
-          })
-          .catch(() => {});
-      }
     } else if (status === 'cancelled' || status === 'paused') {
       const cuentaProtegida = await this.prisma.usuario.findUnique({
         where: { id: usuarioId },
@@ -563,6 +531,37 @@ export class PlanService {
       return { activado: false, status };
     }
 
+    const activacion = await this.activarSuscripcionPro({
+      usuarioId,
+      organizacionId,
+      suscripcionId: preapprovalId,
+      tipo: tipo as 'mensual' | 'anual',
+    });
+
+    return {
+      activado: true,
+      status,
+      plan: activacion.usuario.plan,
+      planExpira: activacion.usuario.planExpira ?? undefined,
+    };
+  }
+
+  private async activarSuscripcionPro({
+    usuarioId,
+    organizacionId,
+    suscripcionId,
+    tipo,
+  }: {
+    usuarioId: number;
+    organizacionId: number;
+    suscripcionId: string;
+    tipo: 'mensual' | 'anual';
+  }) {
+    const cuentaAnterior = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { mpSuscripcionId: true },
+    });
+    const esNuevaSuscripcion = cuentaAnterior?.mpSuscripcionId !== suscripcionId;
     const expira = new Date();
     expira.setDate(expira.getDate() + (tipo === 'anual' ? 400 : 45));
 
@@ -571,15 +570,21 @@ export class PlanService {
       data: {
         plan: 'PRO',
         planExpira: expira,
-        mpSuscripcionId: preapprovalId,
+        mpSuscripcionId: suscripcionId,
         trialUsado: true,
       },
-      select: { email: true, nombre: true, plan: true, planExpira: true },
+      select: { id: true, email: true, nombre: true, plan: true, planExpira: true },
     });
 
-    const org = await this.prisma.organizacion.findFirst({
-      where: { id: organizacionId, propietarioId: usuarioId },
-    });
+    const org = organizacionId
+      ? await this.prisma.organizacion.findFirst({
+          where: { id: organizacionId, propietarioId: usuarioId },
+          select: { id: true, nombre: true },
+        })
+      : await this.prisma.organizacion.findFirst({
+          where: { propietarioId: usuarioId },
+          select: { id: true, nombre: true },
+        });
 
     if (org) {
       await this.prisma.organizacion.update({
@@ -588,27 +593,51 @@ export class PlanService {
       });
     }
 
-    if (this.resend) {
-      this.resend.emails
-        .send({
-          from: this.fromEmail,
-          to: usuario.email,
-          subject: '¡Tu suscripción Pro está activa! — AgroManager AR',
-          html: this.buildProEmail(
-            usuario.nombre,
-            tipo as 'mensual' | 'anual',
-            expira,
-          ),
-        })
-        .catch(() => {});
+    if (esNuevaSuscripcion && this.resend) {
+      this.enviarEmailActivacionPro(usuario, tipo, expira).catch(() => {});
+      this.enviarAvisoNuevaSuscripcionAdmin(
+        usuario,
+        org?.nombre ?? null,
+        tipo,
+        expira,
+      ).catch(() => {});
     }
 
-    return {
-      activado: true,
-      status,
-      plan: usuario.plan,
-      planExpira: usuario.planExpira ?? undefined,
-    };
+    return { usuario, expira };
+  }
+
+  private async enviarEmailActivacionPro(
+    usuario: { email: string; nombre: string },
+    tipo: 'mensual' | 'anual',
+    expira: Date,
+  ) {
+    if (!this.resend) return;
+    await this.resend.emails.send({
+      from: this.fromEmail,
+      to: usuario.email,
+      subject: '¡Tu suscripción Pro está activa! — AgroManager AR',
+      html: this.buildProEmail(usuario.nombre, tipo, expira),
+    });
+  }
+
+  private async enviarAvisoNuevaSuscripcionAdmin(
+    usuario: { email: string; nombre: string },
+    organizacionNombre: string | null,
+    tipo: 'mensual' | 'anual',
+    expira: Date,
+  ) {
+    if (!this.resend || !this.adminSuscripcionesEmail) return;
+    await this.resend.emails.send({
+      from: this.fromEmail,
+      to: this.adminSuscripcionesEmail,
+      subject: `Nueva suscripción Pro: ${usuario.nombre} — AgroManager AR`,
+      html: this.buildNuevaSuscripcionAdminEmail(
+        usuario,
+        organizacionNombre,
+        tipo,
+        expira,
+      ),
+    });
   }
 
   async cancelarSuscripcion(usuarioId: number, organizacionId: number) {
@@ -656,6 +685,80 @@ export class PlanService {
         .catch(() => {});
     }
     return { ok: true };
+  }
+
+  private buildNuevaSuscripcionAdminEmail(
+    usuario: { email: string; nombre: string },
+    organizacionNombre: string | null,
+    tipo: 'mensual' | 'anual',
+    expira: Date,
+  ): string {
+    const precio = tipo === 'anual' ? '$139.900 ARS / año' : '$13.990 ARS / mes';
+    const nombre = this.escapeHtml(usuario.nombre);
+    const email = this.escapeHtml(usuario.email);
+    const organizacion = this.escapeHtml(organizacionNombre ?? 'Sin establecimiento asociado');
+    const fechaAlta = new Date().toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'America/Argentina/Buenos_Aires',
+    });
+    const fechaFin = expira.toLocaleDateString('es-AR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'America/Argentina/Buenos_Aires',
+    });
+
+    return `
+<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+      <tr style="background:#065f46;">
+        <td style="padding:24px;text-align:center;">
+          <p style="color:#a7f3d0;font-size:12px;font-weight:700;letter-spacing:1px;margin:0 0 8px;">SUSCRIPCIÓN CONFIRMADA</p>
+          <h1 style="color:#ffffff;margin:0;font-size:26px;">Nueva cuenta Pro</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:28px 24px;color:#374151;">
+          <p style="font-size:16px;line-height:1.6;margin:0 0 20px;">Se activó una nueva suscripción paga en AgroManager AR.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #d1d5db;border-radius:10px;overflow:hidden;">
+            <tr><td style="padding:12px 16px;background:#f9fafb;color:#6b7280;font-size:13px;width:42%;border-bottom:1px solid #e5e7eb;">Cliente</td><td style="padding:12px 16px;color:#111827;font-size:14px;font-weight:700;border-bottom:1px solid #e5e7eb;">${nombre}</td></tr>
+            <tr><td style="padding:12px 16px;background:#f9fafb;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Email</td><td style="padding:12px 16px;color:#111827;font-size:14px;border-bottom:1px solid #e5e7eb;">${email}</td></tr>
+            <tr><td style="padding:12px 16px;background:#f9fafb;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Establecimiento</td><td style="padding:12px 16px;color:#111827;font-size:14px;border-bottom:1px solid #e5e7eb;">${organizacion}</td></tr>
+            <tr><td style="padding:12px 16px;background:#f9fafb;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Plan</td><td style="padding:12px 16px;color:#065f46;font-size:14px;font-weight:700;border-bottom:1px solid #e5e7eb;">Pro ${tipo === 'anual' ? 'anual' : 'mensual'}</td></tr>
+            <tr><td style="padding:12px 16px;background:#f9fafb;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Importe</td><td style="padding:12px 16px;color:#111827;font-size:14px;font-weight:700;border-bottom:1px solid #e5e7eb;">${precio}</td></tr>
+            <tr><td style="padding:12px 16px;background:#f9fafb;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Activación</td><td style="padding:12px 16px;color:#111827;font-size:14px;border-bottom:1px solid #e5e7eb;">${fechaAlta}</td></tr>
+            <tr><td style="padding:12px 16px;background:#f9fafb;color:#6b7280;font-size:13px;">Próxima renovación</td><td style="padding:12px 16px;color:#111827;font-size:14px;">${fechaFin}</td></tr>
+          </table>
+          <table cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
+            <tr><td style="background:#047857;border-radius:8px;">
+              <a href="${this.frontendUrl}/admin" style="display:inline-block;padding:12px 20px;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;">Ver panel de administración →</a>
+            </td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+  }
+
+  private escapeHtml(valor: string): string {
+    return valor.replace(/[&<>"']/g, (caracter) => {
+      const entidades: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+      };
+      return entidades[caracter];
+    });
   }
 
   private buildProEmail(

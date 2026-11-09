@@ -343,6 +343,8 @@ export class UsersService {
         apellido: true,
         rolGlobal: true,
         plan: true,
+        planExpira: true,
+        mpSuscripcionId: true,
         createdAt: true,
         referidosComoReferente: {
           where: { validadoEn: { not: null } },
@@ -352,6 +354,7 @@ export class UsersService {
           select: {
             id: true,
             nombre: true,
+            plan: true,
             beneficiosPro: {
               where: {
                 activo: true,
@@ -371,6 +374,7 @@ export class UsersService {
               select: {
                 id: true,
                 nombre: true,
+                plan: true,
                 beneficiosPro: {
                   where: {
                     activo: true,
@@ -392,13 +396,11 @@ export class UsersService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return usuarios.map(({ organizacionesQueEsDueno, membresiasOrganizacion, referidosComoReferente, ...usuario }) => ({
-      ...usuario,
-      referidosValidados: referidosComoReferente.length,
-      vinculosOrganizacion: [
+    return usuarios.map(({ organizacionesQueEsDueno, membresiasOrganizacion, referidosComoReferente, ...usuario }) => {
+      const vinculosOrganizacion = [
         ...organizacionesQueEsDueno.map((organizacion) => ({
           tipo: 'OWNER' as const,
-          organizacion: { id: organizacion.id, nombre: organizacion.nombre },
+          organizacion: { id: organizacion.id, nombre: organizacion.nombre, plan: organizacion.plan },
           beneficioPro: organizacion.beneficiosPro[0] ?? null,
           owner: {
             id: usuario.id,
@@ -411,12 +413,65 @@ export class UsersService {
           .filter(({ organizacion }) => organizacion.propietario.id !== usuario.id)
           .map(({ organizacion }) => ({
             tipo: 'MIEMBRO' as const,
-            organizacion: { id: organizacion.id, nombre: organizacion.nombre },
+            organizacion: { id: organizacion.id, nombre: organizacion.nombre, plan: organizacion.plan },
             beneficioPro: organizacion.beneficiosPro[0] ?? null,
             owner: organizacion.propietario,
           })),
-      ],
-    }));
+      ];
+
+      const beneficioPro = vinculosOrganizacion
+        .flatMap((vinculo) => vinculo.beneficioPro ? [{ ...vinculo.beneficioPro, organizacionNombre: vinculo.organizacion.nombre }] : [])
+        .sort((primero, segundo) => primero.fechaFin.getTime() - segundo.fechaFin.getTime())[0] ?? null;
+      const organizacionPro = vinculosOrganizacion.find(
+        (vinculo) => vinculo.organizacion.plan === 'PRO',
+      );
+      const estadoPlanAdmin = usuario.mpSuscripcionId && usuario.plan === 'PRO'
+        ? {
+            plan: 'PRO' as const,
+            origen: 'PAGO' as const,
+            fechaFin: usuario.planExpira,
+            organizacionNombre: organizacionPro?.organizacion.nombre ?? null,
+            motivo: null,
+          }
+        : beneficioPro
+          ? {
+              plan: 'PRO' as const,
+              origen: 'BENEFICIO' as const,
+              fechaFin: beneficioPro.fechaFin,
+              organizacionNombre: beneficioPro.organizacionNombre,
+              motivo: beneficioPro.motivo,
+            }
+          : usuario.plan === 'PRO'
+            ? {
+                plan: 'PRO' as const,
+                origen: 'ADMINISTRADO' as const,
+                fechaFin: usuario.planExpira,
+                organizacionNombre: organizacionPro?.organizacion.nombre ?? null,
+                motivo: null,
+              }
+            : organizacionPro
+              ? {
+                  plan: 'PRO' as const,
+                  origen: 'ORGANIZACION' as const,
+                  fechaFin: null,
+                  organizacionNombre: organizacionPro.organizacion.nombre,
+                  motivo: null,
+                }
+            : {
+                plan: 'FREE' as const,
+                origen: 'FREE' as const,
+                fechaFin: null,
+                organizacionNombre: null,
+                motivo: null,
+              };
+
+      return {
+        ...usuario,
+        referidosValidados: referidosComoReferente.length,
+        vinculosOrganizacion,
+        estadoPlanAdmin,
+      };
+    });
   }
 
   private async validarSuperadmin(usuarioId: number) {

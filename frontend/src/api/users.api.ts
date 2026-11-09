@@ -9,6 +9,8 @@ export interface UserProfile {
   rolGlobal?: string;
   plan?: 'FREE' | 'PRO';
   planExpira?: string | null;
+  mpSuscripcionId?: string | null;
+  estadoPlanAdmin?: EstadoPlanAdmin;
   recibeComunicaciones?: boolean;
   recibeNovedades?: boolean;
   recibePromociones?: boolean;
@@ -28,7 +30,7 @@ export interface UserProfile {
   }>;
   vinculosOrganizacion?: Array<{
     tipo: 'OWNER' | 'MIEMBRO';
-    organizacion: { id: number; nombre: string };
+    organizacion: { id: number; nombre: string; plan?: 'FREE' | 'PRO' };
     owner: { id: number; nombre: string; apellido: string; email: string };
     beneficioPro?: BeneficioProTemporal | null;
   }>;
@@ -49,6 +51,14 @@ export interface BeneficioProTemporal {
   fechaInicio: string;
   fechaFin: string;
   motivo?: string | null;
+}
+
+export interface EstadoPlanAdmin {
+  plan: 'FREE' | 'PRO';
+  origen: 'FREE' | 'PAGO' | 'BENEFICIO' | 'ADMINISTRADO' | 'ORGANIZACION';
+  fechaFin: string | null;
+  organizacionNombre: string | null;
+  motivo: string | null;
 }
 
 export interface FotoPerfilEncuadre {

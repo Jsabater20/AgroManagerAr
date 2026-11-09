@@ -1405,6 +1405,9 @@ enum EstadoNovedadProducto {
 enum CategoriaNovedadProducto {
   GENERAL
   FUNCIONALIDAD
+  ACTUALIZACION
+  ARREGLOS
+  PROMOCION
   CLIMA
   ALERTAS
   AGROBOT

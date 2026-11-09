@@ -2,16 +2,13 @@ import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  BellRing,
-  Bot,
-  Building2,
   CheckCircle2,
-  CloudSun,
-  FileBarChart2,
   Info,
   Lightbulb,
-  LockKeyhole,
+  Megaphone,
+  RefreshCw,
   Sparkles,
+  Wrench,
   X,
 } from 'lucide-react';
 import type { ElementType } from 'react';
@@ -28,12 +25,9 @@ const categoriaConfig: Record<CategoriaNovedadProducto, {
 }> = {
   GENERAL: { etiqueta: 'AgroManager AR', icono: Info, clase: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200' },
   FUNCIONALIDAD: { etiqueta: 'Nueva función', icono: Sparkles, clase: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200' },
-  CLIMA: { etiqueta: 'Clima', icono: CloudSun, clase: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-200' },
-  ALERTAS: { etiqueta: 'Alertas', icono: BellRing, clase: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200' },
-  AGROBOT: { etiqueta: 'AgroBot', icono: Bot, clase: 'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950/60 dark:text-fuchsia-200' },
-  REPORTES: { etiqueta: 'Reportes', icono: FileBarChart2, clase: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-200' },
-  EMPRESAS: { etiqueta: 'Empresas', icono: Building2, clase: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200' },
-  SEGURIDAD: { etiqueta: 'Seguridad', icono: LockKeyhole, clase: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200' },
+  ACTUALIZACION: { etiqueta: 'Actualización', icono: RefreshCw, clase: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-200' },
+  ARREGLOS: { etiqueta: 'Arreglos', icono: Wrench, clase: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200' },
+  PROMOCION: { etiqueta: 'Promoción', icono: Megaphone, clase: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200' },
 };
 
 function fecha(valor: string) {
