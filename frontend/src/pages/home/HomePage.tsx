@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Bot,
@@ -319,6 +319,58 @@ const SCREENSHOTS = [
   { label: 'AgroBot IA', component: <AgrobotMockup /> },
 ];
 
+const HERO_VIDEOS = [
+  { src: '/videos/hero-agricultura.mp4', sector: 'Agricultura' },
+  { src: '/videos/hero-ganaderia.mp4', sector: 'Ganadería' },
+  { src: '/videos/hero-tambo.mp4', sector: 'Ganadería lechera' },
+  { src: '/videos/hero-avicola.mp4', sector: 'Avicultura' },
+  { src: '/videos/hero-huerta.mp4', sector: 'Frutihorticultura' },
+  { src: '/videos/hero-porcinos.mp4', sector: 'Porcinos' },
+  { src: '/videos/hero-cosecha.mp4', sector: 'Cosecha' },
+];
+
+function HeroVideoBackdrop() {
+  const [videoActual, setVideoActual] = useState(0);
+  const [videoVisible, setVideoVisible] = useState(true);
+
+  useEffect(() => {
+    setVideoVisible(true);
+    const inicioTransicion = window.setTimeout(() => setVideoVisible(false), 6200);
+    const siguienteVideo = window.setTimeout(() => {
+      setVideoActual((indice) => (indice + 1) % HERO_VIDEOS.length);
+    }, 7000);
+
+    return () => {
+      window.clearTimeout(inicioTransicion);
+      window.clearTimeout(siguienteVideo);
+    };
+  }, [videoActual]);
+
+  const video = HERO_VIDEOS[videoActual];
+
+  return (
+    <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+      <video
+        key={video.src}
+        className={`h-full w-full object-cover object-center transition-opacity duration-700 motion-reduce:hidden ${
+          videoVisible ? 'opacity-100' : 'opacity-0'
+        }`}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+      >
+        <source src={video.src} type="video/mp4" />
+      </video>
+      <div className="absolute bottom-7 right-5 z-10 hidden items-center gap-2 rounded-full border border-white/15 bg-slate-950/50 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm sm:flex">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+        {video.sector}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function HomePage() {
   const [activeScreen, setActiveScreen] = useState(0);
@@ -330,12 +382,13 @@ export default function HomePage() {
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gray-950 text-white">
-        <div className="absolute inset-0 bg-linear-to-br from-green-950 via-gray-950 to-gray-950" />
+        <HeroVideoBackdrop />
+        <div className="absolute inset-0 bg-linear-to-br from-slate-950/95 via-slate-950/80 to-emerald-950/75" />
         <div
-          className="absolute inset-0 opacity-25"
+          className="absolute inset-0 opacity-35"
           style={{
             backgroundImage:
-              'radial-gradient(circle at 18% 55%, #15803d 0%, transparent 55%), radial-gradient(circle at 82% 18%, #166534 0%, transparent 45%)',
+              'radial-gradient(circle at 18% 55%, rgba(5, 150, 105, .52) 0%, transparent 55%), radial-gradient(circle at 82% 18%, rgba(34, 197, 94, .28) 0%, transparent 45%)',
           }}
         />
         <div
@@ -347,7 +400,7 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-24 md:py-32">
           <div className="flex flex-col items-center text-center gap-6">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 text-green-400 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest">
               <Sprout size={12} />
