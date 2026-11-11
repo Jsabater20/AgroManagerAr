@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -12,6 +13,9 @@ import {
   CreatePrenezDto,
   UpdatePrenezEstadoDto,
   CreateRegistroPesoDto,
+  CreateLoteGanaderoDto,
+  CreateRegistroLoteGanaderoDto,
+  CerrarLoteGanaderoDto,
 } from './dto/ganado.dto';
 
 const GESTATION_DAYS: Record<string, number> = {
@@ -54,6 +58,11 @@ export class GanadoService {
   async create(dto: CreateAnimalDto, usuarioId: number, organizacionId: number) {
     await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
     await this.planService.checkAnimalesLimit(organizacionId);
+    const loteGanaderoId = await this.validarLoteGanadero(
+      dto.loteGanaderoId,
+      dto.especie,
+      organizacionId,
+    );
     return this.prisma.animal.create({
       data: {
         nombre: dto.nombre,
@@ -67,6 +76,7 @@ export class GanadoService {
         observaciones: dto.observaciones,
         usuarioId,
         organizacionId,
+        loteGanaderoId,
       },
       include: { preneces: true },
     });
@@ -78,7 +88,12 @@ export class GanadoService {
     usuarioId: number,
     organizacionId: number,
   ) {
-    await this.findOne(id, usuarioId, organizacionId);
+    const animal = await this.findOne(id, usuarioId, organizacionId);
+    const loteGanaderoId = await this.validarLoteGanadero(
+      dto.loteGanaderoId,
+      animal.especie,
+      organizacionId,
+    );
     return this.prisma.animal.update({
       where: { id },
       data: {
@@ -89,6 +104,7 @@ export class GanadoService {
           ? new Date(dto.fechaNacimiento)
           : undefined,
         observaciones: dto.observaciones,
+        loteGanaderoId,
       },
       include: { preneces: true },
     });
@@ -184,5 +200,129 @@ export class GanadoService {
     if (!peso) throw new NotFoundException('Registro de peso no encontrado');
     if (peso.animal.organizacionId !== organizacionId) throw new ForbiddenException();
     return this.prisma.registroPeso.delete({ where: { id: pesoId } });
+  }
+
+  async findAllLotes(usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    return this.prisma.loteGanadero.findMany({
+      where: { organizacionId },
+      include: {
+        registros: { orderBy: { fecha: 'desc' }, take: 5 },
+        _count: { select: { animales: true } },
+      },
+      orderBy: [{ estado: 'asc' }, { fechaIngreso: 'desc' }],
+    });
+  }
+
+  async createLote(
+    dto: CreateLoteGanaderoDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    return this.prisma.loteGanadero.create({
+      data: {
+        organizacionId,
+        usuarioId,
+        nombre: dto.nombre.trim(),
+        sistema: dto.sistema,
+        cantidadInicial: dto.cantidadInicial,
+        cantidadActual: dto.cantidadInicial,
+        fechaIngreso: new Date(dto.fechaIngreso),
+        pesoPromedioIngresoKg: dto.pesoPromedioIngresoKg,
+        pesoPromedioActualKg: dto.pesoPromedioIngresoKg,
+        costoCompraTotal: dto.costoCompraTotal,
+        ubicacion: dto.ubicacion?.trim() || null,
+        observaciones: dto.observaciones?.trim() || null,
+      },
+      include: { registros: true, _count: { select: { animales: true } } },
+    });
+  }
+
+  async addRegistroLote(
+    loteId: number,
+    dto: CreateRegistroLoteGanaderoDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    const lote = await this.prisma.loteGanadero.findFirst({
+      where: { id: loteId, organizacionId, estado: 'ACTIVO' },
+      select: { id: true, pesoPromedioActualKg: true },
+    });
+    if (!lote) throw new NotFoundException('Lote ganadero activo no encontrado');
+
+    const registro = await this.prisma.registroLoteGanadero.create({
+      data: {
+        loteGanaderoId: lote.id,
+        usuarioId,
+        fecha: new Date(dto.fecha),
+        cantidadActual: dto.cantidadActual,
+        pesoPromedioKg: dto.pesoPromedioKg,
+        alimentoKg: dto.alimentoKg ?? 0,
+        bajas: dto.bajas ?? 0,
+        observaciones: dto.observaciones?.trim() || null,
+      },
+    });
+
+    await this.prisma.loteGanadero.update({
+      where: { id: lote.id },
+      data: {
+        cantidadActual: dto.cantidadActual,
+        pesoPromedioActualKg: dto.pesoPromedioKg ?? lote.pesoPromedioActualKg,
+      },
+    });
+
+    return registro;
+  }
+
+  async cerrarLote(
+    loteId: number,
+    dto: CerrarLoteGanaderoDto,
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    const lote = await this.prisma.loteGanadero.findFirst({
+      where: { id: loteId, organizacionId, estado: 'ACTIVO' },
+      select: { id: true },
+    });
+    if (!lote) throw new NotFoundException('Lote ganadero activo no encontrado');
+
+    return this.prisma.loteGanadero.update({
+      where: { id: lote.id },
+      data: {
+        estado: 'CERRADO',
+        fechaEgreso: new Date(dto.fechaEgreso),
+        precioVentaTotal: dto.precioVentaTotal,
+      },
+    });
+  }
+
+  async removeLote(loteId: number, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    const lote = await this.prisma.loteGanadero.findFirst({
+      where: { id: loteId, organizacionId },
+      select: { id: true },
+    });
+    if (!lote) throw new NotFoundException('Lote ganadero no encontrado');
+    await this.prisma.loteGanadero.delete({ where: { id: lote.id } });
+  }
+
+  private async validarLoteGanadero(
+    loteGanaderoId: number | undefined,
+    especie: string,
+    organizacionId: number,
+  ) {
+    if (!loteGanaderoId) return undefined;
+    if (especie !== 'BOVINO') {
+      throw new BadRequestException('Solo podés vincular animales bovinos a un lote ganadero');
+    }
+    const lote = await this.prisma.loteGanadero.findFirst({
+      where: { id: loteGanaderoId, organizacionId, estado: 'ACTIVO' },
+      select: { id: true },
+    });
+    if (!lote) throw new BadRequestException('El lote ganadero seleccionado no está disponible');
+    return lote.id;
   }
 }

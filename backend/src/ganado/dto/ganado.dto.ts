@@ -1,8 +1,9 @@
 import {
-  IsDateString, IsEnum, IsNotEmpty, IsNumber,
+  IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber,
   IsOptional, IsString, Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { SistemaLoteGanadero } from '@prisma/client';
 
 enum Especie {
   BOVINO = 'BOVINO',
@@ -78,6 +79,12 @@ export class CreateAnimalDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  loteGanaderoId?: number;
 }
 
 export class UpdateAnimalDto {
@@ -103,6 +110,12 @@ export class UpdateAnimalDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  loteGanaderoId?: number;
 }
 
 export class CreatePrenezDto {
@@ -131,4 +144,84 @@ export class CreateRegistroPesoDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+}
+
+export class CreateLoteGanaderoDto {
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @IsEnum(SistemaLoteGanadero)
+  sistema!: SistemaLoteGanadero;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  cantidadInicial!: number;
+
+  @IsDateString()
+  fechaIngreso!: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  pesoPromedioIngresoKg?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  costoCompraTotal?: number;
+
+  @IsOptional()
+  @IsString()
+  ubicacion?: string;
+
+  @IsOptional()
+  @IsString()
+  observaciones?: string;
+}
+
+export class CreateRegistroLoteGanaderoDto {
+  @IsDateString()
+  fecha!: string;
+
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  cantidadActual!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  pesoPromedioKg?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  alimentoKg?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  bajas?: number;
+
+  @IsOptional()
+  @IsString()
+  observaciones?: string;
+}
+
+export class CerrarLoteGanaderoDto {
+  @IsDateString()
+  fechaEgreso!: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  precioVentaTotal?: number;
 }

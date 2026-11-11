@@ -1,5 +1,17 @@
 import { api } from './client';
-import type { Animal, CreateAnimalDto, CreatePrenezDto, EstadoPrenez, RegistroPeso, CreateRegistroPesoDto } from './types';
+import type {
+  Animal,
+  CerrarLoteGanaderoDto,
+  CreateAnimalDto,
+  CreateLoteGanaderoDto,
+  CreatePrenezDto,
+  CreateRegistroLoteGanaderoDto,
+  CreateRegistroPesoDto,
+  EstadoPrenez,
+  LoteGanadero,
+  RegistroLoteGanadero,
+  RegistroPeso,
+} from './types';
 
 export const ganadoApi = {
   getAll:   (): Promise<Animal[]> => api.get('/ganado').then(r => r.data),
@@ -14,6 +26,13 @@ export const ganadoApi = {
   getPesos:  (id: number): Promise<RegistroPeso[]> => api.get(`/ganado/${id}/pesos`).then(r => r.data),
   addPeso:   (id: number, dto: CreateRegistroPesoDto): Promise<RegistroPeso> => api.post(`/ganado/${id}/pesos`, dto).then(r => r.data),
   removePeso: (pesoId: number): Promise<void> => api.delete(`/ganado/pesos/${pesoId}`).then(r => r.data),
+  getLotes: (): Promise<LoteGanadero[]> => api.get('/ganado/lotes').then(r => r.data),
+  createLote: (dto: CreateLoteGanaderoDto): Promise<LoteGanadero> => api.post('/ganado/lotes', dto).then(r => r.data),
+  addRegistroLote: (id: number, dto: CreateRegistroLoteGanaderoDto): Promise<RegistroLoteGanadero> =>
+    api.post(`/ganado/lotes/${id}/registros`, dto).then(r => r.data),
+  cerrarLote: (id: number, dto: CerrarLoteGanaderoDto): Promise<LoteGanadero> =>
+    api.patch(`/ganado/lotes/${id}/cerrar`, dto).then(r => r.data),
+  removeLote: (id: number): Promise<void> => api.delete(`/ganado/lotes/${id}`).then(r => r.data),
 };
 
 

@@ -37,6 +37,8 @@ model Usuario {
   preferenciasComunicacionesActualizadasEn DateTime?
 
   animales                          Animal[]
+  lotesGanaderos                    LoteGanadero[]
+  registrosLotesGanaderos           RegistroLoteGanadero[]
   auditoriasLogs                    AuditoriaLog[]                   @relation("auditoriaLogs")
   campanias                         Campania[]
   campos                            Campo[]
@@ -477,8 +479,11 @@ model Animal {
   preneces        Prenez[]
   pesos           RegistroPeso[]
   ordenes         RegistroOrdene[]
+  loteGanaderoId  Int?
+  loteGanadero    LoteGanadero?  @relation(fields: [loteGanaderoId], references: [id], onDelete: SetNull)
 
   @@index([organizacionId])
+  @@index([loteGanaderoId])
 }
 
 model Prenez {
@@ -626,6 +631,52 @@ model RegistroPeso {
   animal        Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
 }
 
+model LoteGanadero {
+  id                    Int                   @id @default(autoincrement())
+  organizacionId        Int
+  usuarioId             Int
+  nombre                String
+  sistema               SistemaLoteGanadero
+  estado                EstadoLoteGanadero    @default(ACTIVO)
+  ubicacion             String?
+  cantidadInicial       Int
+  cantidadActual        Int
+  fechaIngreso          DateTime
+  pesoPromedioIngresoKg Float?
+  pesoPromedioActualKg  Float?
+  costoCompraTotal      Float?
+  fechaEgreso           DateTime?
+  precioVentaTotal      Float?
+  observaciones         String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  organizacion          Organizacion          @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario               Usuario               @relation(fields: [usuarioId], references: [id])
+  animales              Animal[]
+  registros             RegistroLoteGanadero[]
+
+  @@index([organizacionId, estado])
+  @@index([usuarioId])
+}
+
+model RegistroLoteGanadero {
+  id                 Int           @id @default(autoincrement())
+  loteGanaderoId     Int
+  usuarioId          Int
+  fecha              DateTime
+  cantidadActual     Int
+  pesoPromedioKg     Float?
+  alimentoKg         Float         @default(0)
+  bajas              Int           @default(0)
+  observaciones      String?
+  createdAt          DateTime      @default(now())
+  loteGanadero       LoteGanadero @relation(fields: [loteGanaderoId], references: [id], onDelete: Cascade)
+  usuario            Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([loteGanaderoId, fecha])
+  @@index([usuarioId])
+}
+
 model RegistroOrdene {
   id             Int          @id @default(autoincrement())
   organizacionId Int
@@ -695,6 +746,7 @@ model Organizacion {
   createdAt                 DateTime                          @default(now())
   updatedAt                 DateTime                          @updatedAt
   animales                  Animal[]
+  lotesGanaderos            LoteGanadero[]
   asignacionesRecursos      AsignacionRecurso[]
   auditoriasLogs            AuditoriaLog[]                    @relation("auditoriaLogs")
   campanias                 Campania[]
@@ -1571,6 +1623,17 @@ enum CategoriaAnimal {
   GALLO
   POLLO
   POLLA
+}
+
+enum SistemaLoteGanadero {
+  CRIA_PROPIA
+  INVERNADA_COMPRADA
+  FEEDLOT
+}
+
+enum EstadoLoteGanadero {
+  ACTIVO
+  CERRADO
 }
 
 enum EstadoPrenez {

@@ -221,6 +221,8 @@ export type CategoriaAnimal =
   | 'CABRA' | 'CABRIO' | 'CABRITO'
   | 'GALLINA' | 'GALLO' | 'POLLO' | 'POLLA';
 export type EstadoPrenez = 'EN_CURSO' | 'COMPLETADA' | 'PERDIDA';
+export type SistemaLoteGanadero = 'CRIA_PROPIA' | 'INVERNADA_COMPRADA' | 'FEEDLOT';
+export type EstadoLoteGanadero = 'ACTIVO' | 'CERRADO';
 
 export interface Animal {
   id: number;
@@ -232,6 +234,7 @@ export interface Animal {
   fechaNacimiento?: string;
   observaciones?: string;
   preneces?: Prenez[];
+  loteGanaderoId?: number | null;
   usuarioId: number;
   organizacionId?: number;
 }
@@ -261,6 +264,7 @@ export interface CreateAnimalDto {
   peso?: number;
   fechaNacimiento?: string;
   observaciones?: string;
+  loteGanaderoId?: number;
 }
 
 export interface CreatePrenezDto {
@@ -275,6 +279,62 @@ export interface CreateRegistroPesoDto {
   peso: number;
   fecha: string;
   observaciones?: string;
+}
+
+export interface RegistroLoteGanadero {
+  id: number;
+  loteGanaderoId: number;
+  fecha: string;
+  cantidadActual: number;
+  pesoPromedioKg?: number | null;
+  alimentoKg: number;
+  bajas: number;
+  observaciones?: string | null;
+  createdAt: string;
+}
+
+export interface LoteGanadero {
+  id: number;
+  nombre: string;
+  sistema: SistemaLoteGanadero;
+  estado: EstadoLoteGanadero;
+  ubicacion?: string | null;
+  cantidadInicial: number;
+  cantidadActual: number;
+  fechaIngreso: string;
+  pesoPromedioIngresoKg?: number | null;
+  pesoPromedioActualKg?: number | null;
+  costoCompraTotal?: number | null;
+  fechaEgreso?: string | null;
+  precioVentaTotal?: number | null;
+  observaciones?: string | null;
+  registros?: RegistroLoteGanadero[];
+  _count?: { animales: number };
+}
+
+export interface CreateLoteGanaderoDto {
+  nombre: string;
+  sistema: SistemaLoteGanadero;
+  cantidadInicial: number;
+  fechaIngreso: string;
+  pesoPromedioIngresoKg?: number;
+  costoCompraTotal?: number;
+  ubicacion?: string;
+  observaciones?: string;
+}
+
+export interface CreateRegistroLoteGanaderoDto {
+  fecha: string;
+  cantidadActual: number;
+  pesoPromedioKg?: number;
+  alimentoKg?: number;
+  bajas?: number;
+  observaciones?: string;
+}
+
+export interface CerrarLoteGanaderoDto {
+  fechaEgreso: string;
+  precioVentaTotal?: number;
 }
 
 // ─── Tareas ───────────────────────────────────────────────────────────────
