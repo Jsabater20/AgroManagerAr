@@ -9,11 +9,18 @@ import {
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Href, router } from 'expo-router';
-import { getAnimales } from '@/api/ganado.api';
+import { getAnimales, getLotesGanaderos } from '@/api/ganado.api';
 import { getApiErrorMessage } from '@/api/errors';
 import { AccessRestricted } from '@/components/AccessRestricted';
 import { useAuthStore } from '@/store/auth.store';
-import { ESPECIES, ESPECIE_LABELS, type Especie, type Sexo } from '@/types/ganado';
+import {
+  ESPECIES,
+  ESPECIE_LABELS,
+  SISTEMA_LOTE_GANADERO_LABELS,
+  type Especie,
+  type LoteGanadero,
+  type Sexo,
+} from '@/types/ganado';
 
 export default function GanadoScreen() {
   const organizacionActivaId = useAuthStore((state) => state.organizacionActivaId);
@@ -30,6 +37,11 @@ export default function GanadoScreen() {
     queryFn: getAnimales,
     enabled: Boolean(organizacionActivaId && membershipReady && canViewGanado),
   });
+  const lotesGanaderosQuery = useQuery({
+    queryKey: ['ganado-lotes', organizacionActivaId],
+    queryFn: getLotesGanaderos,
+    enabled: Boolean(organizacionActivaId && membershipReady && canViewGanado),
+  });
   const animals = useMemo(
     () =>
       (animalsQuery.data ?? []).filter(
@@ -37,6 +49,13 @@ export default function GanadoScreen() {
       ),
     [animalsQuery.data, especie, sexo],
   );
+  const lotesActivos = useMemo(
+    () => (lotesGanaderosQuery.data ?? []).filter((lote) => lote.estado === 'ACTIVO'),
+    [lotesGanaderosQuery.data],
+  );
+  const refresh = async () => {
+    await Promise.all([animalsQuery.refetch(), lotesGanaderosQuery.refetch()]);
+  };
 
   if (!membershipReady) return <Loading />;
   if (!canViewGanado) return <AccessRestricted title="Ganadería" />;
@@ -47,7 +66,7 @@ export default function GanadoScreen() {
     <ScrollView
       className="flex-1 bg-slate-50"
       contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={<RefreshControl refreshing={animalsQuery.isRefetching} onRefresh={() => void animalsQuery.refetch()} />}
+      refreshControl={<RefreshControl refreshing={animalsQuery.isRefetching || lotesGanaderosQuery.isRefetching} onRefresh={() => void refresh()} />}
     >
       <View className="bg-emerald-800 px-6 pb-7 pt-16">
         <View className="flex-row items-start justify-between gap-3">
@@ -65,7 +84,33 @@ export default function GanadoScreen() {
       </View>
 
       <View className="px-5 pt-5">
-        <Text className="text-sm font-bold uppercase tracking-widest text-slate-500">Filtrar especie</Text>
+        <View className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <View className="flex-row items-start justify-between gap-3">
+            <View className="flex-1">
+              <Text className="text-sm font-bold uppercase tracking-widest text-emerald-800">Rodeos y engorde</Text>
+              <Text className="mt-1 text-lg font-bold text-slate-900">Cría, invernada y feedlot</Text>
+              <Text className="mt-1 text-sm leading-5 text-slate-600">Separá cada etapa y cargá controles de cabezas, peso, alimento y bajas.</Text>
+            </View>
+            <Pressable className="rounded-xl bg-emerald-700 px-3 py-2" onPress={() => router.push('/(app)/ganado/lotes/nuevo' as Href)}>
+              <Text className="font-semibold text-white">+ Lote</Text>
+            </Pressable>
+          </View>
+          {lotesGanaderosQuery.isLoading ? (
+            <ActivityIndicator className="mt-5" color="#15803d" />
+          ) : lotesGanaderosQuery.isError ? (
+            <Text className="mt-4 text-sm text-red-700">No pudimos cargar los rodeos. Deslizá para reintentar.</Text>
+          ) : lotesActivos.length === 0 ? (
+            <Text className="mt-4 rounded-xl bg-white px-3 py-3 text-sm text-slate-600">Todavía no hay rodeos creados. Empezá con las madres, una compra de invernada o un corral.</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-4">
+              <View className="flex-row gap-3">
+                {lotesActivos.map((lote) => <LoteCard key={lote.id} lote={lote} />)}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+
+        <Text className="mt-7 text-sm font-bold uppercase tracking-widest text-slate-500">Filtrar especie</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
           <View className="flex-row gap-2">
             <FilterChip label="Todas" active={!especie} onPress={() => setEspecie(null)} />
@@ -126,6 +171,35 @@ export default function GanadoScreen() {
         </View>
       </View>
     </ScrollView>
+  );
+}
+
+function LoteCard({ lote }: { lote: LoteGanadero }) {
+  const lastControl = lote.registros[0];
+  return (
+    <Pressable
+      className="w-72 rounded-2xl bg-white p-4"
+      onPress={() => router.push({ pathname: '/(app)/ganado/lotes/[loteId]', params: { loteId: String(lote.id) } } as unknown as Href)}
+    >
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="flex-1">
+          <Text className="text-base font-bold text-slate-900">{lote.nombre}</Text>
+          <Text className="mt-1 text-sm font-semibold text-emerald-800">{SISTEMA_LOTE_GANADERO_LABELS[lote.sistema]}</Text>
+          <Text className="mt-1 text-xs text-slate-500">{lote.ubicacion || 'Sin ubicación'} · {lote._count?.animales ?? 0} vinculados</Text>
+        </View>
+        <Text className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-800">{lote.cantidadActual} cab.</Text>
+      </View>
+      <View className="mt-4 flex-row border-t border-slate-100 pt-3">
+        <View className="flex-1">
+          <Text className="text-xs text-slate-500">Peso prom.</Text>
+          <Text className="mt-1 font-bold text-slate-900">{lote.pesoPromedioActualKg != null ? `${lote.pesoPromedioActualKg} kg` : 'Sin pesada'}</Text>
+        </View>
+        <View className="flex-1">
+          <Text className="text-xs text-slate-500">Último control</Text>
+          <Text className="mt-1 font-bold text-slate-900">{lastControl ? formatDate(lastControl.fecha) : 'Pendiente'}</Text>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 

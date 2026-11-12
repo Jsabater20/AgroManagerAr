@@ -1,10 +1,15 @@
 import { api } from '@/api/client';
 import type {
   Animal,
+  CerrarLoteGanaderoInput,
   CreateAnimalInput,
+  CreateLoteGanaderoInput,
   CreatePesoInput,
   CreatePrenezInput,
+  CreateRegistroLoteGanaderoInput,
   EstadoPrenez,
+  LoteGanadero,
+  RegistroLoteGanadero,
   RegistroPeso,
 } from '@/types/ganado';
 
@@ -54,4 +59,28 @@ export const crearPeso = async (animalId: number, input: CreatePesoInput) => {
 
 export const eliminarPeso = async (pesoId: number) => {
   await api.delete(`/ganado/pesos/${pesoId}`);
+};
+
+export const getLotesGanaderos = async () => {
+  const { data } = await api.get<LoteGanadero[]>('/ganado/lotes');
+  return data;
+};
+
+export const crearLoteGanadero = async (input: CreateLoteGanaderoInput) => {
+  const { data } = await api.post<LoteGanadero>('/ganado/lotes', input);
+  return data;
+};
+
+export const crearRegistroLoteGanadero = async (loteId: number, input: CreateRegistroLoteGanaderoInput) => {
+  const { data } = await api.post<RegistroLoteGanadero>(`/ganado/lotes/${loteId}/registros`, input);
+  return data;
+};
+
+export const cerrarLoteGanadero = async (loteId: number, input: CerrarLoteGanaderoInput) => {
+  const { data } = await api.patch<LoteGanadero>(`/ganado/lotes/${loteId}/cerrar`, input);
+  return data;
+};
+
+export const eliminarLoteGanadero = async (loteId: number) => {
+  await api.delete(`/ganado/lotes/${loteId}`);
 };

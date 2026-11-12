@@ -8,6 +8,8 @@ export type CategoriaAnimal =
   | 'CABRA' | 'CABRIO' | 'CABRITO'
   | 'GALLINA' | 'GALLO' | 'POLLO' | 'POLLA';
 export type EstadoPrenez = 'EN_CURSO' | 'COMPLETADA' | 'PERDIDA';
+export type SistemaLoteGanadero = 'CRIA_PROPIA' | 'INVERNADA_COMPRADA' | 'FEEDLOT';
+export type EstadoLoteGanadero = 'ACTIVO' | 'CERRADO';
 
 export interface Prenez {
   id: number;
@@ -36,6 +38,7 @@ export interface Animal {
   fechaNacimiento?: string | null;
   observaciones?: string | null;
   preneces: Prenez[];
+  loteGanaderoId?: number | null;
 }
 
 export interface CreateAnimalInput {
@@ -46,6 +49,63 @@ export interface CreateAnimalInput {
   peso?: number;
   fechaNacimiento?: string;
   observaciones?: string;
+  loteGanaderoId?: number;
+}
+
+export interface RegistroLoteGanadero {
+  id: number;
+  loteGanaderoId: number;
+  fecha: string;
+  cantidadActual: number;
+  pesoPromedioKg?: number | null;
+  alimentoKg: number;
+  bajas: number;
+  observaciones?: string | null;
+  createdAt: string;
+}
+
+export interface LoteGanadero {
+  id: number;
+  nombre: string;
+  sistema: SistemaLoteGanadero;
+  estado: EstadoLoteGanadero;
+  ubicacion?: string | null;
+  cantidadInicial: number;
+  cantidadActual: number;
+  fechaIngreso: string;
+  pesoPromedioIngresoKg?: number | null;
+  pesoPromedioActualKg?: number | null;
+  costoCompraTotal?: number | null;
+  fechaEgreso?: string | null;
+  precioVentaTotal?: number | null;
+  observaciones?: string | null;
+  registros: RegistroLoteGanadero[];
+  _count?: { animales: number };
+}
+
+export interface CreateLoteGanaderoInput {
+  nombre: string;
+  sistema: SistemaLoteGanadero;
+  cantidadInicial: number;
+  fechaIngreso: string;
+  pesoPromedioIngresoKg?: number;
+  costoCompraTotal?: number;
+  ubicacion?: string;
+  observaciones?: string;
+}
+
+export interface CreateRegistroLoteGanaderoInput {
+  fecha: string;
+  cantidadActual: number;
+  pesoPromedioKg?: number;
+  alimentoKg?: number;
+  bajas?: number;
+  observaciones?: string;
+}
+
+export interface CerrarLoteGanaderoInput {
+  fechaEgreso: string;
+  precioVentaTotal?: number;
 }
 
 export interface CreatePrenezInput {
@@ -82,6 +142,18 @@ export const CATEGORIA_LABELS: Record<CategoriaAnimal, string> = {
 export const GESTATION_DAYS: Record<Especie, number> = {
   BOVINO: 283, PORCINO: 114, EQUINO: 340, OVINO: 147, CAPRINO: 150, AVIAR: 21,
 };
+
+export const SISTEMA_LOTE_GANADERO_LABELS: Record<SistemaLoteGanadero, string> = {
+  CRIA_PROPIA: 'Cría propia',
+  INVERNADA_COMPRADA: 'Invernada comprada',
+  FEEDLOT: 'Feedlot',
+};
+
+export const SISTEMAS_LOTE_GANADERO: SistemaLoteGanadero[] = [
+  'CRIA_PROPIA',
+  'INVERNADA_COMPRADA',
+  'FEEDLOT',
+];
 
 export const CATEGORIAS_POR_ESPECIE: Record<Especie, { hembra: CategoriaAnimal[]; macho: CategoriaAnimal[] }> = {
   BOVINO: { hembra: ['VACA', 'VAQUILLONA', 'TERNERA'], macho: ['TORO', 'NOVILLO', 'TERNERO'] },

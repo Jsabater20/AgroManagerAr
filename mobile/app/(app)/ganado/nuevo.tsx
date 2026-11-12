@@ -1,9 +1,9 @@
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useMemo, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { crearAnimal } from '@/api/ganado.api';
+import { crearAnimal, getLotesGanaderos } from '@/api/ganado.api';
 import { getApiErrorMessage } from '@/api/errors';
 import { useAuthStore } from '@/store/auth.store';
 import {
@@ -44,6 +44,16 @@ export default function NuevoAnimalScreen() {
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [observaciones, setObservaciones] = useState('');
+  const [loteGanaderoId, setLoteGanaderoId] = useState<number | null>(null);
+  const lotesGanaderosQuery = useQuery({
+    queryKey: ['ganado-lotes', organizacionActivaId],
+    queryFn: getLotesGanaderos,
+    enabled: especie === 'BOVINO',
+  });
+  const lotesGanaderosActivos = useMemo(
+    () => (lotesGanaderosQuery.data ?? []).filter((lote) => lote.estado === 'ACTIVO'),
+    [lotesGanaderosQuery.data],
+  );
   const createMutation = useMutation({
     mutationFn: () =>
       crearAnimal({
@@ -54,6 +64,7 @@ export default function NuevoAnimalScreen() {
         peso: peso.trim() ? Number(peso.replace(',', '.')) : undefined,
         fechaNacimiento: fechaNacimiento || undefined,
         observaciones: observaciones.trim() || undefined,
+        loteGanaderoId: especie === 'BOVINO' ? loteGanaderoId ?? undefined : undefined,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['ganado', organizacionActivaId] });
@@ -67,6 +78,7 @@ export default function NuevoAnimalScreen() {
     const nextCategories = CATEGORIAS_POR_ESPECIE[next][sexo === 'HEMBRA' ? 'hembra' : 'macho'];
     setEspecie(next);
     setCategoria(nextCategories[0]);
+    if (next !== 'BOVINO') setLoteGanaderoId(null);
   };
   const changeSex = (next: Sexo) => {
     setSexo(next);
@@ -103,6 +115,21 @@ export default function NuevoAnimalScreen() {
         <View className="mt-2 flex-row flex-wrap gap-2">
           {categorias.map((option) => <Choice key={option} label={CATEGORIA_LABELS[option]} active={categoria === option} onPress={() => setCategoria(option)} />)}
         </View>
+
+        {especie === 'BOVINO' && (
+          <>
+            <Text className="mt-6 text-sm font-semibold text-slate-800">Rodeo o lote ganadero</Text>
+            <Text className="mt-1 text-sm leading-5 text-slate-500">Opcional. Vinculá el animal a cría, invernada o feedlot.</Text>
+            {lotesGanaderosQuery.isLoading ? <Text className="mt-2 text-sm text-slate-500">Cargando rodeos…</Text> : lotesGanaderosActivos.length === 0 ? <Text className="mt-2 text-sm text-slate-500">Todavía no hay rodeos activos creados.</Text> : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2">
+                <View className="flex-row gap-2">
+                  <Choice label="Sin asociar" active={loteGanaderoId === null} onPress={() => setLoteGanaderoId(null)} />
+                  {lotesGanaderosActivos.map((lote) => <Choice key={lote.id} label={lote.nombre} active={loteGanaderoId === lote.id} onPress={() => setLoteGanaderoId(lote.id)} />)}
+                </View>
+              </ScrollView>
+            )}
+          </>
+        )}
 
         <Text className="mt-6 text-sm font-semibold text-slate-800">Peso actual (kg)</Text>
         <TextInput value={peso} onChangeText={setPeso} keyboardType="decimal-pad" placeholder="Opcional" placeholderTextColor="#94a3b8" className="mt-2 rounded-xl border border-slate-200 px-4 py-3 text-base text-slate-900" />
