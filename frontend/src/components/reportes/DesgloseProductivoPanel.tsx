@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChartNoAxesCombined,
+  CircleDollarSign,
   Download,
   LockKeyhole,
   MapPinned,
   RefreshCw,
   Sprout,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react';
 import {
   reportesApi,
+  type ComparativaDesgloseProductivo,
   type DesgloseCampania,
   type DesgloseLote,
   type ResumenCostosProductivos,
@@ -60,6 +64,32 @@ function CampaniaCard({ campania }: { campania: DesgloseCampania }) {
   );
 }
 
+function ComparativaRapida({ comparativa, vista }: { comparativa: ComparativaDesgloseProductivo; vista: 'LOTES' | 'CAMPANIAS' }) {
+  const resumen = vista === 'LOTES' ? comparativa.lotes : comparativa.campanias;
+  const tieneDatos = resumen.mejorCosecha || resumen.costos || (vista === 'LOTES' && comparativa.lotes.mejorRendimiento);
+  if (!tieneDatos) {
+    return <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">Todavía no hay producción ni costos suficientes para comparar en este período. Cuando cargues cosechas o costos vinculados, vas a ver los resultados destacados acá.</div>;
+  }
+
+  const rendimiento = vista === 'LOTES' ? comparativa.lotes.mejorRendimiento : null;
+  const desvio = resumen.costos?.mayorDesvio;
+  return <section className="mt-5 rounded-xl border border-slate-200 bg-white/85 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/75"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">Lectura rápida</p><h3 className="mt-1 text-base font-bold text-slate-900 dark:text-white">Qué se destaca en {vista === 'LOTES' ? 'los lotes' : 'las campañas'}</h3></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{resumen.destinos} registro{resumen.destinos === 1 ? '' : 's'} comparado{resumen.destinos === 1 ? '' : 's'}</span></div><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><DatoDestacado icono={TrendingUp} etiqueta="Mayor producción" valor={resumen.mejorCosecha ? `${resumen.mejorCosecha.valor.toLocaleString('es-AR')} kg` : 'Sin cosechas'} detalle={resumen.mejorCosecha ? nombreDestino(resumen.mejorCosecha.nombre, resumen.mejorCosecha.campoNombre) : 'Cargá una cosecha para compararlo'} tono="emerald" />{rendimiento && <DatoDestacado icono={Sprout} etiqueta="Mejor rendimiento" valor={`${rendimiento.valor.toLocaleString('es-AR')} kg/ha`} detalle={`${nombreDestino(rendimiento.nombre, rendimiento.campoNombre)} · Promedio: ${comparativa.lotes.rendimientoPromedioKgHa?.toLocaleString('es-AR') ?? '—'} kg/ha`} tono="blue" />}{resumen.costos?.mayorCostoPorHa && <DatoDestacado icono={CircleDollarSign} etiqueta="Mayor costo por ha" valor={formatoPesos.format(resumen.costos.mayorCostoPorHa.valor)} detalle={nombreDestino(resumen.costos.mayorCostoPorHa.nombre, resumen.costos.mayorCostoPorHa.campoNombre)} tono="amber" />}{desvio && <DatoDestacado icono={TrendingDown} etiqueta="Desvío a revisar" valor={`+${desvio.valor.toLocaleString('es-AR')}%`} detalle={`${nombreDestino(desvio.nombre, desvio.campoNombre)} · Real ${formatoPesos.format(desvio.reales)} vs. estimado ${formatoPesos.format(desvio.estimados)}`} tono="rose" />}</div>{resumen.costos && <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">Costo real promedio de los destinos con costos: <strong className="text-slate-700 dark:text-slate-200">{resumen.costos.realPorHa == null ? 'Sin superficie asociada' : formatoPesos.format(resumen.costos.realPorHa) + '/ha'}</strong>. Los valores comparan únicamente registros vinculados al lote o campaña.</p>}</section>;
+}
+
+function DatoDestacado({ icono: Icono, etiqueta, valor, detalle, tono }: { icono: typeof TrendingUp; etiqueta: string; valor: string; detalle: string; tono: 'emerald' | 'blue' | 'amber' | 'rose' }) {
+  const estilos = {
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200',
+    blue: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200',
+    amber: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200',
+    rose: 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200',
+  }[tono];
+  return <article className={`rounded-xl border p-3 ${estilos}`}><Icono size={17} /><p className="mt-2 text-xs font-semibold uppercase tracking-wide opacity-75">{etiqueta}</p><p className="mt-1 text-base font-bold">{valor}</p><p className="mt-1 text-xs leading-relaxed opacity-80">{detalle}</p></article>;
+}
+
+function nombreDestino(nombre: string, campoNombre: string | null) {
+  return campoNombre ? `${nombre} · ${campoNombre}` : nombre;
+}
+
 export function DesgloseProductivoPanel() {
   const [vista, setVista] = useState<'LOTES' | 'CAMPANIAS'>('LOTES');
   const [tipo, setTipo] = useState<TipoReportePeriodico>('MENSUAL');
@@ -89,7 +119,7 @@ export function DesgloseProductivoPanel() {
       </div>
       {!esPro && !capacidades.isLoading && <div className="mt-4 flex gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-100"><LockKeyhole size={18} className="shrink-0" /><p><strong>Disponible con Pro.</strong> Compará el resultado de cada lote y campaña para decidir con datos claros.</p></div>}
       {desglose.isError && <p className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">No se pudo cargar el desglose. Intentá nuevamente.</p>}
-      {desglose.data && <div className="mt-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-slate-600 dark:text-slate-300">Período: {desglose.data.periodo.etiqueta}</p><div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800"><button onClick={() => setVista('LOTES')} className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${vista === 'LOTES' ? 'bg-white text-emerald-700 shadow-sm dark:bg-slate-700 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'}`}><MapPinned size={15} /> Lotes</button><button onClick={() => setVista('CAMPANIAS')} className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${vista === 'CAMPANIAS' ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}><Sprout size={15} /> Campañas</button></div></div>{vista === 'LOTES' ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{desglose.data.lotes.length ? desglose.data.lotes.map((lote) => <LoteCard key={lote.id} lote={lote} />) : <p className="col-span-full rounded-xl bg-white p-5 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">No hay lotes con acceso para mostrar.</p>}</div> : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{desglose.data.campanias.length ? desglose.data.campanias.map((campania) => <CampaniaCard key={campania.id} campania={campania} />) : <p className="col-span-full rounded-xl bg-white p-5 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">No hay campañas para este período.</p>}</div>}</div>}
+      {desglose.data && <div className="mt-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-slate-600 dark:text-slate-300">Período: {desglose.data.periodo.etiqueta}</p><div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800"><button onClick={() => setVista('LOTES')} className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${vista === 'LOTES' ? 'bg-white text-emerald-700 shadow-sm dark:bg-slate-700 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'}`}><MapPinned size={15} /> Lotes</button><button onClick={() => setVista('CAMPANIAS')} className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${vista === 'CAMPANIAS' ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}><Sprout size={15} /> Campañas</button></div></div><ComparativaRapida comparativa={desglose.data.comparativa} vista={vista} />{vista === 'LOTES' ? <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{desglose.data.lotes.length ? desglose.data.lotes.map((lote) => <LoteCard key={lote.id} lote={lote} />) : <p className="col-span-full rounded-xl bg-white p-5 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">No hay lotes con acceso para mostrar.</p>}</div> : <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{desglose.data.campanias.length ? desglose.data.campanias.map((campania) => <CampaniaCard key={campania.id} campania={campania} />) : <p className="col-span-full rounded-xl bg-white p-5 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">No hay campañas para este período.</p>}</div>}</div>}
     </section>
   );
 }

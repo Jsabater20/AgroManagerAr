@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   EstadoActividad,
   EstadoChecklistPreventivoHidrico,
+  EstadoTarea,
   Prisma,
   Prioridad,
   TipoCostoProductivo,
@@ -81,6 +82,16 @@ type FiltroAlertasGestion = {
   severidad?: string;
 };
 
+type ItemCentroAtencion = {
+  id: string;
+  tipo: 'ALERTA' | 'TAREA';
+  severidad: 'CRITICA' | 'ATENCION' | 'PROXIMA';
+  titulo: string;
+  detalle: string;
+  enlace: string;
+  fecha?: string;
+};
+
 const PREFERENCIAS_ALERTAS_POR_DEFECTO = {
   alertasActivas: true,
   notificacionEnApp: true,
@@ -88,6 +99,9 @@ const PREFERENCIAS_ALERTAS_POR_DEFECTO = {
   notificacionEmail: false,
   soloPrioritarias: false,
   alertasClimaActivas: false,
+  alertasTareasActivas: true,
+  alertasMaquinariasActivas: true,
+  alertasCostosActivas: true,
 };
 
 const ESTADOS_ACTIVOS: EstadoActividad[] = [
@@ -169,6 +183,107 @@ export class AlertasService {
     if (acceso.esOwner) await this.sincronizarAlertasPersistentes(organizacionId, alertas);
 
     return alertas;
+  }
+
+  async obtenerCentroAtencion(usuarioId: number, organizacionId: number) {
+    await this.requerirOwnerDashboard(usuarioId, organizacionId);
+
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+    const inicioManana = new Date(inicioHoy);
+    inicioManana.setDate(inicioManana.getDate() + 1);
+    const finProximaSemana = new Date(inicioHoy);
+    finProximaSemana.setDate(finProximaSemana.getDate() + 8);
+
+    const estadosActivos: EstadoTarea[] = [
+      EstadoTarea.PENDIENTE,
+      EstadoTarea.EN_CURSO,
+    ];
+
+    const [alertas, tareasActivas, tareasVencidas, tareasParaHoy, proximasTareas] =
+      await Promise.all([
+        this.obtenerParaOrganizacion(usuarioId, organizacionId),
+        this.prisma.tareaRural.count({
+          where: { organizacionId, estado: { in: estadosActivos } },
+        }),
+        this.prisma.tareaRural.count({
+          where: {
+            organizacionId,
+            estado: { in: estadosActivos },
+            fechaProgramada: { lt: inicioHoy },
+          },
+        }),
+        this.prisma.tareaRural.count({
+          where: {
+            organizacionId,
+            estado: { in: estadosActivos },
+            fechaProgramada: { gte: inicioHoy, lt: inicioManana },
+          },
+        }),
+        this.prisma.tareaRural.findMany({
+          where: {
+            organizacionId,
+            estado: { in: estadosActivos },
+            fechaProgramada: { lt: finProximaSemana },
+          },
+          include: { campo: { select: { nombre: true } } },
+          orderBy: [{ fechaProgramada: 'asc' }, { prioridad: 'desc' }],
+          take: 20,
+        }),
+      ]);
+
+    const alertasCentro = alertas.filter((alerta) => alerta.origenTipo !== 'TAREA_RURAL');
+    const itemsAlertas: ItemCentroAtencion[] = alertasCentro.map((alerta) => ({
+      id: `alerta-${alerta.id}`,
+      tipo: 'ALERTA',
+      severidad: alerta.severidad === 'CRITICA' ? 'CRITICA' : 'ATENCION',
+      titulo: alerta.titulo,
+      detalle: alerta.mensaje,
+      enlace: alerta.enlace,
+    }));
+
+    const itemsTareas: ItemCentroAtencion[] = proximasTareas.map((tarea) => {
+      const vencida = tarea.fechaProgramada < inicioHoy;
+      const esParaHoy = tarea.fechaProgramada >= inicioHoy && tarea.fechaProgramada < inicioManana;
+      const prioridad = vencida
+        ? 'CRITICA'
+        : esParaHoy || tarea.prioridad === 'URGENTE' || tarea.prioridad === 'ALTA'
+          ? 'ATENCION'
+          : 'PROXIMA';
+
+      return {
+        id: `tarea-${tarea.id}`,
+        tipo: 'TAREA',
+        severidad: prioridad,
+        titulo: tarea.titulo,
+        detalle: tarea.campo?.nombre
+          ? `${tarea.campo.nombre} · ${tarea.tipo.replaceAll('_', ' ').toLowerCase()}`
+          : tarea.tipo.replaceAll('_', ' ').toLowerCase(),
+        enlace: `/org/${organizacionId}/tareas`,
+        fecha: tarea.fechaProgramada.toISOString(),
+      };
+    });
+
+    const pesoSeveridad = { CRITICA: 0, ATENCION: 1, PROXIMA: 2 } as const;
+    const items = [...itemsAlertas, ...itemsTareas]
+      .sort((izquierda, derecha) => {
+        const diferenciaSeveridad = pesoSeveridad[izquierda.severidad] - pesoSeveridad[derecha.severidad];
+        if (diferenciaSeveridad !== 0) return diferenciaSeveridad;
+        return (izquierda.fecha ?? '').localeCompare(derecha.fecha ?? '');
+      })
+      .slice(0, 16);
+
+    return {
+      resumen: {
+        tareasActivas,
+        tareasVencidas,
+        tareasParaHoy,
+        alertasActivas: alertasCentro.length,
+        alertasCriticas: alertasCentro.filter((alerta) => alerta.severidad === 'CRITICA').length,
+      },
+      items,
+      generadoEn: new Date().toISOString(),
+    };
   }
 
   async listarGestion(
@@ -357,6 +472,7 @@ export class AlertasService {
       .map((organizacion) => organizacion.organizacionId);
     const [
       actividades,
+      tareasRurales,
       costos,
       actividadesCompletadasSinCosto,
       maquinarias,
@@ -386,6 +502,23 @@ export class AlertasService {
           recursoId: true,
         },
         orderBy: { fechaEstimadaFin: 'asc' },
+        take: 40,
+      }),
+      this.prisma.tareaRural.findMany({
+        where: {
+          organizacionId: { in: organizacionIds },
+          estado: { in: [EstadoTarea.PENDIENTE, EstadoTarea.EN_CURSO] },
+          fechaProgramada: { lt: inicioEnTresDias },
+          ...(campoIds ? { campoId: { in: campoIds } } : {}),
+        },
+        select: {
+          id: true,
+          organizacionId: true,
+          titulo: true,
+          fechaProgramada: true,
+          estado: true,
+        },
+        orderBy: { fechaProgramada: 'asc' },
         take: 40,
       }),
       this.prisma.costoProductivo.findMany({
@@ -488,6 +621,59 @@ export class AlertasService {
       };
       });
 
+    const alertasTareasRurales: AlertaOperativa[] = tareasRurales.flatMap<AlertaOperativa>((tarea) => {
+      if (!tarea.organizacionId) return [];
+
+      const base = {
+        enlace: `/org/${tarea.organizacionId}/tareas`,
+        organizacionId: tarea.organizacionId,
+        origenTipo: 'TAREA_RURAL',
+        origenId: String(tarea.id),
+      };
+
+      if (tarea.fechaProgramada < inicioHoy) {
+        const dias = Math.max(
+          1,
+          Math.floor((inicioHoy.getTime() - tarea.fechaProgramada.getTime()) / 86_400_000),
+        );
+        return [{
+          id: `tarea-rural-vencida-${tarea.id}`,
+          tipo: 'TRABAJO_VENCIDO',
+          severidad: dias >= 7 ? 'CRITICA' : 'ADVERTENCIA',
+          titulo: `Tarea vencida: ${tarea.titulo}`,
+          mensaje: `Quedó pendiente hace ${dias} día${dias === 1 ? '' : 's'}.`,
+          dedupeKey: `alerta-tarea-rural-vencida-${tarea.id}`,
+          ...base,
+        }];
+      }
+
+      if (tarea.fechaProgramada < inicioManana) {
+        return [{
+          id: `tarea-rural-hoy-${tarea.id}`,
+          tipo: 'TRABAJO_COMIENZA_HOY',
+          severidad: 'ADVERTENCIA',
+          titulo: `Tarea para hoy: ${tarea.titulo}`,
+          mensaje: 'Está programada para hoy. Confirmá que pueda realizarse o reprogramala.',
+          dedupeKey: `alerta-tarea-rural-hoy-${tarea.id}`,
+          ...base,
+        }];
+      }
+
+      const dias = Math.max(
+        1,
+        Math.floor((tarea.fechaProgramada.getTime() - inicioHoy.getTime()) / 86_400_000),
+      );
+      return [{
+        id: `tarea-rural-proxima-${tarea.id}`,
+        tipo: 'TRABAJO_PROXIMO_A_VENCER',
+        severidad: 'ADVERTENCIA',
+        titulo: `Próxima tarea: ${tarea.titulo}`,
+        mensaje: `Está programada para dentro de ${dias} día${dias === 1 ? '' : 's'}.`,
+        dedupeKey: `alerta-tarea-rural-proxima-${tarea.id}`,
+        ...base,
+      }];
+    });
+
     const alertasTrabajos: AlertaOperativa[] = [
       ...alertasVencidos,
       ...actividadesVisibles.flatMap((actividad): AlertaOperativa[] => {
@@ -556,6 +742,7 @@ export class AlertasService {
 
         return [];
       }),
+      ...alertasTareasRurales,
     ];
 
     const actividadesCompletadasVisibles = campoIds
@@ -973,6 +1160,7 @@ export class AlertasService {
     const activadas: Array<{
       id: string;
       ciclo: number;
+      tipo: string;
       titulo: string;
       mensaje: string;
       enlace: string;
@@ -998,9 +1186,9 @@ export class AlertasService {
             detectadaEn: ahora,
             ultimaEvaluacionEn: ahora,
           },
-          select: { id: true, ciclo: true, titulo: true, mensaje: true, enlace: true },
+          select: { id: true, ciclo: true, tipo: true, titulo: true, mensaje: true, enlace: true },
         });
-        activadas.push({ ...creada, severidad });
+        activadas.push({ ...creada, tipo: alerta.tipo, severidad });
         continue;
       }
 
@@ -1022,9 +1210,9 @@ export class AlertasService {
           actividadMiembroId: reabierta ? null : undefined,
           ultimaEvaluacionEn: ahora,
         },
-        select: { id: true, ciclo: true, titulo: true, mensaje: true, enlace: true },
+        select: { id: true, ciclo: true, tipo: true, titulo: true, mensaje: true, enlace: true },
       });
-      if (reabierta) activadas.push({ ...actualizada, severidad });
+      if (reabierta) activadas.push({ ...actualizada, tipo: alerta.tipo, severidad });
     }
 
     await this.prisma.alertaGestion.updateMany({
@@ -1060,9 +1248,10 @@ export class AlertasService {
     const preferencias = { ...PREFERENCIAS_ALERTAS_POR_DEFECTO, ...preferenciasGuardadas };
     if (!preferencias.alertasActivas) return;
 
-    const alertasAEnviar = preferencias.soloPrioritarias
-      ? activadas.filter((alerta) => alerta.severidad === 'PRIORITARIA')
-      : activadas;
+    const alertasAEnviar = activadas.filter((alerta) => {
+      if (!this.debeNotificarCategoria(preferencias, alerta.tipo)) return false;
+      return !preferencias.soloPrioritarias || alerta.severidad === 'PRIORITARIA';
+    });
     if (!alertasAEnviar.length) return;
 
     await Promise.allSettled(alertasAEnviar.map(async (alerta) => {
@@ -1134,6 +1323,22 @@ export class AlertasService {
         <p style="color: #6b7280; font-size: 12px;">Podés cambiar estos avisos desde Reportes → Preferencias de alertas.</p>
       </div>
     `;
+  }
+
+  private debeNotificarCategoria(
+    preferencias: typeof PREFERENCIAS_ALERTAS_POR_DEFECTO,
+    tipo: string,
+  ) {
+    if (tipo.startsWith('CLIMA_') || tipo.startsWith('PLAN_PREVENTIVO_')) {
+      return preferencias.alertasClimaActivas;
+    }
+    if (tipo.startsWith('MAQUINARIA_')) {
+      return preferencias.alertasMaquinariasActivas;
+    }
+    if (tipo === 'COSTO_SUPERA_ESTIMADO' || tipo === 'ACTIVIDAD_COMPLETADA_SIN_COSTO_REAL') {
+      return preferencias.alertasCostosActivas;
+    }
+    return preferencias.alertasTareasActivas;
   }
 
   private async actualizarAlertasGestion(organizacionId: number) {

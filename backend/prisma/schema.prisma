@@ -37,6 +37,11 @@ model Usuario {
   preferenciasComunicacionesActualizadasEn DateTime?
 
   animales                          Animal[]
+  siembrasRegistradas               Siembra[]                       @relation("siembras_registradas_por")
+  cosechasRegistradas               Cosecha[]                       @relation("cosechas_registradas_por")
+  aplicacionesInsumosRegistradas    AplicacionInsumo[]              @relation("aplicaciones_insumos_registradas_por")
+  lotesGanaderos                    LoteGanadero[]
+  registrosLotesGanaderos           RegistroLoteGanadero[]
   auditoriasLogs                    AuditoriaLog[]                   @relation("auditoriaLogs")
   campanias                         Campania[]
   campos                            Campo[]
@@ -231,6 +236,9 @@ model PreferenciaAlerta {
   notificacionEmail   Boolean  @default(false)
   soloPrioritarias    Boolean  @default(false)
   alertasClimaActivas Boolean  @default(false)
+  alertasTareasActivas Boolean @default(true)
+  alertasMaquinariasActivas Boolean @default(true)
+  alertasCostosActivas Boolean @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -268,6 +276,7 @@ model Campo {
   provincia               String?
   localidad               String?
   organizacionId          Int?
+  agroBotIdempotencyKey   String?                   @unique
   AsignacionCampo         AsignacionCampo[]
   organizacion            Organizacion?             @relation(fields: [organizacionId], references: [id])
   usuario                 Usuario                   @relation(fields: [usuarioId], references: [id])
@@ -283,6 +292,7 @@ model Campo {
   perfilRiesgoHidrico     PerfilRiesgoHidricoCampo?
   checklistHidrico        ChecklistPreventivoHidrico[]
   umbralAlertaHidrica     UmbralAlertaHidricaCampo?
+  actividadesProductivas  CampoActividadProductiva[]
 
   @@index([organizacionId])
 }
@@ -314,6 +324,7 @@ model Siembra {
   id                Int                    @id @default(autoincrement())
   loteId            Int
   tipoCultivoId     Int
+  usuarioId         Int?
   fechaSiembra      DateTime
   densidad          Float?
   observaciones     String?
@@ -328,11 +339,15 @@ model Siembra {
   campania          Campania?              @relation(fields: [campaniaId], references: [id])
   lote              Lote                   @relation(fields: [loteId], references: [id])
   tipoCultivo       TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
+  registradaPor     Usuario?               @relation("siembras_registradas_por", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
 }
 
 model Cosecha {
   id              Int      @id @default(autoincrement())
   siembraId       Int
+  usuarioId       Int?
   fechaCosecha    DateTime
   rendimientoKgHa Float
   totalKg         Float
@@ -341,6 +356,9 @@ model Cosecha {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   siembra         Siembra  @relation(fields: [siembraId], references: [id])
+  registradaPor   Usuario? @relation("cosechas_registradas_por", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
 }
 
 model CultivoFrutihorticola {
@@ -449,6 +467,7 @@ model AplicacionInsumo {
   id            Int      @id @default(autoincrement())
   siembraId     Int
   insumoId      Int
+  usuarioId     Int?
   fecha         DateTime
   cantidad      Float
   unidad        String
@@ -457,6 +476,9 @@ model AplicacionInsumo {
   updatedAt     DateTime @updatedAt
   insumo        Insumo   @relation(fields: [insumoId], references: [id])
   siembra       Siembra  @relation(fields: [siembraId], references: [id])
+  registradaPor Usuario? @relation("aplicaciones_insumos_registradas_por", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
 }
 
 model Animal {
@@ -472,13 +494,61 @@ model Animal {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   organizacionId  Int?
+  loteGanaderoId  Int?
   organizacion    Organizacion?    @relation(fields: [organizacionId], references: [id])
+  loteGanadero    LoteGanadero?    @relation(fields: [loteGanaderoId], references: [id], onDelete: SetNull)
   usuario         Usuario          @relation(fields: [usuarioId], references: [id])
   preneces        Prenez[]
   pesos           RegistroPeso[]
   ordenes         RegistroOrdene[]
 
   @@index([organizacionId])
+  @@index([loteGanaderoId])
+}
+
+model LoteGanadero {
+  id                    Int                   @id @default(autoincrement())
+  organizacionId        Int
+  usuarioId             Int
+  nombre                String
+  sistema               SistemaLoteGanadero
+  estado                EstadoLoteGanadero    @default(ACTIVO)
+  ubicacion             String?
+  cantidadInicial       Int
+  cantidadActual        Int
+  fechaIngreso          DateTime
+  pesoPromedioIngresoKg Float?
+  pesoPromedioActualKg  Float?
+  costoCompraTotal      Float?
+  fechaEgreso           DateTime?
+  precioVentaTotal      Float?
+  observaciones         String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  organizacion          Organizacion          @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  usuario               Usuario                @relation(fields: [usuarioId], references: [id])
+  animales              Animal[]
+  registros             RegistroLoteGanadero[]
+
+  @@index([organizacionId, estado])
+  @@index([usuarioId])
+}
+
+model RegistroLoteGanadero {
+  id                 Int           @id @default(autoincrement())
+  loteGanaderoId     Int
+  usuarioId          Int
+  fecha              DateTime
+  cantidadActual     Int
+  pesoPromedioKg     Float?
+  alimentoKg         Float         @default(0)
+  bajas              Int           @default(0)
+  observaciones      String?
+  createdAt          DateTime      @default(now())
+  loteGanadero       LoteGanadero @relation(fields: [loteGanaderoId], references: [id], onDelete: Cascade)
+  usuario            Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([loteGanaderoId, fecha])
 }
 
 model Prenez {
@@ -509,12 +579,16 @@ model TareaRural {
   updatedAt       DateTime      @updatedAt
   fechaLimite     DateTime?
   repetir         RepetirTarea  @default(UNICA)
+  tareaOrigenId   Int?
   organizacionId  Int?
   campo           Campo?        @relation(fields: [campoId], references: [id])
   organizacion    Organizacion? @relation(fields: [organizacionId], references: [id])
   usuario         Usuario       @relation(fields: [usuarioId], references: [id])
+  tareaOrigen     TareaRural?   @relation("repeticiones_tarea", fields: [tareaOrigenId], references: [id], onDelete: SetNull)
+  tareaSiguiente  TareaRural?  @relation("repeticiones_tarea")
 
   @@index([organizacionId])
+  @@unique([tareaOrigenId])
 }
 
 model Maquinaria {
@@ -695,6 +769,7 @@ model Organizacion {
   createdAt                 DateTime                          @default(now())
   updatedAt                 DateTime                          @updatedAt
   animales                  Animal[]
+  lotesGanaderos            LoteGanadero[]
   asignacionesRecursos      AsignacionRecurso[]
   auditoriasLogs            AuditoriaLog[]                    @relation("auditoriaLogs")
   campanias                 Campania[]
@@ -769,6 +844,19 @@ model OrganizacionActividadProductiva {
 
   @@unique([organizacionId, tipoActividad])
   @@index([organizacionId, activo])
+}
+
+model CampoActividadProductiva {
+  id             Int                 @id @default(autoincrement())
+  campoId        Int
+  tipoActividad  ActividadProductiva
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
+  @@unique([campoId, tipoActividad])
+  @@index([tipoActividad])
 }
 
 model CachePronosticoClima {
@@ -1190,6 +1278,7 @@ model ActividadMiembro {
   recursoId       Int?
   contexto        String?
   calculoOrigenId Int?
+  agroBotIdempotencyKey String? @unique
 
   fechaInicio      DateTime
   fechaEstimadaFin DateTime?
@@ -1568,6 +1657,17 @@ enum CategoriaAnimal {
   GALLO
   POLLO
   POLLA
+}
+
+enum SistemaLoteGanadero {
+  CRIA_PROPIA
+  INVERNADA_COMPRADA
+  FEEDLOT
+}
+
+enum EstadoLoteGanadero {
+  ACTIVO
+  CERRADO
 }
 
 enum EstadoPrenez {

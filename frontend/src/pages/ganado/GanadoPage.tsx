@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import {
   PawPrint, Plus, Loader2, Baby, Trash2, X,
   ChevronLeft, ChevronRight, BadgeCheck, AlertCircle, Clock, Scale,
+  Boxes, ClipboardPlus, CircleCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ganadoApi } from '../../api/ganado.api';
@@ -11,6 +12,8 @@ import type {
   Animal, CreateAnimalDto, CreatePrenezDto,
   Especie, Sexo, CategoriaAnimal, EstadoPrenez,
   RegistroPeso, CreateRegistroPesoDto,
+  CerrarLoteGanaderoDto, CreateLoteGanaderoDto,
+  CreateRegistroLoteGanaderoDto, LoteGanadero, SistemaLoteGanadero,
 } from '../../api/types';
 import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
@@ -71,6 +74,43 @@ const emptyPrenez: CreatePrenezDto = { fechaInicio: '', fechaEstimadaParto: '', 
 
 const emptyPeso: CreateRegistroPesoDto = { peso: 0, fecha: new Date().toISOString().split('T')[0], observaciones: '' };
 
+const SISTEMA_LOTE_LABELS: Record<SistemaLoteGanadero, string> = {
+  CRIA_PROPIA: 'Cria propia',
+  INVERNADA_COMPRADA: 'Invernada comprada',
+  FEEDLOT: 'Feedlot',
+};
+
+function createEmptyLote(): CreateLoteGanaderoDto {
+  return {
+    nombre: '',
+    sistema: 'CRIA_PROPIA',
+    cantidadInicial: 0,
+    fechaIngreso: new Date().toISOString().split('T')[0],
+    pesoPromedioIngresoKg: undefined,
+    costoCompraTotal: undefined,
+    ubicacion: '',
+    observaciones: '',
+  };
+}
+
+function createEmptyRegistro(cantidadActual = 0): CreateRegistroLoteGanaderoDto {
+  return {
+    fecha: new Date().toISOString().split('T')[0],
+    cantidadActual,
+    pesoPromedioKg: undefined,
+    alimentoKg: undefined,
+    bajas: undefined,
+    observaciones: '',
+  };
+}
+
+function createEmptyCierre(): CerrarLoteGanaderoDto {
+  return {
+    fechaEgreso: new Date().toISOString().split('T')[0],
+    precioVentaTotal: undefined,
+  };
+}
+
 function daysUntil(dateStr: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -96,8 +136,18 @@ export default function GanadoPage() {
   const [filterEspecie, setFilterEspecie]   = useState<Especie | ''>('');
   const [filterSexo, setFilterSexo]         = useState<Sexo | ''>('');
   const [page, setPage]                     = useState(1);
+  const [showLoteModal, setShowLoteModal]   = useState(false);
+  const [loteForm, setLoteForm]             = useState<CreateLoteGanaderoDto>(createEmptyLote);
+  const [registroTarget, setRegistroTarget] = useState<LoteGanadero | null>(null);
+  const [registroForm, setRegistroForm]     = useState<CreateRegistroLoteGanaderoDto>(createEmptyRegistro);
+  const [cierreTarget, setCierreTarget]     = useState<LoteGanadero | null>(null);
+  const [cierreForm, setCierreForm]         = useState<CerrarLoteGanaderoDto>(createEmptyCierre);
 
   const { data: animales, isLoading } = useQuery({ queryKey: ['ganado'], queryFn: () => ganadoApi.getAll() });
+  const { data: lotes = [], isLoading: lotesLoading } = useQuery({
+    queryKey: ['ganado-lotes'],
+    queryFn: ganadoApi.getLotes,
+  });
 
   const { data: pesosData = [], isLoading: pesosLoading } = useQuery({
     queryKey: ['ganado-pesos', pesosTarget?.id],
@@ -183,6 +233,39 @@ export default function GanadoPage() {
     onError: () => toast.error('Error al eliminar'),
   });
 
+  const createLoteMutation = useMutation({
+    mutationFn: ganadoApi.createLote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ganado-lotes'] });
+      toast.success('Lote ganadero creado');
+      setShowLoteModal(false);
+      setLoteForm(createEmptyLote());
+    },
+    onError: () => toast.error('No se pudo crear el lote ganadero'),
+  });
+
+  const registrarLoteMutation = useMutation({
+    mutationFn: ({ id, dto }: { id: number; dto: CreateRegistroLoteGanaderoDto }) => ganadoApi.registrarLote(id, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ganado-lotes'] });
+      toast.success('Control de lote registrado');
+      setRegistroTarget(null);
+      setRegistroForm(createEmptyRegistro());
+    },
+    onError: () => toast.error('No se pudo registrar el control'),
+  });
+
+  const cerrarLoteMutation = useMutation({
+    mutationFn: ({ id, dto }: { id: number; dto: CerrarLoteGanaderoDto }) => ganadoApi.cerrarLote(id, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ganado-lotes'] });
+      toast.success('Lote cerrado');
+      setCierreTarget(null);
+      setCierreForm(createEmptyCierre());
+    },
+    onError: () => toast.error('No se pudo cerrar el lote'),
+  });
+
   const updatePrenezMutation = useMutation({
     mutationFn: ({ prenezId, estado }: { prenezId: number; estado: EstadoPrenez }) =>
       ganadoApi.updatePrenezEstado(prenezId, estado),
@@ -208,11 +291,106 @@ export default function GanadoPage() {
           <h1 className="text-2xl font-bold text-gray-900">Ganadería</h1>
           <p className="text-gray-500 mt-1 text-sm">Registro de animales y seguimiento de preñez</p>
         </div>
-        <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-          <Plus size={16} />Nuevo animal
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowLoteModal(true)}
+            className="flex items-center gap-2 bg-amber-700 hover:bg-amber-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+            <Boxes size={16} />Nuevo lote
+          </button>
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+            <Plus size={16} />Nuevo animal
+          </button>
+        </div>
       </div>
+
+      {/* Filtros */}
+      <section className="mb-8 rounded-2xl border border-amber-100 bg-amber-50/40 p-5">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Boxes size={18} className="text-amber-700" />
+              <h2 className="font-semibold text-gray-900">Lotes ganaderos</h2>
+            </div>
+            <p className="mt-1 text-sm text-gray-600">
+              Segui la cria, invernada o feedlot por grupo, sin mezclarlo con el registro individual de animales.
+            </p>
+          </div>
+          <button onClick={() => setShowLoteModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors">
+            <Plus size={15} />Crear lote
+          </button>
+        </div>
+
+        {lotesLoading ? (
+          <div className="flex justify-center py-6"><Loader2 size={22} className="animate-spin text-amber-700" /></div>
+        ) : lotes.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-amber-200 bg-white/70 p-5 text-sm text-gray-600">
+            Todavia no hay lotes ganaderos. Crealos cuando necesites seguir un grupo de animales por sistema productivo.
+          </div>
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {lotes.map((lote) => {
+              const ultimoControl = lote.registros?.[0];
+              const esActivo = lote.estado === 'ACTIVO';
+              const responsableControl = ultimoControl?.usuario
+                ? [ultimoControl.usuario.nombre, ultimoControl.usuario.apellido].filter(Boolean).join(' ')
+                : undefined;
+              return (
+                <article key={lote.id} className="rounded-xl border border-amber-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{lote.nombre}</p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {SISTEMA_LOTE_LABELS[lote.sistema]}{lote.ubicacion ? ' - ' + lote.ubicacion : ''}
+                      </p>
+                    </div>
+                    <span className={'rounded-full px-2 py-1 text-xs font-semibold ' + (esActivo ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600')}>
+                      {esActivo ? 'Activo' : 'Cerrado'}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-2 border-y border-gray-100 py-3 text-center">
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">{lote.cantidadActual}</p>
+                      <p className="text-[11px] text-gray-500">cabezas</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">{lote.pesoPromedioActualKg ?? lote.pesoPromedioIngresoKg ?? '-'}</p>
+                      <p className="text-[11px] text-gray-500">kg promedio</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">{lote._count?.animales ?? 0}</p>
+                      <p className="text-[11px] text-gray-500">identificados</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-xs text-gray-500">
+                    {ultimoControl
+                      ? 'Ultimo control: ' + formatDate(ultimoControl.fecha) + (responsableControl ? ' por ' + responsableControl : '')
+                      : 'Ingreso: ' + formatDate(lote.fechaIngreso)}
+                  </p>
+                  {esActivo && (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={() => { setRegistroTarget(lote); setRegistroForm(createEmptyRegistro(lote.cantidadActual)); }}
+                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-200 transition-colors"
+                      >
+                        <ClipboardPlus size={14} />Registrar control
+                      </button>
+                      <button
+                        onClick={() => { setCierreTarget(lote); setCierreForm(createEmptyCierre()); }}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <CircleCheck size={14} />Cerrar
+                      </button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* Filtros */}
       {!isLoading && (animales?.length ?? 0) > 0 && (
@@ -266,7 +444,10 @@ export default function GanadoPage() {
                   const canPrenez    = a.sexo === 'HEMBRA';
                   return (
                     <tr key={a.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3.5 font-medium text-gray-900">{a.nombre}</td>
+                      <td className="px-5 py-3.5 font-medium text-gray-900">
+                        {a.nombre}
+                        {a.loteGanadero && <p className="mt-0.5 text-xs font-normal text-amber-700">{a.loteGanadero.nombre}</p>}
+                      </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${ESPECIE_COLORS[a.especie as Especie]}`}>
                           {ESPECIE_LABELS[a.especie as Especie]}
@@ -371,6 +552,14 @@ export default function GanadoPage() {
             <Field label="Categoría *">
               <select required value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value as CategoriaAnimal })} className="input">
                 {categoriasDisponibles.map((c) => <option key={c} value={c}>{CATEGORIA_LABELS[c]}</option>)}
+              </select>
+            </Field>
+            <Field label="Lote ganadero">
+              <select value={form.loteGanaderoId ?? ''} onChange={(e) => setForm({ ...form, loteGanaderoId: e.target.value ? Number(e.target.value) : undefined })} className="input">
+                <option value="">Sin asignar a un lote</option>
+                {lotes.filter((lote) => lote.estado === 'ACTIVO').map((lote) => (
+                  <option key={lote.id} value={lote.id}>{lote.nombre}</option>
+                ))}
               </select>
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -553,6 +742,142 @@ export default function GanadoPage() {
                 className="input resize-none" placeholder="Opcional" />
             </Field>
             <ModalActions onCancel={() => setPrenezTarget(null)} loading={prenezMutation.isPending} label="Registrar preñez" />
+          </form>
+        </Modal>
+      )}
+      {showLoteModal && (
+        <Modal title="Nuevo lote ganadero" onClose={() => { setShowLoteModal(false); setLoteForm(createEmptyLote()); }}>
+          <p className="mb-4 text-sm text-gray-500">
+            Crea un grupo para seguir cria propia, invernada comprada o feedlot.
+          </p>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              createLoteMutation.mutate({ ...loteForm, cantidadInicial: Number(loteForm.cantidadInicial) });
+            }}
+            className="space-y-4"
+          >
+            <Field label="Nombre del lote *">
+              <input required value={loteForm.nombre} onChange={(event) => setLoteForm({ ...loteForm, nombre: event.target.value })}
+                className="input" placeholder="Ej: Invernada primavera 2026" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Sistema *">
+                <select value={loteForm.sistema} onChange={(event) => setLoteForm({ ...loteForm, sistema: event.target.value as SistemaLoteGanadero })} className="input">
+                  {(Object.keys(SISTEMA_LOTE_LABELS) as SistemaLoteGanadero[]).map((sistema) => (
+                    <option key={sistema} value={sistema}>{SISTEMA_LOTE_LABELS[sistema]}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Cantidad inicial *">
+                <input required type="number" min={1} value={loteForm.cantidadInicial || ''}
+                  onChange={(event) => setLoteForm({ ...loteForm, cantidadInicial: Number(event.target.value) })}
+                  className="input" placeholder="Ej: 80" />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Fecha de ingreso *">
+                <input required type="date" value={loteForm.fechaIngreso}
+                  onChange={(event) => setLoteForm({ ...loteForm, fechaIngreso: event.target.value })} className="input" />
+              </Field>
+              <Field label="Peso promedio de ingreso (kg)">
+                <input type="number" min={0} step={0.1} value={loteForm.pesoPromedioIngresoKg ?? ''}
+                  onChange={(event) => setLoteForm({ ...loteForm, pesoPromedioIngresoKg: event.target.value ? Number(event.target.value) : undefined })}
+                  className="input" placeholder="Opcional" />
+              </Field>
+            </div>
+            <Field label="Ubicacion">
+              <input value={loteForm.ubicacion ?? ''} onChange={(event) => setLoteForm({ ...loteForm, ubicacion: event.target.value })}
+                className="input" placeholder="Ej: Corral 3 o Potrero norte" />
+            </Field>
+            <Field label="Costo de compra total">
+              <input type="number" min={0} value={loteForm.costoCompraTotal ?? ''}
+                onChange={(event) => setLoteForm({ ...loteForm, costoCompraTotal: event.target.value ? Number(event.target.value) : undefined })}
+                className="input" placeholder="Opcional" />
+            </Field>
+            <Field label="Observaciones">
+              <textarea rows={2} value={loteForm.observaciones ?? ''} onChange={(event) => setLoteForm({ ...loteForm, observaciones: event.target.value })}
+                className="input resize-none" placeholder="Opcional" />
+            </Field>
+            <ModalActions onCancel={() => { setShowLoteModal(false); setLoteForm(createEmptyLote()); }} loading={createLoteMutation.isPending} label="Crear lote" />
+          </form>
+        </Modal>
+      )}
+
+      {registroTarget && (
+        <Modal title={'Registrar control - ' + registroTarget.nombre} onClose={() => setRegistroTarget(null)}>
+          <p className="mb-4 text-sm text-gray-500">
+            Actualiza las cabezas, el peso promedio y los datos operativos del grupo.
+          </p>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              registrarLoteMutation.mutate({
+                id: registroTarget.id,
+                dto: { ...registroForm, cantidadActual: Number(registroForm.cantidadActual) },
+              });
+            }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Fecha *">
+                <input required type="date" value={registroForm.fecha}
+                  onChange={(event) => setRegistroForm({ ...registroForm, fecha: event.target.value })} className="input" />
+              </Field>
+              <Field label="Cantidad actual *">
+                <input required type="number" min={0} value={registroForm.cantidadActual}
+                  onChange={(event) => setRegistroForm({ ...registroForm, cantidadActual: Number(event.target.value) })}
+                  className="input" />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Peso promedio (kg)">
+                <input type="number" min={0} step={0.1} value={registroForm.pesoPromedioKg ?? ''}
+                  onChange={(event) => setRegistroForm({ ...registroForm, pesoPromedioKg: event.target.value ? Number(event.target.value) : undefined })}
+                  className="input" placeholder="Opcional" />
+              </Field>
+              <Field label="Alimento suministrado (kg)">
+                <input type="number" min={0} step={0.1} value={registroForm.alimentoKg ?? ''}
+                  onChange={(event) => setRegistroForm({ ...registroForm, alimentoKg: event.target.value ? Number(event.target.value) : undefined })}
+                  className="input" placeholder="Opcional" />
+              </Field>
+            </div>
+            <Field label="Bajas">
+              <input type="number" min={0} value={registroForm.bajas ?? ''}
+                onChange={(event) => setRegistroForm({ ...registroForm, bajas: event.target.value ? Number(event.target.value) : undefined })}
+                className="input" placeholder="Opcional" />
+            </Field>
+            <Field label="Observaciones">
+              <textarea rows={2} value={registroForm.observaciones ?? ''} onChange={(event) => setRegistroForm({ ...registroForm, observaciones: event.target.value })}
+                className="input resize-none" placeholder="Sanidad, manejo, alimentacion o cualquier novedad" />
+            </Field>
+            <ModalActions onCancel={() => setRegistroTarget(null)} loading={registrarLoteMutation.isPending} label="Guardar control" />
+          </form>
+        </Modal>
+      )}
+
+      {cierreTarget && (
+        <Modal title={'Cerrar lote - ' + cierreTarget.nombre} onClose={() => setCierreTarget(null)}>
+          <p className="mb-4 text-sm text-gray-500">
+            Conservamos el historial del lote para que puedas revisar su resultado mas adelante.
+          </p>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              cerrarLoteMutation.mutate({ id: cierreTarget.id, dto: cierreForm });
+            }}
+            className="space-y-4"
+          >
+            <Field label="Fecha de cierre *">
+              <input required type="date" value={cierreForm.fechaEgreso}
+                onChange={(event) => setCierreForm({ ...cierreForm, fechaEgreso: event.target.value })} className="input" />
+            </Field>
+            <Field label="Importe total de venta">
+              <input type="number" min={0} value={cierreForm.precioVentaTotal ?? ''}
+                onChange={(event) => setCierreForm({ ...cierreForm, precioVentaTotal: event.target.value ? Number(event.target.value) : undefined })}
+                className="input" placeholder="Opcional" />
+            </Field>
+            <ModalActions onCancel={() => setCierreTarget(null)} loading={cerrarLoteMutation.isPending} label="Cerrar lote" />
           </form>
         </Modal>
       )}

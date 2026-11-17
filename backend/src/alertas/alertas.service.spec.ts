@@ -4,6 +4,7 @@ describe('AlertasService', () => {
   const prisma = {
     asignacionCampo: { findMany: jest.fn() },
     actividadMiembro: { findMany: jest.fn() },
+    tareaRural: { findMany: jest.fn() },
     checklistPreventivoHidrico: { findMany: jest.fn() },
     costoProductivo: { findMany: jest.fn() },
     organizacion: { findMany: jest.fn(), findUnique: jest.fn() },
@@ -55,6 +56,7 @@ describe('AlertasService', () => {
         recursoId: 4,
       },
     ]).mockResolvedValueOnce([]);
+    prisma.tareaRural.findMany.mockResolvedValue([]);
     prisma.costoProductivo.findMany.mockResolvedValue([
       {
         organizacionId: 1,
@@ -105,6 +107,25 @@ describe('AlertasService', () => {
     }));
     notificacionesService.crearNotificacionSiNoExiste.mockResolvedValue(true);
     camposService.asegurarAccionPreventivaAutomatica.mockResolvedValue({ creada: false });
+  });
+
+  it('filtra los avisos segun la categoria elegida por el owner', () => {
+    const preferencias = {
+      alertasActivas: true,
+      notificacionEnApp: true,
+      notificacionPush: true,
+      notificacionEmail: false,
+      soloPrioritarias: false,
+      alertasClimaActivas: false,
+      alertasTareasActivas: true,
+      alertasMaquinariasActivas: false,
+      alertasCostosActivas: false,
+    };
+
+    expect((service as any).debeNotificarCategoria(preferencias, 'TRABAJO_VENCIDO')).toBe(true);
+    expect((service as any).debeNotificarCategoria(preferencias, 'MAQUINARIA_MANTENIMIENTO_VENCIDO')).toBe(false);
+    expect((service as any).debeNotificarCategoria(preferencias, 'COSTO_SUPERA_ESTIMADO')).toBe(false);
+    expect((service as any).debeNotificarCategoria(preferencias, 'CLIMA_HELADA')).toBe(false);
   });
 
   it('detecta trabajos vencidos y costos reales por encima de la proyección', async () => {
@@ -229,6 +250,36 @@ describe('AlertasService', () => {
       'TRABAJO_VENCIDO',
     ]));
     expect(alertas).toHaveLength(4);
+  });
+
+  it('genera recordatorios para tareas rurales pendientes', async () => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const ayer = new Date(hoy);
+    ayer.setDate(ayer.getDate() - 1);
+
+    prisma.actividadMiembro.findMany.mockReset();
+    prisma.actividadMiembro.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    prisma.tareaRural.findMany.mockResolvedValue([{
+      id: 41,
+      organizacionId: 1,
+      titulo: 'Revisar alambrado',
+      estado: 'PENDIENTE',
+      fechaProgramada: ayer,
+    }]);
+    prisma.costoProductivo.findMany.mockResolvedValue([]);
+    prisma.maquinaria.findMany.mockResolvedValue([]);
+    prisma.checklistPreventivoHidrico.findMany.mockResolvedValue([]);
+
+    const alertas = await service.listarParaOrganizaciones([1]);
+
+    expect(alertas).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        tipo: 'TRABAJO_VENCIDO',
+        origenTipo: 'TAREA_RURAL',
+        origenId: '41',
+      }),
+    ]));
   });
 
   it('limita las alertas económicas a organizaciones Pro', async () => {

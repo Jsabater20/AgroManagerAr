@@ -19,6 +19,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
   user: { id: number };
@@ -49,11 +50,13 @@ export class SiembrasController {
   }
 
   @Post()
+  @Auditar('registrar_siembra', 'Siembra')
   create(@Body() dto: CreateSiembraDto, @Request() req: AuthRequest) {
     return this.siembrasService.create(dto, req.user.id, req.organizacionId);
   }
 
   @Patch(':id')
+  @Auditar('actualizar_siembra', 'Siembra')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSiembraDto,
@@ -68,6 +71,7 @@ export class SiembrasController {
   }
 
   @Post(':id/cosechas')
+  @Auditar('registrar_cosecha', 'Cosecha')
   addCosecha(
     @Param('id', ParseIntPipe) siembraId: number,
     @Body() dto: CreateCosechaDto,
@@ -82,6 +86,7 @@ export class SiembrasController {
   }
 
   @Post(':id/aplicaciones')
+  @Auditar('registrar_aplicacion_insumo', 'AplicacionInsumo')
   addAplicacion(
     @Param('id', ParseIntPipe) siembraId: number,
     @Body() dto: CreateAplicacionDto,

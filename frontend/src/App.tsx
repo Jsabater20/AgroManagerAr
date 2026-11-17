@@ -76,6 +76,7 @@ import GanaderiaCalculatorPage from './pages/calculos/GanaderiaCalculatorPage';
 import EconomicosCalculatorPage from './pages/calculos/EconomicosCalculatorPage';
 import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
 import AlertasPage from './pages/alertas/AlertasPage';
+import CentroAtencionPage from './pages/atencion/CentroAtencionPage';
 import NovedadesPage from './pages/novedades/NovedadesPage';
 
 export default function App() {
@@ -158,6 +159,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
               <Route path="/org/:orgId/alertas" element={<AlertasPage />} />
+              <Route path="/org/:orgId/atencion" element={<CentroAtencionPage />} />
               <Route path="/org/:orgId/campos" element={<CamposPage />} />
               <Route path="/org/:orgId/campos/:id" element={<CampoDetailPage />} />
               <Route path="/org/:orgId/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />

@@ -85,7 +85,7 @@ export default function NuevoCampoScreen() {
         <Pressable
           className="mt-2 items-center rounded-xl bg-emerald-700 px-4 py-4 disabled:opacity-50"
           disabled={isSubmitting || createCampoMutation.isPending}
-          onPress={handleSubmit(submit)}
+          onPress={() => { void handleSubmit(submit)(); }}
         >
           <Text className="font-semibold text-white">
             {isSubmitting || createCampoMutation.isPending ? 'Creando campo…' : 'Crear campo'}

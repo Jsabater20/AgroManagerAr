@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCampaniaDto, UpdateCampaniaDto } from './dto/campanias.dto';
 
@@ -76,9 +76,37 @@ export class CampaniasService {
     siembraIds: number[],
   ) {
     await this.findOne(id, usuarioId, organizacionId);
-    await this.prisma.siembra.updateMany({
-      where: { id: { in: siembraIds } },
-      data: { campaniaId: id },
+
+    const siembras = siembraIds.length
+      ? await this.prisma.siembra.findMany({
+          where: {
+            id: { in: siembraIds },
+            lote: { campo: { organizacionId } },
+          },
+          select: { id: true },
+        })
+      : [];
+    if (siembras.length !== new Set(siembraIds).size) {
+      throw new ForbiddenException('Una o mas siembras no pertenecen a esta organizacion');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.siembra.updateMany({
+        where: {
+          campaniaId: id,
+          lote: { campo: { organizacionId } },
+        },
+        data: { campaniaId: null },
+      });
+      if (siembraIds.length) {
+        await tx.siembra.updateMany({
+          where: {
+            id: { in: siembraIds },
+            lote: { campo: { organizacionId } },
+          },
+          data: { campaniaId: id },
+        });
+      }
     });
     return this.findOne(id, usuarioId, organizacionId);
   }

@@ -3,8 +3,17 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ChatMessageDto } from './dto/ai.dto';
 import { AgroBotConsultasService, AgroBotRespuesta } from './agrobot-consultas.service';
 import { AlertasService } from '../alertas/alertas.service';
+import { AgroBotAccionesService } from './agrobot-acciones.service';
+import { ConfirmarCrearCampoAgroBotDto } from './dto/confirmar-crear-campo.dto';
+import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
 
 const MODEL_NAME = 'gemini-2.5-flash-lite';
+
+const REGLAS_ACCIONES = `
+Si el usuario pide crear, modificar o eliminar un registro, nunca digas que la accion ya fue realizada.
+Por ahora solo podes preparar una propuesta sin aplicarla: resumi que se interpreto, comparalo contra el contexto autorizado, detecta posibles duplicados y pedi los datos obligatorios que falten.
+Para crear un campo, son obligatorios el nombre y las hectareas. Para cada lote, son obligatorios el nombre y las hectareas. No inventes esos valores.
+Explica que la propuesta debera ser revisada y confirmada antes de crear cualquier dato.`;
 
 const SYSTEM_BASE = `Sos AgroBot, un asistente agricola especializado en el mercado argentino.
 Sos experto en cultivos pampeanos, ganaderia bovina, gestion de establecimientos rurales, costos, financiamiento agropecuario y clima en Argentina.
@@ -20,6 +29,7 @@ export class AiService {
   constructor(
     private readonly consultas: AgroBotConsultasService,
     private readonly alertasService: AlertasService,
+    private readonly acciones: AgroBotAccionesService,
   ) {}
 
   async chat(
@@ -28,6 +38,34 @@ export class AiService {
     history: ChatMessageDto[],
     message: string,
   ): Promise<AgroBotRespuesta> {
+    const propuesta = await this.acciones.prepararCreacionCampo(
+      userId,
+      organizacionId,
+      message,
+    );
+    if (propuesta) {
+      return {
+        texto: this.acciones.textoDePropuesta(propuesta),
+        basadaEnDatos: true,
+        accion: propuesta,
+      };
+    }
+
+    const propuestaTrabajo = await this.acciones.prepararCreacionTrabajo(
+      userId,
+      organizacionId,
+      message,
+    );
+    if (propuestaTrabajo) {
+      return {
+        texto: propuestaTrabajo.sePuedeConfirmar
+          ? 'Preparé el trabajo para que lo revises y confirmes. Todavía no se asignó nada.'
+          : 'Puedo preparar este trabajo, pero necesito completar los datos marcados antes de confirmarlo.',
+        basadaEnDatos: true,
+        accion: propuestaTrabajo,
+      };
+    }
+
     const respuestaConDatos = await this.consultas.responder(
       userId,
       organizacionId,
@@ -40,8 +78,11 @@ export class AiService {
       throw new InternalServerErrorException('GEMINI_API_KEY no configurada');
     }
 
-    const context = await this.consultas.contextoParaIa(userId, organizacionId);
-    const systemInstruction = `${SYSTEM_BASE}\n\n<contexto_autorizado>\n${context}\n</contexto_autorizado>`;
+    const [context, contextoAcciones] = await Promise.all([
+      this.consultas.contextoParaIa(userId, organizacionId),
+      this.acciones.obtenerContextoCampos(userId, organizacionId),
+    ]);
+    const systemInstruction = `${SYSTEM_BASE}\n${REGLAS_ACCIONES}\n\n<contexto_autorizado>\n${context}\n\n${this.acciones.aTextoParaPlanificacion(contextoAcciones)}\n</contexto_autorizado>`;
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -90,5 +131,21 @@ export class AiService {
       titulo: alerta.titulo,
       texto: alerta.mensaje,
     }));
+  }
+
+  async confirmarCreacionCampo(
+    userId: number,
+    organizacionId: number,
+    dto: ConfirmarCrearCampoAgroBotDto,
+  ) {
+    return this.acciones.confirmarCreacionCampo(userId, organizacionId, dto);
+  }
+
+  async confirmarCreacionTrabajo(
+    userId: number,
+    organizacionId: number,
+    dto: ConfirmarCrearTrabajoAgroBotDto,
+  ) {
+    return this.acciones.confirmarCreacionTrabajo(userId, organizacionId, dto);
   }
 }

@@ -11,6 +11,12 @@ import UbicacionStep from './UbicacionStep';
 
 type Actividad = 'AGRICULTURA' | 'GANADERIA' | 'MIXTO';
 
+const ACTIVIDADES_POR_TIPO: Record<Actividad, Array<'AGRICOLA' | 'GANADERIA'>> = {
+  AGRICULTURA: ['AGRICOLA'],
+  GANADERIA: ['GANADERIA'],
+  MIXTO: ['AGRICOLA', 'GANADERIA'],
+};
+
 interface LoteInput {
   nombre: string;
   hectareas: string;
@@ -66,6 +72,7 @@ export default function NuevoCampoWizard({ onClose }: Props) {
         propietario: propietario.trim() || undefined,
         latitud: latitud ?? undefined,
         longitud: longitud ?? undefined,
+        actividades: actividad ? ACTIVIDADES_POR_TIPO[actividad] : undefined,
       });
       const lotesValidos = lotes.filter((l) => l.nombre.trim());
       if (lotesValidos.length > 0) {

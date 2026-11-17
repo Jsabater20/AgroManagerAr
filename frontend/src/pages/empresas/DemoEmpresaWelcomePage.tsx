@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Building2, ChevronRight, MapPin, Sprout, UsersRound } from 'lucide-react';
+import { BarChart3, Building2, ChevronRight, FileBarChart2, MapPin, Sprout, UsersRound } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { empresasApi } from '../../api/empresas.api';
 import { useAuthStore } from '../../store/auth.store';
@@ -63,6 +63,14 @@ export default function DemoEmpresaWelcomePage() {
       to: '/empresas/' + empresa.id + '/actividades',
       accion: 'Ver tareas del equipo',
     },
+    {
+      icon: FileBarChart2,
+      paso: 'Paso 4',
+      titulo: 'Decidí con datos claros',
+      descripcion: 'Generá informes del período y compará rendimientos y costos antes de tomar una decisión.',
+      to: primerEstablecimiento ? '/org/' + primerEstablecimiento.id + '/reportes' : '/empresas/' + empresa.id + '/reportes',
+      accion: 'Ver informes y comparativas',
+    },
   ];
 
   return (
@@ -73,14 +81,14 @@ export default function DemoEmpresaWelcomePage() {
             <Building2 size={14} />
             Demo guiada
           </div>
-          <h1 className="mt-5 text-3xl font-bold sm:text-4xl">Entendé la empresa en cuatro pasos</h1>
+          <h1 className="mt-5 text-3xl font-bold sm:text-4xl">Entendé la empresa en cinco pasos</h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-emerald-50/85 sm:text-lg">
             Una empresa reúne varios establecimientos. Cada uno mantiene sus propios datos, y la dirección puede ver el panorama completo sin mezclar la información.
           </p>
         </div>
       </section>
 
-      <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {pasos.map(({ icon: Icon, paso, titulo, descripcion, to, accion }) => (
           <Link
             key={paso}

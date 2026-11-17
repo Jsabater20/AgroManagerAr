@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -46,9 +47,16 @@ export class SiembrasService {
       include: {
         lote: { include: { campo: true } },
         tipoCultivo: true,
-        cosechas: { orderBy: { fechaCosecha: 'desc' } },
+        campania: { select: { id: true, nombre: true } },
+        cosechas: {
+          include: { registradaPor: { select: { id: true, nombre: true, apellido: true } } },
+          orderBy: { fechaCosecha: 'desc' },
+        },
         aplicaciones: {
-          include: { insumo: true },
+          include: {
+            insumo: true,
+            registradaPor: { select: { id: true, nombre: true, apellido: true } },
+          },
           orderBy: { fecha: 'desc' },
         },
       },
@@ -92,15 +100,38 @@ export class SiembrasService {
     }));
   }
 
+  private async validarCampania(
+    campaniaId: number,
+    organizacionId: number,
+    fechaSiembra: Date,
+  ) {
+    const campania = await this.prisma.campania.findFirst({
+      where: { id: campaniaId, organizacionId },
+      select: { id: true, fechaInicio: true, fechaFin: true },
+    });
+    if (!campania) throw new NotFoundException('Campania no encontrada');
+
+    if (fechaSiembra < campania.fechaInicio || (campania.fechaFin && fechaSiembra > campania.fechaFin)) {
+      throw new ConflictException('La fecha de siembra debe estar dentro del periodo de la campania');
+    }
+  }
+
   async findOne(id: number, usuarioId: number, organizacionId: number) {
     const siembra = await this.prisma.siembra.findUnique({
       where: { id },
       include: {
         lote: { include: { campo: true } },
         tipoCultivo: true,
-        cosechas: { orderBy: { fechaCosecha: 'desc' } },
+        campania: { select: { id: true, nombre: true } },
+        cosechas: {
+          include: { registradaPor: { select: { id: true, nombre: true, apellido: true } } },
+          orderBy: { fechaCosecha: 'desc' },
+        },
         aplicaciones: {
-          include: { insumo: true },
+          include: {
+            insumo: true,
+            registradaPor: { select: { id: true, nombre: true, apellido: true } },
+          },
           orderBy: { fecha: 'desc' },
         },
       },
@@ -157,15 +188,34 @@ export class SiembrasService {
 
     await this.planService.checkSiembrasLimit(organizacionId);
 
+    const fechaSiembra = new Date(dto.fechaSiembra);
+    const siembraActiva = await this.prisma.siembra.findFirst({
+      where: { loteId: dto.loteId, estado: 'EN_CURSO' },
+      select: { id: true },
+    });
+    if (siembraActiva) {
+      throw new ConflictException('Este lote ya tiene una siembra en curso. Finalizala o marcalo como perdida antes de registrar otra.');
+    }
+    if (dto.campaniaId) {
+      await this.validarCampania(dto.campaniaId, organizacionId, fechaSiembra);
+    }
+
     return this.prisma.siembra.create({
       data: {
         loteId: dto.loteId,
         tipoCultivoId: dto.tipoCultivoId,
-        fechaSiembra: new Date(dto.fechaSiembra),
+        usuarioId,
+        fechaSiembra,
         densidad: dto.densidad,
         observaciones: dto.observaciones,
+        campaniaId: dto.campaniaId,
       },
-      include: { lote: true, tipoCultivo: true },
+      include: {
+        lote: { include: { campo: true } },
+        tipoCultivo: true,
+        campania: { select: { id: true, nombre: true } },
+        registradaPor: { select: { id: true, nombre: true, apellido: true } },
+      },
     });
   }
 
@@ -175,14 +225,22 @@ export class SiembrasService {
     usuarioId: number,
     organizacionId: number,
   ) {
-    await this.findOne(id, usuarioId, organizacionId);
+    const siembra = await this.findOne(id, usuarioId, organizacionId);
+    const fechaSiembra = dto.fechaSiembra ? new Date(dto.fechaSiembra) : siembra.fechaSiembra;
+    if (dto.campaniaId) {
+      await this.validarCampania(dto.campaniaId, organizacionId, fechaSiembra);
+    }
     return this.prisma.siembra.update({
       where: { id },
       data: {
         ...dto,
-        fechaSiembra: dto.fechaSiembra ? new Date(dto.fechaSiembra) : undefined,
+        fechaSiembra: dto.fechaSiembra ? fechaSiembra : undefined,
       },
-      include: { lote: true, tipoCultivo: true },
+      include: {
+        lote: { include: { campo: true } },
+        tipoCultivo: true,
+        campania: { select: { id: true, nombre: true } },
+      },
     });
   }
 
@@ -196,12 +254,14 @@ export class SiembrasService {
     return this.prisma.cosecha.create({
       data: {
         siembraId,
+        usuarioId,
         fechaCosecha: new Date(dto.fechaCosecha),
         rendimientoKgHa: dto.rendimientoKgHa,
         totalKg: dto.totalKg,
         humedad: dto.humedad,
         observaciones: dto.observaciones,
       },
+      include: { registradaPor: { select: { id: true, nombre: true, apellido: true } } },
     });
   }
 
@@ -228,12 +288,16 @@ export class SiembrasService {
       data: {
         siembraId,
         insumoId: dto.insumoId,
+        usuarioId,
         fecha: new Date(dto.fecha),
         cantidad: dto.cantidad,
         unidad: dto.unidad,
         observaciones: dto.observaciones,
       },
-      include: { insumo: true },
+      include: {
+        insumo: true,
+        registradaPor: { select: { id: true, nombre: true, apellido: true } },
+      },
     });
   }
 }

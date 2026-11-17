@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Request, UseG
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 import { TamboService } from './tambo.service';
 import { CreateRegistroOrdeneDto } from './dto/tambo.dto';
 
@@ -26,11 +27,13 @@ export class TamboController {
   }
 
   @Post()
+  @Auditar('registrar_ordene', 'RegistroOrdene')
   create(@Body() dto: CreateRegistroOrdeneDto, @Request() req: AuthRequest) {
     return this.service.create(dto, req.user.id, req.organizacionId);
   }
 
   @Delete(':id')
+  @Auditar('eliminar_ordene', 'RegistroOrdene')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.service.remove(id, req.user.id, req.organizacionId);
   }

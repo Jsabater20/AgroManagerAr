@@ -11,6 +11,7 @@ export interface RegistroAvicolaDiario {
   alimentoKg: number;
   pesoPromedioGr?: number | null;
   observaciones?: string | null;
+  usuario?: { id: number; nombre: string; apellido?: string };
 }
 
 export interface GalponAvicola {

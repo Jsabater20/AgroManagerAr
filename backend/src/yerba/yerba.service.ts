@@ -11,7 +11,15 @@ export class YerbaService {
     const acceso = await this.requireAccess(usuarioId, organizacionId);
     return this.prisma.cuadroYerba.findMany({
       where: { organizacionId, ...(acceso.esOwner ? {} : { campo: { AsignacionCampo: { some: { usuarioOrganizacionId: acceso.usuarioOrganizacionId, activo: true } } } }) },
-      include: { campo: { select: { id: true, nombre: true } }, lote: { select: { id: true, nombre: true } }, cosechas: { orderBy: { fechaCosecha: 'desc' }, take: 30 } },
+      include: {
+        campo: { select: { id: true, nombre: true } },
+        lote: { select: { id: true, nombre: true } },
+        cosechas: {
+          include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
+          orderBy: { fechaCosecha: 'desc' },
+          take: 30,
+        },
+      },
       orderBy: [{ activo: 'desc' }, { nombre: 'asc' }],
     });
   }
@@ -32,12 +40,39 @@ export class YerbaService {
   async createCuadro(dto: CreateCuadroYerbaDto, usuarioId: number, organizacionId: number) {
     await this.requireAccess(usuarioId, organizacionId);
     await this.validarUbicacion(dto.campoId, dto.loteId, usuarioId, organizacionId);
-    return this.prisma.cuadroYerba.create({ data: { organizacionId, usuarioId, campoId: dto.campoId, loteId: dto.loteId, nombre: dto.nombre.trim(), superficieHa: dto.superficieHa, edadPlantacion: dto.edadPlantacion, observaciones: dto.observaciones?.trim() || null }, include: { campo: { select: { id: true, nombre: true } }, lote: { select: { id: true, nombre: true } }, cosechas: true } });
+    return this.prisma.cuadroYerba.create({
+      data: {
+        organizacionId,
+        usuarioId,
+        campoId: dto.campoId,
+        loteId: dto.loteId,
+        nombre: dto.nombre.trim(),
+        superficieHa: dto.superficieHa,
+        edadPlantacion: dto.edadPlantacion,
+        observaciones: dto.observaciones?.trim() || null,
+      },
+      include: {
+        campo: { select: { id: true, nombre: true } },
+        lote: { select: { id: true, nombre: true } },
+        cosechas: { include: { usuario: { select: { id: true, nombre: true, apellido: true } } } },
+      },
+    });
   }
 
   async createCosecha(cuadroId: number, dto: CreateCosechaYerbaDto, usuarioId: number, organizacionId: number) {
     await this.findOne(cuadroId, usuarioId, organizacionId);
-    return this.prisma.cosechaYerba.create({ data: { cuadroId, usuarioId, fechaCosecha: new Date(dto.fechaCosecha), kgHojaVerde: dto.kgHojaVerde, kgCanchada: dto.kgCanchada, jornales: dto.jornales, observaciones: dto.observaciones?.trim() || null } });
+    return this.prisma.cosechaYerba.create({
+      data: {
+        cuadroId,
+        usuarioId,
+        fechaCosecha: new Date(dto.fechaCosecha),
+        kgHojaVerde: dto.kgHojaVerde,
+        kgCanchada: dto.kgCanchada,
+        jornales: dto.jornales,
+        observaciones: dto.observaciones?.trim() || null,
+      },
+      include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
+    });
   }
 
   async removeCosecha(id: number, usuarioId: number, organizacionId: number) {

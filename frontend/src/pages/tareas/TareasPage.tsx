@@ -160,9 +160,13 @@ export default function TareasPage() {
 
   const estadoMutation = useMutation({
     mutationFn: ({ id, estado }: { id: number; estado: EstadoTarea }) => tareasApi.updateEstado(id, estado),
-    onSuccess: () => {
+    onSuccess: (resultado) => {
       queryClient.invalidateQueries({ queryKey: ['tareas'] });
-      toast.success('Estado actualizado');
+      toast.success(
+        resultado.siguienteTarea
+          ? `Tarea completada. Próxima: ${formatDate(resultado.siguienteTarea.fechaProgramada)}`
+          : 'Estado actualizado',
+      );
       setEstadoTarget(null);
     },
     onError: () => toast.error('Error al actualizar el estado'),
@@ -303,8 +307,11 @@ export default function TareasPage() {
                               <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-indigo-600">
                                 <RefreshCw size={10} />
                                 {REPETIR_OPTIONS.find(r => r.value === t.repetir)?.label}
-                          </span>
-                        )}
+                              </span>
+                            )}
+                            {t.tareaOrigenId && (
+                              <span className="ml-2 text-xs text-gray-400">Generada automáticamente</span>
+                            )}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TIPO_COLORS[t.tipo as TipoTarea]}`}>
@@ -424,6 +431,7 @@ export default function TareasPage() {
                 <select value={form.repetir ?? 'UNICA'} onChange={(e) => setForm({ ...form, repetir: e.target.value as RepetirTarea })} className="input">
                   {REPETIR_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
+                {form.repetir !== 'UNICA' && <p className="mt-1.5 text-xs leading-5 text-indigo-700">Al marcar esta tarea como completada, se creará automáticamente la próxima fecha.</p>}
               </Field>
               <Field label="Campo">
                 <select value={form.campoId ?? 0} onChange={(e) => setForm({ ...form, campoId: Number(e.target.value) || undefined })} className="input">

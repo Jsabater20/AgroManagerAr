@@ -1,6 +1,6 @@
 import { api } from './client';
 
-export interface CosechaYerba { id: number; fechaCosecha: string; kgHojaVerde: number; kgCanchada?: number | null; jornales?: number | null; observaciones?: string | null; }
+export interface CosechaYerba { id: number; fechaCosecha: string; kgHojaVerde: number; kgCanchada?: number | null; jornales?: number | null; observaciones?: string | null; usuario?: { id: number; nombre: string; apellido?: string }; }
 export interface CuadroYerba { id: number; campoId: number; loteId?: number | null; nombre: string; superficieHa?: number | null; edadPlantacion?: number | null; activo: boolean; observaciones?: string | null; campo: { id: number; nombre: string }; lote?: { id: number; nombre: string } | null; cosechas: CosechaYerba[]; }
 export interface ResumenYerba { cuadrosActivos: number; cosechasAnuales: number; kgHojaVerde: number; kgCanchada: number; }
 export interface CreateCuadroYerbaDto { campoId: number; loteId?: number; nombre: string; superficieHa?: number; edadPlantacion?: number; observaciones?: string; }

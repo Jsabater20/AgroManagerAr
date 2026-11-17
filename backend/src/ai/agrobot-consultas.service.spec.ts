@@ -12,6 +12,7 @@ describe('AgroBotConsultasService', () => {
     mantenimientoMaquinaria: { findMany: jest.fn() },
     maquinaria: { findMany: jest.fn() },
     cachePronosticoClima: { findMany: jest.fn() },
+    usuarioOrganizacion: { findMany: jest.fn() },
   } as any;
   const memberAccessService = { requireModule: jest.fn() } as any;
   const alertasService = { obtenerParaOrganizacion: jest.fn() } as any;
@@ -123,6 +124,84 @@ describe('AgroBotConsultasService', () => {
       { etiqueta: 'Abrir centro de alertas', href: '/org/19/alertas' },
     ]);
     expect(alertasService.obtenerParaOrganizacion).toHaveBeenCalledWith(4, 19);
+  });
+
+  it('resume el equipo del owner con tareas activas y vencidas', async () => {
+    memberAccessService.requireModule.mockResolvedValue({ esOwner: true });
+    prisma.usuarioOrganizacion.findMany.mockResolvedValue([
+      {
+        id: 81,
+        cargo: 'OPERARIO_RURAL',
+        cargoPersonalizado: null,
+        puedeGestionarEquipo: false,
+        usuario: { nombre: 'María', apellido: 'Pérez' },
+        responsable: null,
+        AsignacionCampo: [{ Campo: { nombre: 'Las Meninas' } }],
+        actividades: [
+          {
+            titulo: 'Revisar aguadas',
+            estado: 'EN_PROGRESO',
+            prioridad: 'ALTA',
+            fechaInicio: new Date('2026-11-01'),
+            fechaEstimadaFin: new Date('2026-11-02'),
+            fechaRealFin: null,
+          },
+        ],
+      },
+    ]);
+
+    const respuesta = await service.responder(4, 19, '¿Cómo va mi equipo?');
+
+    expect(respuesta?.texto).toContain('El equipo tiene 1 integrante activo');
+    expect(respuesta?.texto).toContain('María Pérez');
+    expect(respuesta?.indicadores).toEqual(expect.arrayContaining([
+      expect.objectContaining({ etiqueta: 'Trabajos vencidos', valor: '1' }),
+    ]));
+    expect(prisma.usuarioOrganizacion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { organizacionId: 19, activo: true } }),
+    );
+  });
+
+  it('no expone el seguimiento general del equipo a un miembro', async () => {
+    memberAccessService.requireModule.mockResolvedValue({
+      esOwner: false,
+      usuarioOrganizacionId: 81,
+    });
+
+    const respuesta = await service.responder(7, 19, '¿Cómo va mi equipo?');
+
+    expect(respuesta?.texto).toContain('OWNER');
+    expect(prisma.usuarioOrganizacion.findMany).not.toHaveBeenCalled();
+  });
+
+  it('responde el estado de un integrante cuando el owner lo consulta por nombre', async () => {
+    memberAccessService.requireModule.mockResolvedValue({ esOwner: true });
+    prisma.usuarioOrganizacion.findMany.mockResolvedValue([
+      {
+        id: 81,
+        cargo: 'ENCARGADO_GANADERO',
+        cargoPersonalizado: null,
+        puedeGestionarEquipo: true,
+        usuario: { nombre: 'María', apellido: 'Pérez' },
+        responsable: { usuario: { nombre: 'Joaquín', apellido: 'Sabater' } },
+        AsignacionCampo: [{ Campo: { nombre: 'El Ombú' } }],
+        actividades: [
+          {
+            titulo: 'Controlar rodeo',
+            estado: 'PENDIENTE',
+            prioridad: 'MEDIA',
+            fechaInicio: new Date('2026-11-20'),
+            fechaEstimadaFin: new Date('2026-11-25'),
+            fechaRealFin: null,
+          },
+        ],
+      },
+    ]);
+
+    const respuesta = await service.responder(4, 19, '¿Cómo va María?');
+
+    expect(respuesta?.texto).toContain('María Pérez trabaja como encargado ganadero');
+    expect(respuesta?.texto).toContain('Tiene acceso a El Ombú');
   });
 
   it('responde consultas de clima con el pronóstico de campos autorizados', async () => {

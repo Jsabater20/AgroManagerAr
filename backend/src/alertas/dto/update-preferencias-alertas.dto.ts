@@ -24,4 +24,16 @@ export class UpdatePreferenciasAlertasDto {
   @IsOptional()
   @IsBoolean()
   alertasClimaActivas?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  alertasTareasActivas?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  alertasMaquinariasActivas?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  alertasCostosActivas?: boolean;
 }

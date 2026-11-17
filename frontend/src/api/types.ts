@@ -63,6 +63,10 @@ export interface MiembroPanelDto {
   };
   email: string;
   rol: string;
+  cargo: string;
+  cargoPersonalizado?: string | null;
+  responsable?: { id: number; nombre: string; apellido: string } | null;
+  personasACargo: number;
   activo: boolean;
   fechaIncorporacion: string;
   actividades: ActivityCountDto;
@@ -99,6 +103,7 @@ export interface Campo {
   propietario?: string;
   latitud?: number;
   longitud?: number;
+  actividadesProductivas?: Array<{ tipoActividad: string }>;
 }
 
 export interface CreateCampoDto {
@@ -110,6 +115,7 @@ export interface CreateCampoDto {
   propietario?: string;
   latitud?: number;
   longitud?: number;
+  actividades?: Array<'AGRICOLA' | 'GANADERIA' | 'TAMBO' | 'AVICOLA' | 'FRUTIHORTICOLA' | 'YERBA'>;
 }
 
 export interface CreateLoteDto {
@@ -127,6 +133,12 @@ export interface TipoCultivo {
 
 export type EstadoSiembra = 'EN_CURSO' | 'COSECHADA' | 'PERDIDA';
 
+export interface ResponsableRegistro {
+  id: number;
+  nombre: string;
+  apellido?: string;
+}
+
 export interface Siembra {
   id: number;
   loteId: number;
@@ -140,6 +152,8 @@ export interface Siembra {
   cosechas?: Cosecha[];
   aplicaciones?: AplicacionInsumo[];
   campaniaId?: number;
+  campania?: Pick<Campania, 'id' | 'nombre'>;
+  registradaPor?: ResponsableRegistro;
 }
 
 export interface Cosecha {
@@ -150,6 +164,7 @@ export interface Cosecha {
   totalKg: number;
   humedad?: number;
   observaciones?: string;
+  registradaPor?: ResponsableRegistro;
 }
 
 export interface CreateSiembraDto {
@@ -191,6 +206,7 @@ export interface AplicacionInsumo {
   cantidad: number;
   unidad: string;
   observaciones?: string;
+  registradaPor?: ResponsableRegistro;
 }
 
 export interface CreateInsumoDto {
@@ -234,6 +250,8 @@ export interface Animal {
   preneces?: Prenez[];
   usuarioId: number;
   organizacionId?: number;
+  loteGanaderoId?: number;
+  loteGanadero?: { id: number; nombre: string };
 }
 
 export interface Prenez {
@@ -261,6 +279,7 @@ export interface CreateAnimalDto {
   peso?: number;
   fechaNacimiento?: string;
   observaciones?: string;
+  loteGanaderoId?: number;
 }
 
 export interface CreatePrenezDto {
@@ -275,6 +294,65 @@ export interface CreateRegistroPesoDto {
   peso: number;
   fecha: string;
   observaciones?: string;
+}
+
+export type SistemaLoteGanadero = 'CRIA_PROPIA' | 'INVERNADA_COMPRADA' | 'FEEDLOT';
+export type EstadoLoteGanadero = 'ACTIVO' | 'CERRADO';
+
+export interface RegistroLoteGanadero {
+  id: number;
+  loteGanaderoId: number;
+  fecha: string;
+  cantidadActual: number;
+  pesoPromedioKg?: number;
+  alimentoKg: number;
+  bajas: number;
+  observaciones?: string;
+  usuario?: ResponsableRegistro;
+}
+
+export interface LoteGanadero {
+  id: number;
+  nombre: string;
+  sistema: SistemaLoteGanadero;
+  estado: EstadoLoteGanadero;
+  ubicacion?: string;
+  cantidadInicial: number;
+  cantidadActual: number;
+  fechaIngreso: string;
+  pesoPromedioIngresoKg?: number;
+  pesoPromedioActualKg?: number;
+  costoCompraTotal?: number;
+  fechaEgreso?: string;
+  precioVentaTotal?: number;
+  observaciones?: string;
+  registros?: RegistroLoteGanadero[];
+  _count?: { animales: number };
+}
+
+export interface CreateLoteGanaderoDto {
+  nombre: string;
+  sistema: SistemaLoteGanadero;
+  cantidadInicial: number;
+  fechaIngreso: string;
+  pesoPromedioIngresoKg?: number;
+  costoCompraTotal?: number;
+  ubicacion?: string;
+  observaciones?: string;
+}
+
+export interface CreateRegistroLoteGanaderoDto {
+  fecha: string;
+  cantidadActual: number;
+  pesoPromedioKg?: number;
+  alimentoKg?: number;
+  bajas?: number;
+  observaciones?: string;
+}
+
+export interface CerrarLoteGanaderoDto {
+  fechaEgreso: string;
+  precioVentaTotal?: number;
 }
 
 // ─── Tareas ───────────────────────────────────────────────────────────────
@@ -298,11 +376,16 @@ export interface TareaRural {
   fechaLimite?: string;
   fechaCompletada?: string;
   repetir?: RepetirTarea;
+  tareaOrigenId?: number;
   usuarioId: number;
   organizacionId?: number;
   campoId?: number;
   campo?: Campo;
   observaciones?: string;
+}
+
+export interface ResultadoEstadoTarea extends TareaRural {
+  siguienteTarea?: TareaRural;
 }
 
 export interface CreateTareaDto {

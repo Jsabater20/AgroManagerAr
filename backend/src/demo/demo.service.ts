@@ -90,6 +90,7 @@ export class DemoService implements OnModuleInit {
         }),
       ]);
 
+      const periodoReportes = this.rangoUltimoMesCerrado();
       const [
         campoCount,
         siembraCount,
@@ -107,6 +108,8 @@ export class DemoService implements OnModuleInit {
         checklistHidricoCount,
         precipitacionesCount,
         alertasHidricasCount,
+        cosechasReporteCount,
+        costosReporteCount,
       ] =
         await Promise.all([
           this.prisma.campo.count({ where: { usuarioId: demo.id } }),
@@ -136,6 +139,18 @@ export class DemoService implements OnModuleInit {
               tipo: { in: ['CLIMA_LLUVIA_INTENSA', 'CLIMA_LLUVIA_ACUMULADA', 'CLIMA_PROBABILIDAD_LLUVIA'] },
             },
           }),
+          this.prisma.cosecha.count({
+            where: {
+              fechaCosecha: { gte: periodoReportes.desde, lt: periodoReportes.hasta },
+              siembra: { lote: { campo: { organizacionId: demoOrg.id } } },
+            },
+          }),
+          this.prisma.costoProductivo.count({
+            where: {
+              organizacionId: demoOrg.id,
+              fecha: { gte: periodoReportes.desde, lt: periodoReportes.hasta },
+            },
+          }),
         ]);
       const campoSinGps = await this.prisma.campo.findFirst({
         where: { usuarioId: demo.id, latitud: null },
@@ -157,6 +172,8 @@ export class DemoService implements OnModuleInit {
         checklistHidricoCount < 4 ||
         precipitacionesCount < 8 ||
         alertasHidricasCount < 2 ||
+        cosechasReporteCount < 2 ||
+        costosReporteCount < 2 ||
         campoSinGps
       ) {
         this.logger.log('Demo incompleta — ejecutando reset...');
@@ -365,6 +382,7 @@ export class DemoService implements OnModuleInit {
     // ── Re-crear datos demo ──────────────────────────────────────────────────
     await this.seedDemoData(uid, demoOrgId);
     await this.sembrarProduccionDemo(uid, demoOrgId);
+    await this.sembrarComparativasReportesDemo(uid, demoOrgId);
     await this.prepararMiembrosDemo(uid, demoOrgId);
     await this.sembrarCalculosDemo(uid, demoOrgId);
     await this.sembrarCostosProductivosDemo(uid, [demoOrgId]);
@@ -593,25 +611,18 @@ export class DemoService implements OnModuleInit {
   }
 
   private async sembrarCostosProductivosDemo(usuarioId: number, organizacionesIds: number[]) {
-    const [campos, actividadesCompletadas] = await Promise.all([
-      this.prisma.campo.findMany({
-        where: { organizacionId: { in: organizacionesIds } },
-        orderBy: { id: 'asc' },
+    const [lotes, actividadesCompletadas] = await Promise.all([
+      this.prisma.lote.findMany({
+        where: { campo: { organizacionId: { in: organizacionesIds } } },
+        orderBy: [{ campo: { organizacionId: 'asc' } }, { id: 'asc' }],
         select: {
           id: true,
-          organizacionId: true,
-          lotes: {
-            orderBy: { id: 'asc' },
+          hectareas: true,
+          campo: { select: { id: true, organizacionId: true } },
+          siembras: {
+            orderBy: { fechaSiembra: 'desc' },
             take: 1,
-            select: {
-              id: true,
-              hectareas: true,
-              siembras: {
-                orderBy: { fechaSiembra: 'desc' },
-                take: 1,
-                select: { id: true, campaniaId: true },
-              },
-            },
+            select: { id: true, campaniaId: true },
           },
         },
       }),
@@ -625,81 +636,158 @@ export class DemoService implements OnModuleInit {
       }),
     ]);
 
+    const fecha = this.fechaDemoPeriodoCerrado(15);
     for (const organizacionId of organizacionesIds) {
-      const campo = campos.find((item) => item.organizacionId === organizacionId);
-      const lote = campo?.lotes[0];
-      const siembra = lote?.siembras[0];
+      const lotesOrganizacion = lotes
+        .filter((lote) => lote.campo.organizacionId === organizacionId)
+        .slice(0, 2);
       const actividad = actividadesCompletadas.find(
         (item) => item.organizacionId === organizacionId,
       );
-      if (!campo || !lote) continue;
+      for (const [indice, lote] of lotesOrganizacion.entries()) {
+        const siembra = lote.siembras[0];
+        const montoEstimado = 180000 + indice * 70000;
+        const montoReal = indice === 0 ? 238000 : 214000;
 
-      const montoEstimado = 180000;
-      const fecha = new Date();
-      fecha.setHours(0, 0, 0, 0);
+        await this.prisma.costoProductivo.create({
+          data: {
+            organizacionId,
+            campoId: lote.campo.id,
+            loteId: lote.id,
+            siembraId: siembra?.id ?? null,
+            campaniaId: siembra?.campaniaId ?? null,
+            creadoPorId: usuarioId,
+            tipo: TipoCostoProductivo.ESTIMADO,
+            rubro: RubroCostoProductivo.INSUMO,
+            descripcion: 'Presupuesto de insumos para la labor planificada',
+            cantidad: 1,
+            unidad: 'lote',
+            costoUnitario: montoEstimado,
+            monto: montoEstimado,
+            superficieHa: lote.hectareas,
+            fecha,
+          },
+        });
 
-      await this.prisma.costoProductivo.create({
-        data: {
-          organizacionId,
-          campoId: campo.id,
-          loteId: lote.id,
-          siembraId: siembra?.id ?? null,
-          campaniaId: siembra?.campaniaId ?? null,
-          creadoPorId: usuarioId,
-          tipo: TipoCostoProductivo.ESTIMADO,
-          rubro: RubroCostoProductivo.INSUMO,
-          descripcion: 'Presupuesto de insumos para la labor planificada',
-          cantidad: 1,
-          unidad: 'lote',
-          costoUnitario: montoEstimado,
-          monto: montoEstimado,
-          superficieHa: lote.hectareas,
-          fecha,
-        },
-      });
+        if (!actividad) continue;
 
-      if (!actividad) continue;
+        const movimiento = await this.prisma.movimientoFinanciero.create({
+          data: {
+            usuarioId,
+            organizacionId,
+            tipo: TipoMovimiento.EGRESO,
+            origen: OrigenMovimientoFinanciero.COSTO_PRODUCTIVO,
+            concepto: `Insumos registrados para lote demostrativo ${indice + 1}`,
+            monto: montoReal,
+            moneda: 'ARS',
+            fecha,
+            categoria: 'INSUMO',
+            campoId: lote.campo.id,
+            siembraId: siembra?.id ?? null,
+            observaciones: 'Ejemplo generado para comparar presupuesto y costo real.',
+          },
+        });
 
-      const montoReal = 234000;
-      const movimiento = await this.prisma.movimientoFinanciero.create({
-        data: {
-          usuarioId,
-          organizacionId,
-          tipo: TipoMovimiento.EGRESO,
-          origen: OrigenMovimientoFinanciero.COSTO_PRODUCTIVO,
-          concepto: 'Insumos registrados al completar la labor',
-          monto: montoReal,
-          moneda: 'ARS',
-          fecha,
-          categoria: 'INSUMO',
-          campoId: campo.id,
-          siembraId: siembra?.id ?? null,
-          observaciones: 'Ejemplo generado para comparar presupuesto y costo real.',
-        },
-      });
-
-      await this.prisma.costoProductivo.create({
-        data: {
-          organizacionId,
-          actividadId: actividad.id,
-          movimientoFinancieroId: movimiento.id,
-          campoId: campo.id,
-          loteId: lote.id,
-          siembraId: siembra?.id ?? null,
-          campaniaId: siembra?.campaniaId ?? null,
-          creadoPorId: usuarioId,
-          tipo: TipoCostoProductivo.REAL,
-          rubro: RubroCostoProductivo.INSUMO,
-          descripcion: 'Insumos utilizados en el trabajo completado',
-          cantidad: 1,
-          unidad: 'lote',
-          costoUnitario: montoReal,
-          monto: montoReal,
-          superficieHa: lote.hectareas,
-          fecha,
-        },
-      });
+        await this.prisma.costoProductivo.create({
+          data: {
+            organizacionId,
+            actividadId: actividad.id,
+            movimientoFinancieroId: movimiento.id,
+            campoId: lote.campo.id,
+            loteId: lote.id,
+            siembraId: siembra?.id ?? null,
+            campaniaId: siembra?.campaniaId ?? null,
+            creadoPorId: usuarioId,
+            tipo: TipoCostoProductivo.REAL,
+            rubro: RubroCostoProductivo.INSUMO,
+            descripcion: 'Insumos utilizados en el trabajo completado',
+            cantidad: 1,
+            unidad: 'lote',
+            costoUnitario: montoReal,
+            monto: montoReal,
+            superficieHa: lote.hectareas,
+            fecha,
+          },
+        });
+      }
     }
+  }
+
+  private async sembrarComparativasReportesDemo(
+    usuarioId: number,
+    organizacionId: number,
+  ) {
+    const [lotes, tiposCultivo] = await Promise.all([
+      this.prisma.lote.findMany({
+        where: { campo: { organizacionId } },
+        orderBy: { id: 'asc' },
+        take: 2,
+        select: { id: true, hectareas: true },
+      }),
+      this.prisma.tipoCultivo.findMany({
+        orderBy: { id: 'asc' },
+        take: 2,
+        select: { id: true },
+      }),
+    ]);
+
+    if (lotes.length < 2 || tiposCultivo.length === 0) {
+      this.logger.warn(
+        `No se pudieron crear comparativas para la organización demo ${organizacionId}.`,
+      );
+      return;
+    }
+
+    const fechaCosecha = this.fechaDemoPeriodoCerrado(15);
+    const fechaSiembra = new Date(fechaCosecha);
+    fechaSiembra.setDate(fechaSiembra.getDate() - 130);
+    const fechaInicioCampania = new Date(fechaSiembra);
+    fechaInicioCampania.setDate(fechaInicioCampania.getDate() - 20);
+
+    const campania = await this.prisma.campania.create({
+      data: {
+        usuarioId,
+        organizacionId,
+        nombre: `Campaña comparativa ${fechaCosecha.getFullYear()}/${fechaCosecha.getFullYear() + 1}`,
+        fechaInicio: fechaInicioCampania,
+        descripcion:
+          'Datos demostrativos para comparar rendimiento y costos entre lotes.',
+      },
+    });
+
+    const siembras = await Promise.all(
+      lotes.map((lote, indice) =>
+        this.prisma.siembra.create({
+          data: {
+            loteId: lote.id,
+            tipoCultivoId: tiposCultivo[indice % tiposCultivo.length].id,
+            usuarioId,
+            fechaSiembra,
+            estado: 'COSECHADA',
+            campaniaId: campania.id,
+            observaciones: 'Siembra demostrativa finalizada para el análisis mensual.',
+          },
+        }),
+      ),
+    );
+
+    await this.prisma.cosecha.createMany({
+      data: siembras.map((siembra, indice) => {
+        const rendimientoKgHa = indice === 0 ? 4650 : 3450;
+        return {
+          siembraId: siembra.id,
+          usuarioId,
+          fechaCosecha,
+          rendimientoKgHa,
+          totalKg: rendimientoKgHa * lotes[indice].hectareas,
+          humedad: indice === 0 ? 12.9 : 13.7,
+          observaciones:
+            indice === 0
+              ? 'Mejor rendimiento del período demostrativo.'
+              : 'Lote comparativo con oportunidad de mejora.',
+        };
+      }),
+    });
   }
 
   private async sembrarProduccionDemo(
@@ -1104,9 +1192,9 @@ export class DemoService implements OnModuleInit {
           recursoTipo: 'CAMPO',
           recursoId: campo.id,
           contexto: 'Campo: ' + campo.nombre,
-          fechaInicio: fecha(-5),
-          fechaEstimadaFin: fecha(-3),
-          fechaRealFin: fecha(-2),
+          fechaInicio: this.fechaDemoPeriodoCerrado(10),
+          fechaEstimadaFin: this.fechaDemoPeriodoCerrado(12),
+          fechaRealFin: this.fechaDemoPeriodoCerrado(15),
           estado: 'COMPLETADA',
           prioridad: 'MEDIA',
           activo: true,
@@ -2559,7 +2647,8 @@ export class DemoService implements OnModuleInit {
 
   private async asegurarDemoEmpresa() {
     const contexto = await this.prepararDemoEmpresa();
-    const [campos, actividades, ordenes, galpones, cultivosFrutihorticolas, cuadrosYerba, calculos, perfilesHidricos, checklistHidrico, precipitaciones, alertasHidricas] = await Promise.all([
+    const periodoReportes = this.rangoUltimoMesCerrado();
+    const [campos, actividades, ordenes, galpones, cultivosFrutihorticolas, cuadrosYerba, calculos, perfilesHidricos, checklistHidrico, precipitaciones, alertasHidricas, cosechasReporte, costosReporte] = await Promise.all([
       this.prisma.campo.count({
         where: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } },
       }),
@@ -2596,6 +2685,18 @@ export class DemoService implements OnModuleInit {
           tipo: { in: ['CLIMA_LLUVIA_INTENSA', 'CLIMA_LLUVIA_ACUMULADA', 'CLIMA_PROBABILIDAD_LLUVIA'] },
         },
       }),
+      this.prisma.cosecha.count({
+        where: {
+          fechaCosecha: { gte: periodoReportes.desde, lt: periodoReportes.hasta },
+          siembra: { lote: { campo: { organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) } } } },
+        },
+      }),
+      this.prisma.costoProductivo.count({
+        where: {
+          organizacionId: { in: contexto.organizaciones.map((organizacion) => organizacion.id) },
+          fecha: { gte: periodoReportes.desde, lt: periodoReportes.hasta },
+        },
+      }),
     ]);
 
     if (
@@ -2609,7 +2710,9 @@ export class DemoService implements OnModuleInit {
       perfilesHidricos < 12 ||
       checklistHidrico < 12 ||
       precipitaciones < 24 ||
-      alertasHidricas < 6
+      alertasHidricas < 6 ||
+      cosechasReporte < 6 ||
+      costosReporte < 6
     ) {
       this.logger.log('Demo Empresa incompleta — ejecutando reset...');
       await this.reiniciarDemoEmpresa(contexto);
@@ -3098,6 +3201,11 @@ export class DemoService implements OnModuleInit {
       await this.seedDemoData(contexto.ownerId, organizacion.id);
     }
     await this.sembrarProduccionDemoEmpresa(contexto.ownerId, contexto.organizaciones);
+    await Promise.all(
+      contexto.organizaciones.map((organizacion) =>
+        this.sembrarComparativasReportesDemo(contexto.ownerId, organizacion.id),
+      ),
+    );
     await this.crearActividadesDemoEmpresa(contexto.ownerId, contexto.organizaciones);
     await this.sembrarAuditoriaEquipoDemoEmpresa(contexto.organizaciones);
     await Promise.all(
@@ -3422,9 +3530,9 @@ export class DemoService implements OnModuleInit {
           recursoTipo: 'CAMPO',
           recursoId: campo?.id,
           contexto,
-          fechaInicio: fecha(-8),
-          fechaEstimadaFin: fecha(-2),
-          fechaRealFin: fecha(-1),
+          fechaInicio: this.fechaDemoPeriodoCerrado(10),
+          fechaEstimadaFin: this.fechaDemoPeriodoCerrado(12),
+          fechaRealFin: this.fechaDemoPeriodoCerrado(15),
           estado: 'COMPLETADA',
           prioridad: 'BAJA',
           activo: true,
@@ -3435,5 +3543,19 @@ export class DemoService implements OnModuleInit {
     if (actividades.length) {
       await this.prisma.actividadMiembro.createMany({ data: actividades });
     }
+  }
+
+  private rangoUltimoMesCerrado() {
+    const ahora = new Date();
+    return {
+      desde: new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1),
+      hasta: new Date(ahora.getFullYear(), ahora.getMonth(), 1),
+    };
+  }
+
+  private fechaDemoPeriodoCerrado(dia: number) {
+    const { desde, hasta } = this.rangoUltimoMesCerrado();
+    const ultimoDia = new Date(hasta.getFullYear(), hasta.getMonth(), 0).getDate();
+    return new Date(desde.getFullYear(), desde.getMonth(), Math.min(dia, ultimoDia), 12);
   }
 }

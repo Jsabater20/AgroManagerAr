@@ -32,7 +32,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ color, size }) => <Feather color={color} name="home" size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather color={typeof color === 'number' ? '#94a3b8' : color ?? '#94a3b8'} name="home" size={size} />,
         }}
       />
       <Tabs.Screen
@@ -40,7 +40,7 @@ export default function TabsLayout() {
         options={{
           title: 'Campos',
           href: moduloHabilitado('Campos') ? undefined : null,
-          tabBarIcon: ({ color, size }) => <Feather color={color} name="map" size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather color={typeof color === 'number' ? '#94a3b8' : color ?? '#94a3b8'} name="map" size={size} />,
         }}
       />
       <Tabs.Screen
@@ -48,7 +48,7 @@ export default function TabsLayout() {
         options={{
           title: 'Tareas',
           href: moduloHabilitado('Tareas') ? undefined : null,
-          tabBarIcon: ({ color, size }) => <Feather color={color} name="clipboard" size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather color={typeof color === 'number' ? '#94a3b8' : color ?? '#94a3b8'} name="clipboard" size={size} />,
         }}
       />
       <Tabs.Screen
@@ -56,14 +56,14 @@ export default function TabsLayout() {
         options={{
           title: 'Equipo',
           href: isOwner ? undefined : null,
-          tabBarIcon: ({ color, size }) => <Feather color={color} name="users" size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather color={typeof color === 'number' ? '#94a3b8' : color ?? '#94a3b8'} name="users" size={size} />,
         }}
       />
       <Tabs.Screen
         name="mas"
         options={{
           title: 'Más',
-          tabBarIcon: ({ color, size }) => <Feather color={color} name="grid" size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather color={typeof color === 'number' ? '#94a3b8' : color ?? '#94a3b8'} name="grid" size={size} />,
         }}
       />
     </Tabs>

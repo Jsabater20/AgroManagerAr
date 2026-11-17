@@ -109,7 +109,7 @@ export class TamboService {
     return this.memberAccessService.requireModule(
       usuarioId,
       organizacionId,
-      'GanaderÃ­a',
+      'Ganadería',
     );
   }
 }

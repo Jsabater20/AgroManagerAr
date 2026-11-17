@@ -12,6 +12,9 @@ import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
 
+const fmtResponsable = (usuario?: { nombre: string; apellido?: string }) =>
+  usuario ? [usuario.nombre, usuario.apellido].filter(Boolean).join(' ') : undefined;
+
 const ESTADO_SIEMBRA: Record<string, { label: string; color: string }> = {
   EN_CURSO: { label: 'En curso',   color: 'bg-blue-100 text-blue-700' },
   COSECHADA: { label: 'Cosechada', color: 'bg-green-100 text-green-700' },
@@ -143,6 +146,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
     type: 'siembra' | 'aplicacion' | 'cosecha';
     label: string;
     sub: string;
+    autor?: string;
     icon: typeof Sprout;
     color: string;
   };
@@ -151,6 +155,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
     {
       date: siembra.fechaSiembra,
       type: 'siembra' as const,
+      autor: fmtResponsable(siembra.registradaPor),
       label: `Siembra de ${siembra.tipoCultivo?.nombre ?? 'cultivo'}`,
       sub: siembra.densidad ? `Densidad: ${siembra.densidad} kg/ha` : 'Sin densidad registrada',
       icon: Sprout,
@@ -159,6 +164,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
     ...(siembra.aplicaciones ?? []).map((ap) => ({
       date: ap.fecha,
       type: 'aplicacion' as const,
+      autor: fmtResponsable(ap.registradaPor),
       label: `${ap.insumo?.nombre ?? 'insumo'}`,
       sub: `${ap.cantidad} ${ap.unidad}${ap.observaciones ? ` · ${ap.observaciones}` : ''}`,
       icon: FlaskConical,
@@ -167,6 +173,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
     ...(siembra.cosechas ?? []).map((co) => ({
       date: co.fechaCosecha,
       type: 'cosecha' as const,
+      autor: fmtResponsable(co.registradaPor),
       label: `Cosecha`,
       sub: `${co.totalKg.toLocaleString('es-AR')} kg · ${co.rendimientoKgHa.toLocaleString('es-AR')} kg/ha${co.humedad ? ` · ${co.humedad}% hum.` : ''}`,
       icon: Wheat,
@@ -243,6 +250,7 @@ function SiembraCard({ siembra, loteHa }: { siembra: Siembra; loteHa: number }) 
                       <p className="text-xs text-gray-400 whitespace-nowrap shrink-0">{fmtDate(item.date)}</p>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">{item.sub}</p>
+                    {item.autor && <p className="mt-1 text-xs font-medium text-gray-400">Registrado por {item.autor}</p>}
                   </div>
                 </div>
               );

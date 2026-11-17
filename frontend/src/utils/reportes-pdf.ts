@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { DesgloseProductivo, ReportePeriodico } from '../api/reportes.api';
+import { obtenerAccionesRecomendadas } from './resumen-ejecutivo';
 
 type DocumentoConTabla = jsPDF & { lastAutoTable?: { finalY: number } };
 
@@ -105,6 +106,13 @@ export function descargarReportePeriodicoPdf(reporte: ReportePeriodico) {
     y = siguienteY(doc) + 10;
   }
 
+  const acciones = obtenerAccionesRecomendadas(reporte);
+  if (acciones.length) {
+    seccion(doc, 'Próximos pasos recomendados', y);
+    tabla(doc, y + 4, ['Prioridad'], acciones.map((accion) => [accion]));
+    y = siguienteY(doc) + 10;
+  }
+
   seccion(doc, 'Trabajos del período', y);
   const actividades = [...reporte.actividad.realizadas, ...reporte.actividad.proximas];
   tabla(doc, y + 4, ['Trabajo', 'Responsable', 'Estado', 'Prioridad', 'Fecha estimada'], actividades.slice(0, 30).map((actividad) => [
@@ -149,8 +157,18 @@ export function descargarDesgloseProductivoPdf(desglose: DesgloseProductivo) {
   const doc = new jsPDF({ orientation: 'landscape' });
   encabezado(doc, 'Desglose productivo por lotes y campañas', desglose.organizacion.nombre, desglose.periodo.etiqueta);
 
-  seccion(doc, 'Lotes', 40);
-  tabla(doc, 44, ['Campo', 'Lote', 'Ha', 'Cultivos', 'Siembras activas', 'Cosecha', 'Rendimiento', 'Costo real'], desglose.lotes.map((lote) => [
+  const comparativaLotes = desglose.comparativa.lotes;
+  seccion(doc, 'Comparativa rápida del período', 40);
+  tabla(doc, 44, ['Mejor producción', 'Mejor rendimiento', 'Mayor costo por ha', 'Mayor desvío'], [[
+    comparativaLotes.mejorCosecha ? `${comparativaLotes.mejorCosecha.nombre}: ${formatoNumero.format(comparativaLotes.mejorCosecha.valor)} kg` : 'Sin cosechas',
+    comparativaLotes.mejorRendimiento ? `${comparativaLotes.mejorRendimiento.nombre}: ${formatoNumero.format(comparativaLotes.mejorRendimiento.valor)} kg/ha` : 'Sin rendimientos',
+    comparativaLotes.costos?.mayorCostoPorHa ? `${comparativaLotes.costos.mayorCostoPorHa.nombre}: ${formatoPesos.format(comparativaLotes.costos.mayorCostoPorHa.valor)}/ha` : 'Sin costos vinculados',
+    comparativaLotes.costos?.mayorDesvio ? `${comparativaLotes.costos.mayorDesvio.nombre}: +${formatoNumero.format(comparativaLotes.costos.mayorDesvio.valor)}%` : 'Sin desvíos sobre el estimado',
+  ]]);
+
+  let y = siguienteY(doc) + 10;
+  seccion(doc, 'Lotes', y);
+  tabla(doc, y + 4, ['Campo', 'Lote', 'Ha', 'Cultivos', 'Siembras activas', 'Cosecha', 'Rendimiento', 'Costo real'], desglose.lotes.map((lote) => [
     lote.campo.nombre,
     lote.nombre,
     formatoNumero.format(lote.hectareas),
@@ -161,7 +179,7 @@ export function descargarDesgloseProductivoPdf(desglose: DesgloseProductivo) {
     lote.costos ? formatoPesos.format(lote.costos.reales) : 'Sin permiso',
   ]));
 
-  const y = siguienteY(doc) + 10;
+  y = siguienteY(doc) + 10;
   seccion(doc, 'Campañas', y);
   tabla(doc, y + 4, ['Campaña', 'Lotes', 'Ha', 'Cultivos', 'Siembras', 'Cosecha', 'Costo real'], desglose.campanias.map((campania) => [
     campania.nombre,

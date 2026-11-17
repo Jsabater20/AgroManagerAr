@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Request, UseG
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 import { AvicolaService } from './avicola.service';
 import { CreateGalponAvicolaDto, CreateRegistroAvicolaDto } from './dto/avicola.dto';
 
@@ -19,11 +20,14 @@ export class AvicolaController {
   resumen(@Request() req: AuthRequest) { return this.service.resumen(req.user.id, req.organizacionId); }
 
   @Post('galpones')
+  @Auditar('crear_galpon_avicola', 'GalponAvicola')
   createGalpon(@Body() dto: CreateGalponAvicolaDto, @Request() req: AuthRequest) { return this.service.createGalpon(dto, req.user.id, req.organizacionId); }
 
   @Post('galpones/:id/registros')
+  @Auditar('registrar_control_avicola', 'RegistroAvicolaDiario')
   createRegistro(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateRegistroAvicolaDto, @Request() req: AuthRequest) { return this.service.createRegistro(id, dto, req.user.id, req.organizacionId); }
 
   @Delete('registros/:id')
+  @Auditar('eliminar_control_avicola', 'RegistroAvicolaDiario')
   removeRegistro(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) { return this.service.removeRegistro(id, req.user.id, req.organizacionId); }
 }

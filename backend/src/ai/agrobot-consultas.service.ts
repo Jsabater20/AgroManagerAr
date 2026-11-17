@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
 import { AlertasService } from '../alertas/alertas.service';
 import { ClimaService } from '../clima/clima.service';
+import type { PropuestaAccionAgroBot } from './agrobot-acciones.service';
 
 export type AgroBotIndicador = {
   etiqueta: string;
@@ -20,6 +21,7 @@ export type AgroBotRespuesta = {
   indicadores?: AgroBotIndicador[];
   referencias?: AgroBotReferencia[];
   basadaEnDatos: boolean;
+  accion?: PropuestaAccionAgroBot;
 };
 
 type Periodo = {
@@ -60,6 +62,27 @@ type ActividadVisible = {
   fechaInicio: Date;
   fechaEstimadaFin: Date | null;
   fechaRealFin: Date | null;
+};
+
+type MiembroEquipoVisible = {
+  id: number;
+  cargo: string;
+  cargoPersonalizado: string | null;
+  puedeGestionarEquipo: boolean;
+  usuario: {
+    nombre: string;
+    apellido: string;
+  };
+  responsable: {
+    usuario: {
+      nombre: string;
+      apellido: string;
+    };
+  } | null;
+  AsignacionCampo: Array<{
+    Campo: { nombre: string };
+  }>;
+  actividades: ActividadVisible[];
 };
 
 type MovimientoVisible = {
@@ -115,6 +138,9 @@ export class AgroBotConsultasService {
       'que debo atender',
     ])) {
       return this.alertasActuales(usuarioId, organizacionId);
+    }
+    if (this.esConsultaEquipo(consulta)) {
+      return this.resumenEquipo(usuarioId, organizacionId);
     }
     if (this.esResumen(consulta)) {
       return this.resumenEstablecimiento(usuarioId, organizacionId);
@@ -177,16 +203,25 @@ export class AgroBotConsultasService {
         this.obtenerPeriodo(consulta),
       );
     }
+    if (this.puedeSerConsultaDeMiembro(consulta)) {
+      const respuestaMiembro = await this.estadoMiembroMencionado(
+        usuarioId,
+        organizacionId,
+        consulta,
+      );
+      if (respuestaMiembro) return respuestaMiembro;
+    }
 
     return null;
   }
 
   async contextoParaIa(usuarioId: number, organizacionId: number): Promise<string> {
-    const [campos, actividades, movimientos, clima] = await Promise.all([
+    const [campos, actividades, movimientos, clima, equipo] = await Promise.all([
       this.camposAutorizados(usuarioId, organizacionId).catch((): CampoVisible[] => []),
       this.actividadesAutorizadas(usuarioId, organizacionId).catch((): ActividadVisible[] => []),
       this.movimientosAutorizados(usuarioId, organizacionId).catch((): MovimientoVisible[] => []),
       this.contextoClimaDisponible(usuarioId, organizacionId).catch(() => 'Pronóstico climático: sin datos disponibles o sin acceso.'),
+      this.contextoEquipoParaIa(usuarioId, organizacionId),
     ]);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -210,8 +245,59 @@ export class AgroBotConsultasService {
       `Trabajos activos visibles: ${pendientes.length}; atrasados: ${atrasadas.length}.`,
       `Movimientos visibles: ingresos ${this.dinero(ingresos)}; egresos ${this.dinero(egresos)}.`,
       clima,
+      equipo,
       'Estos datos son referencia. No inventes valores ni supongas registros no incluidos.',
     ].join('\n');
+  }
+
+  private async resumenEquipo(
+    usuarioId: number,
+    organizacionId: number,
+  ): Promise<AgroBotRespuesta> {
+    const equipo = await this.equipoOperativoParaOwner(usuarioId, organizacionId);
+    if (!equipo) {
+      return {
+        texto: 'El seguimiento general del equipo está disponible para el OWNER del establecimiento. Desde tu cuenta podés consultar tus propios trabajos y los campos que tengas habilitados.',
+        referencias: [{ etiqueta: 'Ver mis trabajos', href: this.ruta(organizacionId, 'tareas') }],
+        basadaEnDatos: true,
+      };
+    }
+
+    if (!equipo.length) {
+      return {
+        texto: 'Todavía no hay integrantes activos en este establecimiento. Podés invitarlos desde Miembros y luego asignarles trabajos.',
+        referencias: [{ etiqueta: 'Administrar miembros', href: this.ruta(organizacionId, 'miembros/administracion') }],
+        basadaEnDatos: true,
+      };
+    }
+
+    const resumen = this.resumenOperativoEquipo(equipo);
+    const destacados = equipo
+      .map((miembro) => ({
+        nombre: this.nombreMiembro(miembro),
+        activas: this.actividadesActivas(miembro).length,
+        vencidas: this.actividadesVencidas(miembro).length,
+      }))
+      .filter((miembro) => miembro.activas || miembro.vencidas)
+      .sort((a, b) => b.vencidas - a.vencidas || b.activas - a.activas)
+      .slice(0, 3)
+      .map((miembro) => miembro.vencidas
+        ? `${miembro.nombre} (${miembro.vencidas} vencido${miembro.vencidas === 1 ? '' : 's'})`
+        : `${miembro.nombre} (${miembro.activas} activo${miembro.activas === 1 ? '' : 's'})`);
+
+    return {
+      texto: `El equipo tiene ${equipo.length} integrante${equipo.length === 1 ? '' : 's'} activo${equipo.length === 1 ? '' : 's'}, con ${resumen.activas} trabajo${resumen.activas === 1 ? '' : 's'} activo${resumen.activas === 1 ? '' : 's'}: ${resumen.enProgreso} en curso y ${resumen.vencidas} vencido${resumen.vencidas === 1 ? '' : 's'}. ${destacados.length ? `Para revisar primero: ${destacados.join(', ')}.` : 'No hay trabajos activos asignados en este momento.'}`,
+      indicadores: [
+        { etiqueta: 'Integrantes activos', valor: String(equipo.length) },
+        { etiqueta: 'Trabajos en curso', valor: String(resumen.enProgreso) },
+        { etiqueta: 'Trabajos vencidos', valor: String(resumen.vencidas) },
+      ],
+      referencias: [
+        { etiqueta: 'Ver seguimiento del equipo', href: this.ruta(organizacionId, 'miembros/trabajos') },
+        { etiqueta: 'Asignar trabajo', href: this.ruta(organizacionId, 'miembros/asignar-trabajo') },
+      ],
+      basadaEnDatos: true,
+    };
   }
 
   private async resumenEstablecimiento(usuarioId: number, organizacionId: number) {
@@ -757,6 +843,148 @@ export class AgroBotConsultasService {
     };
   }
 
+  private async estadoMiembroMencionado(
+    usuarioId: number,
+    organizacionId: number,
+    consulta: string,
+  ): Promise<AgroBotRespuesta | null> {
+    const equipo = await this.equipoOperativoParaOwner(usuarioId, organizacionId);
+    if (!equipo) return null;
+
+    const miembro = this.buscarMiembroMencionado(equipo, consulta);
+    if (!miembro) return null;
+
+    const activas = this.actividadesActivas(miembro);
+    const vencidas = this.actividadesVencidas(miembro);
+    const enProgreso = activas.filter((actividad) => actividad.estado === 'EN_PROGRESO');
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0, 0, 0, 0);
+    const completadasEsteMes = miembro.actividades.filter(
+      (actividad) => actividad.estado === 'COMPLETADA' && Boolean(actividad.fechaRealFin && actividad.fechaRealFin >= inicioMes),
+    );
+    const responsable = miembro.responsable
+      ? ` Reporta a ${miembro.responsable.usuario.nombre} ${miembro.responsable.usuario.apellido}.`
+      : '';
+    const campos = miembro.AsignacionCampo.map((asignacion) => asignacion.Campo.nombre);
+    const proximos = activas
+      .sort((a, b) => {
+        const fechaA = a.fechaEstimadaFin?.getTime() ?? a.fechaInicio.getTime();
+        const fechaB = b.fechaEstimadaFin?.getTime() ?? b.fechaInicio.getTime();
+        return fechaA - fechaB;
+      })
+      .slice(0, 3)
+      .map((actividad) => actividad.titulo);
+
+    return {
+      texto: `${this.nombreMiembro(miembro)} trabaja como ${this.nombreCargo(miembro)}.${responsable} Tiene ${activas.length} trabajo${activas.length === 1 ? '' : 's'} activo${activas.length === 1 ? '' : 's'}: ${enProgreso.length} en curso y ${vencidas.length} vencido${vencidas.length === 1 ? '' : 's'}. ${campos.length ? `Tiene acceso a ${campos.join(', ')}.` : 'No tiene campos asignados.'}${proximos.length ? ` Sus próximos trabajos son: ${proximos.join(', ')}.` : ''}`,
+      indicadores: [
+        { etiqueta: 'Trabajos activos', valor: String(activas.length) },
+        { etiqueta: 'En curso', valor: String(enProgreso.length) },
+        { etiqueta: 'Completados este mes', valor: String(completadasEsteMes.length) },
+        { etiqueta: 'Vencidos', valor: String(vencidas.length) },
+      ],
+      referencias: [{ etiqueta: 'Ver seguimiento del equipo', href: this.ruta(organizacionId, 'miembros/trabajos') }],
+      basadaEnDatos: true,
+    };
+  }
+
+  private async contextoEquipoParaIa(usuarioId: number, organizacionId: number): Promise<string> {
+    const equipo = await this.equipoOperativoParaOwner(usuarioId, organizacionId).catch(() => null);
+    if (!equipo) return 'Datos de equipo: no disponibles para esta cuenta.';
+    if (!equipo.length) return 'Datos de equipo: no hay integrantes activos registrados.';
+
+    const resumen = this.resumenOperativoEquipo(equipo);
+    const detalle = equipo.slice(0, 12).map((miembro) => {
+      const activas = this.actividadesActivas(miembro);
+      const vencidas = this.actividadesVencidas(miembro);
+      return `${this.nombreMiembro(miembro)}: ${activas.length} trabajos activos y ${vencidas.length} vencidos.`;
+    });
+    return `Datos de equipo disponibles para el OWNER: ${equipo.length} integrantes; ${resumen.activas} trabajos activos; ${resumen.vencidas} vencidos. ${detalle.join(' ')}`;
+  }
+
+  private async equipoOperativoParaOwner(
+    usuarioId: number,
+    organizacionId: number,
+  ): Promise<MiembroEquipoVisible[] | null> {
+    const acceso = await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Tareas');
+    if (!acceso.esOwner) return null;
+
+    return this.prisma.usuarioOrganizacion.findMany({
+      where: { organizacionId, activo: true },
+      select: {
+        id: true,
+        cargo: true,
+        cargoPersonalizado: true,
+        puedeGestionarEquipo: true,
+        usuario: { select: { nombre: true, apellido: true } },
+        responsable: { select: { usuario: { select: { nombre: true, apellido: true } } } },
+        AsignacionCampo: {
+          where: { activo: true },
+          select: { Campo: { select: { nombre: true } } },
+        },
+        actividades: {
+          where: { activo: true },
+          select: {
+            titulo: true,
+            estado: true,
+            prioridad: true,
+            fechaInicio: true,
+            fechaEstimadaFin: true,
+            fechaRealFin: true,
+          },
+        },
+      },
+      orderBy: { usuario: { nombre: 'asc' } },
+    });
+  }
+
+  private resumenOperativoEquipo(equipo: MiembroEquipoVisible[]) {
+    return equipo.reduce(
+      (resumen, miembro) => {
+        const activas = this.actividadesActivas(miembro);
+        resumen.activas += activas.length;
+        resumen.enProgreso += activas.filter((actividad) => actividad.estado === 'EN_PROGRESO').length;
+        resumen.vencidas += this.actividadesVencidas(miembro).length;
+        return resumen;
+      },
+      { activas: 0, enProgreso: 0, vencidas: 0 },
+    );
+  }
+
+  private actividadesActivas(miembro: MiembroEquipoVisible) {
+    return miembro.actividades.filter((actividad) =>
+      ['PENDIENTE', 'EN_PROGRESO', 'PAUSADA'].includes(actividad.estado),
+    );
+  }
+
+  private actividadesVencidas(miembro: MiembroEquipoVisible) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return this.actividadesActivas(miembro).filter(
+      (actividad) => actividad.fechaEstimadaFin && actividad.fechaEstimadaFin < hoy,
+    );
+  }
+
+  private buscarMiembroMencionado(equipo: MiembroEquipoVisible[], consulta: string) {
+    const palabras = new Set(consulta.split(' '));
+    const coincidencias = equipo.filter((miembro) => {
+      const nombre = this.normalizar(this.nombreMiembro(miembro));
+      const primerNombre = this.normalizar(miembro.usuario.nombre);
+      return consulta.includes(nombre) || (primerNombre.length >= 4 && palabras.has(primerNombre));
+    });
+    return coincidencias.length === 1 ? coincidencias[0] : null;
+  }
+
+  private nombreMiembro(miembro: MiembroEquipoVisible) {
+    return `${miembro.usuario.nombre} ${miembro.usuario.apellido}`.trim();
+  }
+
+  private nombreCargo(miembro: MiembroEquipoVisible) {
+    if (miembro.cargoPersonalizado) return miembro.cargoPersonalizado;
+    return miembro.cargo.toLocaleLowerCase('es-AR').replace(/_/g, ' ');
+  }
+
   private async camposAutorizados(usuarioId: number, organizacionId: number): Promise<CampoVisible[]> {
     const campoIds = await this.idsCamposAutorizados(usuarioId, organizacionId, 'Campos');
     return this.prisma.campo.findMany({
@@ -925,6 +1153,34 @@ export class AgroBotConsultasService {
     return { desde, hasta, etiqueta: 'esta semana' };
   }
 
+  private esConsultaEquipo(consulta: string) {
+    return this.incluye(consulta, [
+      'mi equipo',
+      'el equipo',
+      'equipo de trabajo',
+      'mis miembros',
+      'los miembros',
+      'mi personal',
+      'empleados',
+      'trabajadores',
+      'carga de trabajo',
+      'quien tiene mas trabajo',
+      'quienes tienen trabajo',
+    ]);
+  }
+
+  private puedeSerConsultaDeMiembro(consulta: string) {
+    return this.incluye(consulta, [
+      'como va',
+      'como esta',
+      'que hizo',
+      'que tareas tiene',
+      'que trabajos tiene',
+      'trabajos de',
+      'tareas de',
+    ]);
+  }
+
   private esResumen(consulta: string) {
     return this.incluye(consulta, ['resumi mi establecimiento', 'resumen de mi establecimiento', 'como esta mi establecimiento']);
   }
@@ -951,6 +1207,7 @@ export class AgroBotConsultasService {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLocaleLowerCase('es-AR')
+      .replace(/[¿?¡!.,;:]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }

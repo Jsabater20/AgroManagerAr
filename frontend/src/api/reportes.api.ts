@@ -130,10 +130,44 @@ export interface DesgloseCampania {
   costos: ResumenCostosProductivos | null;
 }
 
+export interface ReferenciaComparativa {
+  id: number;
+  nombre: string;
+  campoNombre: string | null;
+  valor: number;
+}
+
+export interface ResumenComparativoDestinos {
+  destinos: number;
+  conCosecha: number;
+  cosechaKg: number;
+  mejorCosecha: ReferenciaComparativa | null;
+  costos: {
+    reales: number;
+    estimados: number;
+    realPorHa: number | null;
+    mayorCostoPorHa: ReferenciaComparativa | null;
+    mayorDesvio: (ReferenciaComparativa & {
+      reales: number;
+      estimados: number;
+    }) | null;
+  } | null;
+}
+
+export interface ComparativaDesgloseProductivo {
+  lotes: ResumenComparativoDestinos & {
+    rendimientoPromedioKgHa: number | null;
+    mejorRendimiento: ReferenciaComparativa | null;
+    menorRendimiento: ReferenciaComparativa | null;
+  };
+  campanias: ResumenComparativoDestinos;
+}
+
 export interface DesgloseProductivo {
   organizacion: { id: number; nombre: string };
   periodo: ReportePeriodico['periodo'];
   alcance: { campoIds: number[] | null; incluyeCostos: boolean };
+  comparativa: ComparativaDesgloseProductivo;
   lotes: DesgloseLote[];
   campanias: DesgloseCampania[];
 }

@@ -23,7 +23,10 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     const request = context.switchToHttp().getRequest();
-    const { sub: usuarioId } = request.user || {};
+    const usuarioId = request.user?.id ?? request.user?.sub;
+    if (!usuarioId) {
+      return next.handle();
+    }
     const rawOrganizacionId = request.organizacionId ?? request.query?.organizacionId;
     const organizacionId = rawOrganizacionId ? parseInt(String(rawOrganizacionId), 10) : undefined;
     const { ipAddress, userAgent } = this.auditService.extraerMetadatos(request);

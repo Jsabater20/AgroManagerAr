@@ -161,12 +161,12 @@ export class PlanService {
     }
   }
 
-  async checkLotesLimit(organizacionId: number) {
+  async checkLotesLimit(organizacionId: number, nuevosLotes = 1) {
     if (await this.isOrgPro(organizacionId)) return;
     const count = await this.prisma.lote.count({
       where: { campo: { organizacionId } },
     });
-    if (count >= LIMITES_FREE.lotesPerCampo) {
+    if (count + nuevosLotes > LIMITES_FREE.lotesPerCampo) {
       throw new ForbiddenException(
         `Plan Free: máximo ${LIMITES_FREE.lotesPerCampo} lotes por organización. Actualizá a Pro para agregar más.`,
       );

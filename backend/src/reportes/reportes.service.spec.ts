@@ -41,4 +41,43 @@ describe('ReportesService', () => {
     expect(capacidades.permisos).toMatchObject({ esOwner: false, puedeVerFinanzas: false });
     expect(capacidades.funcionalidades.semanalMensual).toBe(true);
   });
+  it('resume producción, rendimiento y desvíos de costos por lote', () => {
+    const comparativa = (service as any).crearComparativaDesglose(
+      [
+        {
+          id: 1,
+          nombre: 'Norte',
+          hectareas: 50,
+          campo: { id: 4, nombre: 'La Esperanza' },
+          cosechaKg: 120000,
+          rendimientoPromedioKgHa: 2400,
+          costos: { reales: 540000, estimados: 450000, realPorHa: 10800 },
+        },
+        {
+          id: 2,
+          nombre: 'Sur',
+          hectareas: 40,
+          campo: { id: 4, nombre: 'La Esperanza' },
+          cosechaKg: 88000,
+          rendimientoPromedioKgHa: 2200,
+          costos: { reales: 320000, estimados: 360000, realPorHa: 8000 },
+        },
+      ],
+      [
+        {
+          id: 8,
+          nombre: 'Campaña 2026',
+          hectareas: 90,
+          cosechaKg: 208000,
+          costos: { reales: 860000, estimados: 810000, realPorHa: 9555.56 },
+        },
+      ],
+      true,
+    );
+
+    expect(comparativa.lotes.mejorCosecha).toMatchObject({ nombre: 'Norte', valor: 120000 });
+    expect(comparativa.lotes.mejorRendimiento).toMatchObject({ nombre: 'Norte', valor: 2400 });
+    expect(comparativa.lotes.costos?.mayorCostoPorHa).toMatchObject({ nombre: 'Norte', valor: 10800 });
+    expect(comparativa.lotes.costos?.mayorDesvio).toMatchObject({ nombre: 'Norte', valor: 20 });
+  });
 });

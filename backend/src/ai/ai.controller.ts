@@ -5,6 +5,9 @@ import { OrganizationGuard } from '../organizations/organization.guard';
 import { AiService } from './ai.service';
 import { PlanService } from '../plan/plan.service';
 import { AiChatDto } from './dto/ai.dto';
+import { ConfirmarCrearCampoAgroBotDto } from './dto/confirmar-crear-campo.dto';
+import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
+import { Auditar } from '../audit/decorators/audit.decorator';
 import type { Request } from 'express';
 
 interface AuthRequest extends Request {
@@ -34,6 +37,47 @@ export class AiController {
       indicadores: respuesta.indicadores ?? [],
       referencias: respuesta.referencias ?? [],
       basadaEnDatos: respuesta.basadaEnDatos,
+      accion: respuesta.accion ?? null,
+    };
+  }
+
+  @Post('acciones/crear-campo')
+  @Auditar('crear_campo_desde_agrobot', 'Campo')
+  async confirmarCreacionCampo(
+    @Req() req: AuthRequest,
+    @Body() dto: ConfirmarCrearCampoAgroBotDto,
+  ) {
+    await this.planService.checkProAccess(req.organizacionId, 'AgroBot IA');
+    const campo = await this.aiService.confirmarCreacionCampo(
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
+    return {
+      id: campo.id,
+      campo,
+      referencia: {
+        etiqueta: 'Ver campos',
+        href: `/org/${req.organizacionId}/campos`,
+      },
+    };
+  }
+
+  @Post('acciones/crear-trabajo')
+  async confirmarCreacionTrabajo(
+    @Req() req: AuthRequest,
+    @Body() dto: ConfirmarCrearTrabajoAgroBotDto,
+  ) {
+    await this.planService.checkProAccess(req.organizacionId, 'AgroBot IA');
+    const trabajo = await this.aiService.confirmarCreacionTrabajo(
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
+    return {
+      id: trabajo.id,
+      trabajo,
+      referencia: { etiqueta: 'Ver trabajos', href: `/org/${req.organizacionId}/tareas` },
     };
   }
 

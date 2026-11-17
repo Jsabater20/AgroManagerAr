@@ -101,7 +101,7 @@ export default function LoginScreen() {
           <Text className="text-sm font-medium text-emerald-700">Olvidé mi contraseña</Text>
         </Pressable>
         <Pressable
-          onPress={handleSubmit(submit)}
+          onPress={() => { void handleSubmit(submit)(); }}
           disabled={isSubmitting || apiHealth.isError}
           className="items-center rounded-xl bg-emerald-700 px-4 py-3 disabled:opacity-50"
         >

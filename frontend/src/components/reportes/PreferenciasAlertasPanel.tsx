@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BellRing, CloudSun, Mail, Save, ShieldAlert, Smartphone } from 'lucide-react';
+import { BellRing, ClipboardList, CloudSun, Mail, ReceiptText, Save, ShieldAlert, Smartphone, Wrench } from 'lucide-react';
 import { alertasApi } from '../../api/alertas.api';
 
 type ConfiguracionAlertas = {
@@ -10,6 +10,9 @@ type ConfiguracionAlertas = {
   notificacionEmail: boolean;
   soloPrioritarias: boolean;
   alertasClimaActivas: boolean;
+  alertasTareasActivas: boolean;
+  alertasMaquinariasActivas: boolean;
+  alertasCostosActivas: boolean;
 };
 
 const configuracionInicial: ConfiguracionAlertas = {
@@ -19,6 +22,9 @@ const configuracionInicial: ConfiguracionAlertas = {
   notificacionEmail: false,
   soloPrioritarias: false,
   alertasClimaActivas: false,
+  alertasTareasActivas: true,
+  alertasMaquinariasActivas: true,
+  alertasCostosActivas: true,
 };
 
 function Opcion({
@@ -72,6 +78,9 @@ export function PreferenciasAlertasPanel() {
       notificacionEmail: preferencias.data.notificacionEmail,
       soloPrioritarias: preferencias.data.soloPrioritarias,
       alertasClimaActivas: preferencias.data.alertasClimaActivas,
+      alertasTareasActivas: preferencias.data.alertasTareasActivas,
+      alertasMaquinariasActivas: preferencias.data.alertasMaquinariasActivas,
+      alertasCostosActivas: preferencias.data.alertasCostosActivas,
     });
   }, [preferencias.data]);
 
@@ -108,14 +117,15 @@ export function PreferenciasAlertasPanel() {
             </label>
           </div>
 
-          <div className="mt-3">
-            <Opcion
-              icono={CloudSun}
-              titulo="Alertas climáticas por campo"
-              detalle="Analizamos el pronóstico de los campos con ubicación para avisarte por heladas, calor, tormentas, lluvias intensas o viento fuerte."
-              activa={configuracion.alertasClimaActivas}
-              onChange={(valor) => actualizar('alertasClimaActivas', valor)}
-            />
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Qué avisos querés recibir</h3>
+            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Elegí los temas importantes para tu establecimiento. Los datos siguen disponibles en AgroManager aunque desactives un aviso.</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <Opcion icono={ClipboardList} titulo="Tareas y trabajos" detalle="Vencimientos, trabajos sin iniciar y acciones que necesitan seguimiento." activa={configuracion.alertasTareasActivas} deshabilitada={canalesDeshabilitados} onChange={(valor) => actualizar('alertasTareasActivas', valor)} />
+              <Opcion icono={Wrench} titulo="Maquinarias" detalle="Mantenimientos, seguro o VTV próximos a vencer o vencidos." activa={configuracion.alertasMaquinariasActivas} deshabilitada={canalesDeshabilitados} onChange={(valor) => actualizar('alertasMaquinariasActivas', valor)} />
+              <Opcion icono={ReceiptText} titulo="Costos y rentabilidad" detalle="Desvíos entre costos estimados y reales de los trabajos registrados." activa={configuracion.alertasCostosActivas} deshabilitada={canalesDeshabilitados} onChange={(valor) => actualizar('alertasCostosActivas', valor)} />
+              <Opcion icono={CloudSun} titulo="Clima por campo" detalle="Heladas, calor, tormentas, lluvias intensas o viento fuerte según el pronóstico." activa={configuracion.alertasClimaActivas} deshabilitada={canalesDeshabilitados} onChange={(valor) => actualizar('alertasClimaActivas', valor)} />
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">

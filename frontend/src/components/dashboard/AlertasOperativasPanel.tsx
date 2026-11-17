@@ -46,7 +46,7 @@ export const AlertasOperativasPanel = ({
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-amber-800">{alertas.length} {alertas.length === 1 ? 'alerta' : 'alertas'}</span>
           {esOwner && (
-            <Link to={`/org/${organizacionId}/alertas`} className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-bold text-amber-800 transition hover:bg-amber-100">Ver centro</Link>
+            <Link to={`/org/${organizacionId}/atencion`} className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-bold text-amber-800 transition hover:bg-amber-100">Ver centro</Link>
           )}
         </div>
       </div>

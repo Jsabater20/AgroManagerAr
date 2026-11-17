@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { TareaRural, CreateTareaDto, EstadoTarea } from './types';
+import type { TareaRural, CreateTareaDto, EstadoTarea, ResultadoEstadoTarea } from './types';
 
 export const tareasApi = {
   getAll: (): Promise<TareaRural[]> =>
@@ -14,7 +14,7 @@ export const tareasApi = {
   update: (id: number, dto: Partial<CreateTareaDto>): Promise<TareaRural> =>
     api.patch(`/tareas/${id}`, dto).then((r) => r.data),
 
-  updateEstado: (id: number, estado: EstadoTarea): Promise<TareaRural> =>
+  updateEstado: (id: number, estado: EstadoTarea): Promise<ResultadoEstadoTarea> =>
     api.patch(`/tareas/${id}/estado`, { estado }).then((r) => r.data),
 
   remove: (id: number): Promise<void> =>

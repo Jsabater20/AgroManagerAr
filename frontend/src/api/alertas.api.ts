@@ -60,6 +60,28 @@ export interface ResumenAlertasGestion {
   sinLeer: number;
 }
 
+export interface ItemCentroAtencion {
+  id: string;
+  tipo: 'ALERTA' | 'TAREA';
+  severidad: 'CRITICA' | 'ATENCION' | 'PROXIMA';
+  titulo: string;
+  detalle: string;
+  enlace: string;
+  fecha?: string;
+}
+
+export interface CentroAtencion {
+  resumen: {
+    tareasActivas: number;
+    tareasVencidas: number;
+    tareasParaHoy: number;
+    alertasActivas: number;
+    alertasCriticas: number;
+  };
+  items: ItemCentroAtencion[];
+  generadoEn: string;
+}
+
 export interface PreferenciasAlertas {
   id?: number;
   usuarioId?: number;
@@ -70,17 +92,22 @@ export interface PreferenciasAlertas {
   notificacionEmail: boolean;
   soloPrioritarias: boolean;
   alertasClimaActivas: boolean;
+  alertasTareasActivas: boolean;
+  alertasMaquinariasActivas: boolean;
+  alertasCostosActivas: boolean;
   emailVerificado: boolean;
 }
 
 export type ActualizarPreferenciasAlertas = Partial<Pick<
   PreferenciasAlertas,
-  'alertasActivas' | 'notificacionEnApp' | 'notificacionPush' | 'notificacionEmail' | 'soloPrioritarias' | 'alertasClimaActivas'
+  'alertasActivas' | 'notificacionEnApp' | 'notificacionPush' | 'notificacionEmail' | 'soloPrioritarias' | 'alertasClimaActivas' | 'alertasTareasActivas' | 'alertasMaquinariasActivas' | 'alertasCostosActivas'
 >>;
 
 export const alertasApi = {
   listar: (): Promise<AlertaOperativa[]> =>
     api.get('/alertas').then((response) => response.data),
+  centroAtencion: (): Promise<CentroAtencion> =>
+    api.get('/alertas/centro-atencion').then((response) => response.data),
   listarGestion: (filtro: {
     estado?: EstadoAlertaGestion;
     severidad?: SeveridadAlertaGestion;

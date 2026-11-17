@@ -336,6 +336,7 @@ export class ActividadesService {
     dto: CreateActividadDto,
     userId: number,
     calculoOrigenId?: number,
+    agroBotIdempotencyKey?: string,
   ): Promise<ActividadMiembro> {
     if (
       dto.calculoOrigenId !== undefined &&
@@ -344,6 +345,19 @@ export class ActividadesService {
       throw new BadRequestException(
         'El cálculo de origen solo puede vincularse al crear el trabajo desde un cálculo guardado.',
       );
+    }
+
+    if (agroBotIdempotencyKey) {
+      const existente = await this.prisma.actividadMiembro.findUnique({
+        where: { agroBotIdempotencyKey },
+        include: actividadIncluyeResponsables,
+      });
+      if (existente) {
+        if (existente.organizacionId !== orgId || existente.creadoPorId !== userId) {
+          throw new ForbiddenException('La clave de confirmación ya fue utilizada');
+        }
+        return existente;
+      }
     }
 
     await this.validarOwner(orgId, userId);
@@ -374,6 +388,7 @@ export class ActividadesService {
           recursoId: dto.recursoId || null,
           contexto: dto.contexto || null,
           calculoOrigenId: calculoOrigenId ?? null,
+          agroBotIdempotencyKey,
           fechaInicio,
           fechaEstimadaFin,
           horarioInicio: dto.horarioInicio || null,

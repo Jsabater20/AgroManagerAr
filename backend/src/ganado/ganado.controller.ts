@@ -17,10 +17,14 @@ import {
   CreatePrenezDto,
   UpdatePrenezEstadoDto,
   CreateRegistroPesoDto,
+  CreateLoteGanaderoDto,
+  CreateRegistroLoteGanaderoDto,
+  CerrarLoteGanaderoDto,
 } from './dto/ganado.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 
 interface AuthRequest {
   user: { id: number };
@@ -31,6 +35,21 @@ interface AuthRequest {
 @Controller('ganado')
 export class GanadoController {
   constructor(private ganadoService: GanadoService) {}
+
+  @Get('lotes')
+  listarLotes(@Request() req: AuthRequest) { return this.ganadoService.listarLotes(req.user.id, req.organizacionId); }
+
+  @Post('lotes')
+  @Auditar('crear_lote_ganadero', 'LoteGanadero')
+  crearLote(@Body() dto: CreateLoteGanaderoDto, @Request() req: AuthRequest) { return this.ganadoService.crearLote(dto, req.user.id, req.organizacionId); }
+
+  @Post('lotes/:id/registros')
+  @Auditar('registrar_control_lote_ganadero', 'RegistroLoteGanadero')
+  registrarLote(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateRegistroLoteGanaderoDto, @Request() req: AuthRequest) { return this.ganadoService.registrarLote(id, dto, req.user.id, req.organizacionId); }
+
+  @Patch('lotes/:id/cerrar')
+  @Auditar('cerrar_lote_ganadero', 'LoteGanadero')
+  cerrarLote(@Param('id', ParseIntPipe) id: number, @Body() dto: CerrarLoteGanaderoDto, @Request() req: AuthRequest) { return this.ganadoService.cerrarLote(id, dto, req.user.id, req.organizacionId); }
 
   @Get()
   findAll(@Request() req: AuthRequest) {
