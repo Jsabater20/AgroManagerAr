@@ -47,6 +47,16 @@ const WELCOME_OWNER: DisplayMessage = {
   text: '¡Hola! Soy **AgroBot** 🌱\nAdemás de los datos productivos del establecimiento, puedo ayudarte a seguir el equipo: trabajos en curso, tareas vencidas y la situación de cada integrante. ¿Qué necesitás revisar?',
 };
 
+function esConfirmacionDePropuesta(texto: string) {
+  const confirmacion = texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+  return /^(si|confirmo|confirmar|confirmalo|confirmarlo|crealo|crearla|crearlo|dale|ok|okay|proceder|adelante|hacelo|hacela)\b/.test(confirmacion);
+}
+
 export default function AiChat() {
   const isPro = useAuthStore((s) => s.isPro());
   const usuario = useAuthStore((s) => s.usuario);
@@ -88,10 +98,39 @@ export default function AiChat() {
 
   const send = async () => {
     const msg = input.trim();
-    if (!msg || loading) return;
+    if (!msg || loading || confirmandoPropuesta !== null) return;
     setInput('');
 
     const userMsg: DisplayMessage = { role: 'user', text: msg };
+    const indicePropuestaPendiente = messages.reduce<number | null>(
+      (ultimoIndice, message, indice) =>
+        message.accion ? indice : ultimoIndice,
+      null,
+    );
+    const propuestaPendiente = indicePropuestaPendiente === null
+      ? null
+      : messages[indicePropuestaPendiente].accion;
+
+    if (propuestaPendiente && indicePropuestaPendiente !== null && esConfirmacionDePropuesta(msg)) {
+      setMessages((prev) => [...prev, userMsg]);
+      if (!propuestaPendiente.sePuedeConfirmar) {
+        const pendientes = propuestaPendiente.faltantes.length
+          ? ` Todavía faltan: ${propuestaPendiente.faltantes.join(', ')}.`
+          : ' Revisá las advertencias marcadas en la propuesta antes de confirmarla.';
+        setMessages((prev) => [
+          ...prev,
+          { role: 'model', text: `No puedo confirmarla todavía.${pendientes}` },
+        ]);
+        return;
+      }
+      if (propuestaPendiente.tipo === 'CREAR_CAMPO_CON_LOTES') {
+        void confirmarPropuesta(indicePropuestaPendiente, propuestaPendiente);
+      } else {
+        void confirmarTrabajo(indicePropuestaPendiente, propuestaPendiente);
+      }
+      return;
+    }
+
     const thinkingMsg: DisplayMessage = { role: 'model', text: '', loading: true };
     setMessages((prev) => [...prev, userMsg, thinkingMsg]);
     setLoading(true);
