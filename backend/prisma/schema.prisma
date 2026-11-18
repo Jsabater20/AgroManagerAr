@@ -87,6 +87,7 @@ model Usuario {
   checklistsHidricosCreados         ChecklistPreventivoHidrico[]    @relation("checklist_hidrico_creado_por")
   checklistsHidricosCompletados     ChecklistPreventivoHidrico[]    @relation("checklist_hidrico_completado_por")
   umbralesAlertaHidricaActualizados UmbralAlertaHidricaCampo[]      @relation("umbral_alerta_hidrica_actualizado_por")
+  usosAgroBotIa                     UsoAgroBotIa[]
 }
 
 model Referido {
@@ -805,6 +806,7 @@ model Organizacion {
   perfilesRiesgoHidrico     PerfilRiesgoHidricoCampo[]
   checklistHidrico          ChecklistPreventivoHidrico[]
   umbralesAlertaHidrica     UmbralAlertaHidricaCampo[]
+  usosAgroBotIa             UsoAgroBotIa[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
@@ -1307,6 +1309,22 @@ model ActividadMiembro {
   @@index([creadoPorId])
   @@index([calculoOrigenId])
   @@index([organizacionId, activo])
+}
+
+model UsoAgroBotIa {
+  id             Int          @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int
+  fecha          DateTime
+  consultas      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId, fecha])
+  @@index([organizacionId, fecha])
 }
 
 model CostoProductivo {

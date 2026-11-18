@@ -6,12 +6,14 @@ import { AlertasService } from '../alertas/alertas.service';
 import { AgroBotAccionesService } from './agrobot-acciones.service';
 import { ConfirmarCrearCampoAgroBotDto } from './dto/confirmar-crear-campo.dto';
 import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
+import { ConfirmarCompletarTareaAgroBotDto } from './dto/confirmar-completar-tarea.dto';
+import { AgroBotLimitesService } from './agrobot-limites.service';
 
 const MODEL_NAME = 'gemini-2.5-flash-lite';
 
 const REGLAS_ACCIONES = `
 Si el usuario pide crear, modificar o eliminar un registro, nunca digas que la accion ya fue realizada.
-Por ahora solo podes preparar una propuesta sin aplicarla: resumi que se interpreto, comparalo contra el contexto autorizado, detecta posibles duplicados y pedi los datos obligatorios que falten.
+Para crear un registro, prepará primero una propuesta: resumí qué se interpretó, comparalo contra el contexto autorizado, detectá posibles duplicados y pedí los datos obligatorios que falten. Cuando esté lista, explicá que la persona podrá confirmarla desde la propuesta para aplicarla.
 Para crear un campo, son obligatorios el nombre y las hectareas. Para cada lote, son obligatorios el nombre y las hectareas. No inventes esos valores.
 Explica que la propuesta debera ser revisada y confirmada antes de crear cualquier dato.`;
 
@@ -30,6 +32,7 @@ export class AiService {
     private readonly consultas: AgroBotConsultasService,
     private readonly alertasService: AlertasService,
     private readonly acciones: AgroBotAccionesService,
+    private readonly limites: AgroBotLimitesService,
   ) {}
 
   async chat(
@@ -38,6 +41,19 @@ export class AiService {
     history: ChatMessageDto[],
     message: string,
   ): Promise<AgroBotRespuesta> {
+    const propuestaCompletar = await this.acciones.prepararCompletarTarea(
+      userId,
+      organizacionId,
+      message,
+    );
+    if (propuestaCompletar) {
+      return {
+        texto: this.acciones.textoDePropuestaCompletar(propuestaCompletar),
+        basadaEnDatos: true,
+        accion: propuestaCompletar,
+      };
+    }
+
     const propuesta = await this.acciones.prepararCreacionCampo(
       userId,
       organizacionId,
@@ -83,6 +99,7 @@ export class AiService {
       this.acciones.obtenerContextoCampos(userId, organizacionId),
     ]);
     const systemInstruction = `${SYSTEM_BASE}\n${REGLAS_ACCIONES}\n\n<contexto_autorizado>\n${context}\n\n${this.acciones.aTextoParaPlanificacion(contextoAcciones)}\n</contexto_autorizado>`;
+    const reserva = await this.limites.reservarConsultaGemini(userId, organizacionId);
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -98,8 +115,10 @@ export class AiService {
         generationConfig: { maxOutputTokens: 600, temperature: 0.35 },
       });
       const result = await chat.sendMessage(message);
-      return { texto: result.response.text(), basadaEnDatos: false };
+      const aviso = reserva.aviso ? `\n\n_${reserva.aviso}_` : '';
+      return { texto: `${result.response.text()}${aviso}`, basadaEnDatos: false };
     } catch {
+      await this.limites.liberarReserva(userId, organizacionId, reserva.fecha);
       throw new InternalServerErrorException('No se pudo consultar AgroBot en este momento');
     }
   }
@@ -147,5 +166,13 @@ export class AiService {
     dto: ConfirmarCrearTrabajoAgroBotDto,
   ) {
     return this.acciones.confirmarCreacionTrabajo(userId, organizacionId, dto);
+  }
+
+  async confirmarCompletarTarea(
+    userId: number,
+    organizacionId: number,
+    dto: ConfirmarCompletarTareaAgroBotDto,
+  ) {
+    return this.acciones.confirmarCompletarTarea(userId, organizacionId, dto);
   }
 }

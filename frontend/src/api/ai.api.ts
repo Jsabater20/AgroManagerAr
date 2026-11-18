@@ -69,7 +69,26 @@ export interface PropuestaCrearTrabajoAgroBot {
   lectura: { organizacionNombre: string; miembrosDisponibles: number };
 }
 
-export type PropuestaAccionAgroBot = PropuestaCrearCampoAgroBot | PropuestaCrearTrabajoAgroBot;
+export interface PropuestaCompletarTareaAgroBot {
+  tipo: 'COMPLETAR_TAREA';
+  estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'NO_ENCONTRADA' | 'REQUIERE_PRECISION' | 'SIN_PERMISO';
+  sePuedeConfirmar: boolean;
+  titulo: string;
+  tarea: {
+    id: number;
+    titulo: string;
+    origen: 'TAREA_RURAL' | 'TRABAJO_EQUIPO';
+    estado: string;
+  } | null;
+  faltantes: string[];
+  coincidencias: string[];
+  lectura: { organizacionNombre: string };
+}
+
+export type PropuestaAccionAgroBot =
+  | PropuestaCrearCampoAgroBot
+  | PropuestaCrearTrabajoAgroBot
+  | PropuestaCompletarTareaAgroBot;
 
 export interface CampoCreadoDesdeAgroBot {
   id: number;
@@ -85,6 +104,12 @@ export interface CampoCreadoDesdeAgroBot {
 export interface TrabajoCreadoDesdeAgroBot {
   id: number;
   trabajo: { id: number; titulo: string };
+  referencia: AgroBotReferencia;
+}
+
+export interface TareaCompletadaDesdeAgroBot {
+  id: number;
+  tarea: { id: number; titulo: string; origen: 'TAREA_RURAL' | 'TRABAJO_EQUIPO' };
   referencia: AgroBotReferencia;
 }
 
@@ -115,6 +140,15 @@ export const aiApi = {
   }) =>
     api
       .post<TrabajoCreadoDesdeAgroBot>('/ai/acciones/crear-trabajo', input)
+      .then((r) => r.data),
+
+  confirmarCompletarTarea: (input: {
+    idempotencyKey: string;
+    origen: 'TAREA_RURAL' | 'TRABAJO_EQUIPO';
+    tareaId: number;
+  }) =>
+    api
+      .post<TareaCompletadaDesdeAgroBot>('/ai/acciones/completar-tarea', input)
       .then((r) => r.data),
 
   insights: () =>

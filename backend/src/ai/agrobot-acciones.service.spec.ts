@@ -16,7 +16,7 @@ describe('AgroBotAccionesService', () => {
       },
     };
     const acceso = { requireModule: jest.fn().mockResolvedValue({ esOwner: true }) };
-    const service = new AgroBotAccionesService(prisma as any, acceso as any, {} as any, {} as any);
+    const service = new AgroBotAccionesService(prisma as any, acceso as any, {} as any, {} as any, {} as any);
 
     const propuesta = await service.prepararCreacionTrabajo(
       11, 7, 'Asignale a Juan Perez revisar alambrados en el campo Las Meninas mañana',
@@ -46,6 +46,8 @@ describe('AgroBotAccionesService', () => {
       {} as any,
       {} as any,
       camposService as any,
+      {} as any,
+      {} as any,
     );
 
     const resultado = await service.confirmarCreacionCampo(11, 7, {
@@ -91,7 +93,7 @@ describe('AgroBotAccionesService', () => {
         usuarioOrganizacionId: 22,
       }),
     };
-    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any);
+    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any, {} as any);
 
     const contexto = await service.obtenerContextoCampos(11, 7);
 
@@ -124,7 +126,7 @@ describe('AgroBotAccionesService', () => {
     const memberAccess = {
       requireModule: jest.fn().mockRejectedValue(new Error('Sin acceso')),
     };
-    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any);
+    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any, {} as any);
 
     const contexto = await service.obtenerContextoCampos(11, 7);
 
@@ -149,7 +151,7 @@ describe('AgroBotAccionesService', () => {
     const memberAccess = {
       requireModule: jest.fn().mockResolvedValue({ esOwner: true }),
     };
-    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any);
+    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any, {} as any);
 
     const propuesta = await service.prepararCreacionCampo(
       11,
@@ -189,7 +191,7 @@ describe('AgroBotAccionesService', () => {
     const memberAccess = {
       requireModule: jest.fn().mockResolvedValue({ esOwner: true }),
     };
-    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any);
+    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any, {} as any);
 
     const propuesta = await service.prepararCreacionCampo(
       11,
@@ -208,6 +210,69 @@ describe('AgroBotAccionesService', () => {
         'las hectáreas del lote Norte',
         'las hectáreas del lote Sur',
       ]),
+    );
+  });
+
+  it('prepara el cierre de una tarea pendiente identificada por su nombre', async () => {
+    const prisma = {
+      organizacion: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ nombre: 'Establecimiento Demo' }),
+      },
+    };
+    const memberAccess = {
+      requireModule: jest.fn().mockResolvedValue({ esOwner: true }),
+    };
+    const tareasService = {
+      findAll: jest.fn().mockResolvedValue([
+        { id: 31, titulo: 'Revisar alambrado norte', estado: 'PENDIENTE' },
+      ]),
+    };
+    const actividadesService = { listar: jest.fn().mockResolvedValue([]) };
+    const service = new AgroBotAccionesService(
+      prisma as any,
+      memberAccess as any,
+      {} as any,
+      actividadesService as any,
+      tareasService as any,
+    );
+
+    const propuesta = await service.prepararCompletarTarea(
+      11,
+      7,
+      'Marcame la tarea Revisar alambrado norte como hecha',
+    );
+
+    expect(propuesta).toMatchObject({
+      estado: 'LISTA_PARA_CONFIRMAR',
+      sePuedeConfirmar: true,
+      tarea: { id: 31, titulo: 'Revisar alambrado norte', origen: 'TAREA_RURAL' },
+    });
+  });
+
+  it('completa una tarea rural mediante el servicio existente', async () => {
+    const tareasService = {
+      findOne: jest.fn().mockResolvedValue({ id: 31, titulo: 'Revisar alambrado norte', estado: 'PENDIENTE' }),
+      updateEstado: jest.fn().mockResolvedValue({ id: 31, titulo: 'Revisar alambrado norte', estado: 'COMPLETADA' }),
+    };
+    const service = new AgroBotAccionesService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      tareasService as any,
+    );
+
+    const resultado = await service.confirmarCompletarTarea(11, 7, {
+      origen: 'TAREA_RURAL',
+      tareaId: 31,
+    });
+
+    expect(resultado).toEqual({ id: 31, titulo: 'Revisar alambrado norte', origen: 'TAREA_RURAL' });
+    expect(tareasService.updateEstado).toHaveBeenCalledWith(
+      31,
+      { estado: 'COMPLETADA' },
+      11,
+      7,
     );
   });
 });

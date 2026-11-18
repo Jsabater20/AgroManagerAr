@@ -7,6 +7,7 @@ import { PlanService } from '../plan/plan.service';
 import { AiChatDto } from './dto/ai.dto';
 import { ConfirmarCrearCampoAgroBotDto } from './dto/confirmar-crear-campo.dto';
 import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
+import { ConfirmarCompletarTareaAgroBotDto } from './dto/confirmar-completar-tarea.dto';
 import { Auditar } from '../audit/decorators/audit.decorator';
 import type { Request } from 'express';
 
@@ -78,6 +79,25 @@ export class AiController {
       id: trabajo.id,
       trabajo,
       referencia: { etiqueta: 'Ver trabajos', href: `/org/${req.organizacionId}/tareas` },
+    };
+  }
+
+  @Post('acciones/completar-tarea')
+  @Auditar('completar_tarea_desde_agrobot', 'Tarea')
+  async confirmarCompletarTarea(
+    @Req() req: AuthRequest,
+    @Body() dto: ConfirmarCompletarTareaAgroBotDto,
+  ) {
+    await this.planService.checkProAccess(req.organizacionId, 'AgroBot IA');
+    const tarea = await this.aiService.confirmarCompletarTarea(
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
+    return {
+      id: tarea.id,
+      tarea,
+      referencia: { etiqueta: 'Ver tareas', href: `/org/${req.organizacionId}/tareas` },
     };
   }
 

@@ -22,6 +22,7 @@ import {
   type AgroBotReferencia,
   type ChatMessage,
   type PropuestaCrearCampoAgroBot,
+  type PropuestaCompletarTareaAgroBot,
   type PropuestaCrearTrabajoAgroBot,
   type PropuestaAccionAgroBot,
 } from '../../api/ai.api';
@@ -125,8 +126,10 @@ export default function AiChat() {
       }
       if (propuestaPendiente.tipo === 'CREAR_CAMPO_CON_LOTES') {
         void confirmarPropuesta(indicePropuestaPendiente, propuestaPendiente);
-      } else {
+      } else if (propuestaPendiente.tipo === 'CREAR_TRABAJO') {
         void confirmarTrabajo(indicePropuestaPendiente, propuestaPendiente);
+      } else {
+        void confirmarCompletarTarea(indicePropuestaPendiente, propuestaPendiente);
       }
       return;
     }
@@ -156,11 +159,16 @@ export default function AiChat() {
       ]);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
+      const responseMessage = (err as { response?: { data?: { message?: string | string[] } } })
+        ?.response?.data?.message;
+      const detalle = Array.isArray(responseMessage) ? responseMessage.join(', ') : responseMessage;
       const errMsg =
         status === 403
           ? 'No tenés acceso a AgroBot. Verificá que tu plan Pro esté activo.'
           : status === 401
           ? 'Tu sesión expiró. Volvé a iniciar sesión.'
+          : status === 429
+          ? detalle || 'Alcanzaste el límite de consultas con IA. Podés seguir usando las consultas operativas de AgroBot.'
           : 'No pude obtener respuesta. Intentá de nuevo en unos segundos.';
       setMessages((prev) => [
         ...prev.slice(0, -1),
@@ -268,6 +276,41 @@ export default function AiChat() {
     }
   };
 
+  const confirmarCompletarTarea = async (
+    messageIndex: number,
+    propuesta: PropuestaCompletarTareaAgroBot,
+  ) => {
+    if (!propuesta.sePuedeConfirmar || !propuesta.tarea) return;
+    setConfirmandoPropuesta(messageIndex);
+    try {
+      const resultado = await aiApi.confirmarCompletarTarea({
+        idempotencyKey: obtenerClaveConfirmacion(messageIndex),
+        origen: propuesta.tarea.origen,
+        tareaId: propuesta.tarea.id,
+      });
+      setMessages((prev) => [
+        ...prev.map((message, index) => index === messageIndex ? { ...message, accion: null } : message),
+        {
+          role: 'model',
+          text: `Listo. Marqué como hecha **${resultado.tarea.titulo}**.`,
+          referencias: [resultado.referencia],
+          basadaEnDatos: true,
+        },
+      ]);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'model',
+          text: Array.isArray(message) ? message.join(', ') : message || 'No pude marcar la tarea como hecha. Revisá su estado e intentá nuevamente.',
+        },
+      ]);
+    } finally {
+      setConfirmandoPropuesta(null);
+    }
+  };
+
   return (
     <>
       {/* Floating button */}
@@ -356,6 +399,14 @@ export default function AiChat() {
                           confirmando={confirmandoPropuesta === i}
                         />
                       )}
+                      {m.accion?.tipo === 'COMPLETAR_TAREA' && (
+                        <PropuestaCompletarTareaCard
+                          propuesta={m.accion}
+                          onDescartar={() => descartarPropuesta(i)}
+                          onConfirmar={() => void confirmarCompletarTarea(i, m.accion as PropuestaCompletarTareaAgroBot)}
+                          confirmando={confirmandoPropuesta === i}
+                        />
+                      )}
                       {m.indicadores && m.indicadores.length > 0 && (
                         <div className="mt-3 grid gap-1.5">
                           {m.indicadores.map((indicador) => (
@@ -430,11 +481,11 @@ export default function AiChat() {
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && void send()}
               placeholder="Preguntá sobre tu campo..."
               className="flex-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 outline-none focus:border-green-400 dark:text-white placeholder:text-gray-400"
-              disabled={loading}
+              disabled={loading || confirmandoPropuesta !== null}
             />
             <button
               onClick={() => void send()}
-              disabled={loading || !input.trim()}
+              disabled={loading || confirmandoPropuesta !== null || !input.trim()}
               className="w-9 h-9 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 flex items-center justify-center transition-colors shrink-0"
             >
               {loading ? (
@@ -460,7 +511,7 @@ const SUGGESTIONS = [
   '¿Qué tareas tengo pendientes?',
   '¿Qué trabajos están atrasados?',
   'Resumí mi establecimiento',
-  'Creame el campo Los Patitos con dos lotes Norte y Sur',
+  'Creame el campo Los Patitos de 200 ha, con dos lotes: Norte de 120 ha y Sur de 80 ha',
 ];
 
 const OWNER_SUGGESTIONS = [
@@ -469,8 +520,66 @@ const OWNER_SUGGESTIONS = [
   '¿Qué trabajos están atrasados?',
   '¿Cuánto gasté este mes?',
   'Resumí mi establecimiento',
-  'Creame el campo Los Patitos con dos lotes Norte y Sur',
+  'Creame el campo Los Patitos de 200 ha, con dos lotes: Norte de 120 ha y Sur de 80 ha',
 ];
+
+function PropuestaCompletarTareaCard({
+  propuesta,
+  onDescartar,
+  onConfirmar,
+  confirmando,
+}: {
+  propuesta: PropuestaCompletarTareaAgroBot;
+  onDescartar: () => void;
+  onConfirmar: () => void;
+  confirmando: boolean;
+}) {
+  const estado = {
+    LISTA_PARA_CONFIRMAR: 'Lista para confirmar',
+    FALTAN_DATOS: 'Faltan datos',
+    NO_ENCONTRADA: 'No encontrada',
+    REQUIERE_PRECISION: 'Elegí una tarea',
+    SIN_PERMISO: 'Sin permiso',
+  }[propuesta.estado];
+
+  return (
+    <section className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm dark:border-slate-600 dark:bg-slate-900">
+      <div className="flex items-start gap-2 border-b border-slate-200 px-3 py-2.5 dark:border-slate-700">
+        <div className="rounded-lg bg-emerald-100 p-1.5 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"><CheckCircle2 size={15} /></div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-slate-900 dark:text-white">{propuesta.titulo}</p>
+          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{propuesta.lectura.organizacionNombre}</p>
+        </div>
+        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">{estado}</span>
+      </div>
+      <div className="space-y-2.5 px-3 py-3 text-[11px]">
+        {propuesta.tarea && (
+          <div className="rounded-lg border border-slate-200 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-800">
+            <p className="font-semibold text-slate-900 dark:text-white">{propuesta.tarea.titulo}</p>
+            <p className="mt-1 text-slate-600 dark:text-slate-300">
+              {propuesta.tarea.origen === 'TRABAJO_EQUIPO' ? 'Trabajo asignado al equipo' : 'Tarea del establecimiento'} · Estado actual: {propuesta.tarea.estado.toLowerCase().replace('_', ' ')}
+            </p>
+          </div>
+        )}
+        {propuesta.faltantes.length > 0 && (
+          <div className="rounded-lg bg-amber-50 px-2.5 py-2 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+            {propuesta.faltantes.join(', ')}
+          </div>
+        )}
+        {propuesta.coincidencias.length > 0 && (
+          <div className="rounded-lg bg-amber-50 px-2.5 py-2 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Coincidencias encontradas</p>
+            <p className="mt-1">{propuesta.coincidencias.join(', ')}</p>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button type="button" onClick={onDescartar} className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">Cancelar</button>
+          {propuesta.sePuedeConfirmar && <button type="button" onClick={onConfirmar} disabled={confirmando} className="flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 font-semibold text-white hover:bg-emerald-500 disabled:opacity-60">{confirmando ? 'Marcando...' : 'Confirmar y marcar hecha'}</button>}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function PropuestaTrabajoCard({
   propuesta,

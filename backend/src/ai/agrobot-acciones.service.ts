@@ -1,11 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberAccessService } from '../organizations/member-access.service';
 import { CamposService } from '../campos/campos.service';
 import { ConfirmarCrearCampoAgroBotDto } from './dto/confirmar-crear-campo.dto';
 import { ActividadesService } from '../actividades/actividades.service';
-import { Prioridad, TipoRecursoActividad } from '@prisma/client';
+import { EstadoActividad, EstadoTarea, Prioridad, TipoRecursoActividad } from '@prisma/client';
 import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
+import { ConfirmarCompletarTareaAgroBotDto } from './dto/confirmar-completar-tarea.dto';
+import { TareasService } from '../tareas/tareas.service';
 
 export type CampoContextoAgroBot = {
   id: number;
@@ -74,9 +76,26 @@ export type PropuestaCrearTrabajoAgroBot = {
   lectura: { organizacionNombre: string; miembrosDisponibles: number };
 };
 
+export type PropuestaCompletarTareaAgroBot = {
+  tipo: 'COMPLETAR_TAREA';
+  estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'NO_ENCONTRADA' | 'REQUIERE_PRECISION' | 'SIN_PERMISO';
+  sePuedeConfirmar: boolean;
+  titulo: string;
+  tarea: {
+    id: number;
+    titulo: string;
+    origen: 'TAREA_RURAL' | 'TRABAJO_EQUIPO';
+    estado: string;
+  } | null;
+  faltantes: string[];
+  coincidencias: string[];
+  lectura: { organizacionNombre: string };
+};
+
 export type PropuestaAccionAgroBot =
   | PropuestaCrearCampoAgroBot
-  | PropuestaCrearTrabajoAgroBot;
+  | PropuestaCrearTrabajoAgroBot
+  | PropuestaCompletarTareaAgroBot;
 
 const PALABRAS_CANTIDAD: Record<string, number> = {
   un: 1,
@@ -104,6 +123,7 @@ export class AgroBotAccionesService {
     private readonly memberAccessService: MemberAccessService,
     private readonly camposService: CamposService,
     private readonly actividadesService: ActividadesService,
+    private readonly tareasService: TareasService,
   ) {}
 
   async obtenerContextoCampos(
@@ -414,6 +434,166 @@ export class AgroBotAccionesService {
     }, usuarioId, undefined, dto.idempotencyKey);
   }
 
+  async prepararCompletarTarea(
+    usuarioId: number,
+    organizacionId: number,
+    mensaje: string,
+  ): Promise<PropuestaCompletarTareaAgroBot | null> {
+    if (!this.esPedidoDeCompletarTarea(mensaje)) return null;
+
+    const organizacion = await this.prisma.organizacion.findUniqueOrThrow({
+      where: { id: organizacionId },
+      select: { nombre: true },
+    });
+    const lectura = { organizacionNombre: organizacion.nombre };
+    const acceso = await this.memberAccessService
+      .requireModule(usuarioId, organizacionId, 'Tareas')
+      .catch(() => null);
+
+    if (!acceso) {
+      return {
+        tipo: 'COMPLETAR_TAREA',
+        estado: 'SIN_PERMISO',
+        sePuedeConfirmar: false,
+        titulo: 'No tenés acceso para completar tareas',
+        tarea: null,
+        faltantes: [],
+        coincidencias: [],
+        lectura,
+      };
+    }
+
+    const [tareas, trabajos] = await Promise.all([
+      this.tareasService.findAll(usuarioId, organizacionId),
+      this.actividadesService.listar(organizacionId, usuarioId, { activo: true }),
+    ]);
+    const candidatas = [
+      ...tareas
+        .filter((tarea) => tarea.estado !== EstadoTarea.COMPLETADA)
+        .map((tarea) => ({
+          id: tarea.id,
+          titulo: tarea.titulo,
+          origen: 'TAREA_RURAL' as const,
+          estado: tarea.estado,
+        })),
+      ...trabajos
+        .filter((trabajo) => ![EstadoActividad.COMPLETADA, EstadoActividad.CANCELADA].includes(trabajo.estado))
+        .map((trabajo) => ({
+          id: trabajo.id,
+          titulo: trabajo.titulo,
+          origen: 'TRABAJO_EQUIPO' as const,
+          estado: trabajo.estado,
+        })),
+    ];
+    const nombreBuscado = this.extraerNombreTareaACompletar(mensaje);
+
+    if (!nombreBuscado) {
+      return {
+        tipo: 'COMPLETAR_TAREA',
+        estado: 'FALTAN_DATOS',
+        sePuedeConfirmar: false,
+        titulo: 'Indicame qué tarea querés completar',
+        tarea: null,
+        faltantes: ['el nombre de la tarea o trabajo'],
+        coincidencias: [],
+        lectura,
+      };
+    }
+
+    const coincidencias = candidatas.filter((tarea) => {
+      const titulo = this.normalizar(tarea.titulo);
+      return titulo === nombreBuscado || titulo.includes(nombreBuscado) || nombreBuscado.includes(titulo);
+    });
+    const coincidenciaExacta = coincidencias.find(
+      (tarea) => this.normalizar(tarea.titulo) === nombreBuscado,
+    );
+    const tarea = coincidenciaExacta ?? (coincidencias.length === 1 ? coincidencias[0] : null);
+
+    if (!coincidencias.length) {
+      return {
+        tipo: 'COMPLETAR_TAREA',
+        estado: 'NO_ENCONTRADA',
+        sePuedeConfirmar: false,
+        titulo: 'No encontré una tarea pendiente con ese nombre',
+        tarea: null,
+        faltantes: ['un nombre que coincida con una tarea pendiente'],
+        coincidencias: [],
+        lectura,
+      };
+    }
+
+    if (!tarea) {
+      return {
+        tipo: 'COMPLETAR_TAREA',
+        estado: 'REQUIERE_PRECISION',
+        sePuedeConfirmar: false,
+        titulo: 'Encontré más de una tarea similar',
+        tarea: null,
+        faltantes: ['el nombre exacto de la tarea que querés completar'],
+        coincidencias: coincidencias.map((coincidencia) => coincidencia.titulo),
+        lectura,
+      };
+    }
+
+    return {
+      tipo: 'COMPLETAR_TAREA',
+      estado: 'LISTA_PARA_CONFIRMAR',
+      sePuedeConfirmar: true,
+      titulo: `Marcar como hecha: ${tarea.titulo}`,
+      tarea,
+      faltantes: [],
+      coincidencias: [],
+      lectura,
+    };
+  }
+
+  async confirmarCompletarTarea(
+    usuarioId: number,
+    organizacionId: number,
+    dto: ConfirmarCompletarTareaAgroBotDto,
+  ) {
+    if (dto.origen === 'TAREA_RURAL') {
+      const tarea = await this.tareasService.findOne(dto.tareaId, usuarioId, organizacionId);
+      const resultado = tarea.estado === EstadoTarea.COMPLETADA
+        ? tarea
+        : await this.tareasService.updateEstado(
+            dto.tareaId,
+            { estado: EstadoTarea.COMPLETADA },
+            usuarioId,
+            organizacionId,
+          );
+      return { id: resultado.id, titulo: resultado.titulo, origen: dto.origen };
+    }
+
+    const actividad = await this.actividadesService.obtener(
+      organizacionId,
+      dto.tareaId,
+      usuarioId,
+    );
+    if (actividad.estado === EstadoActividad.CANCELADA) {
+      throw new BadRequestException('No se puede completar un trabajo cancelado.');
+    }
+    if (actividad.estado === EstadoActividad.COMPLETADA) {
+      return { id: actividad.id, titulo: actividad.titulo, origen: dto.origen };
+    }
+
+    if ([EstadoActividad.PENDIENTE, EstadoActividad.PAUSADA].includes(actividad.estado)) {
+      await this.actividadesService.cambiarEstado(
+        organizacionId,
+        actividad.id,
+        { estado: EstadoActividad.EN_PROGRESO },
+        usuarioId,
+      );
+    }
+    const resultado = await this.actividadesService.cambiarEstado(
+      organizacionId,
+      actividad.id,
+      { estado: EstadoActividad.COMPLETADA },
+      usuarioId,
+    );
+    return { id: resultado.id, titulo: resultado.titulo, origen: dto.origen };
+  }
+
   aTextoParaPlanificacion(contexto: ContextoAccionesAgroBot): string {
     const campos = contexto.campos.length
       ? contexto.campos
@@ -472,12 +652,52 @@ export class AgroBotAccionesService {
     return `${resumen}\n\nTodavía no voy a crear nada.${pendientes}${revisiones}`;
   }
 
+  textoDePropuestaCompletar(propuesta: PropuestaCompletarTareaAgroBot): string {
+    if (propuesta.estado === 'SIN_PERMISO') {
+      return 'No tenés acceso para completar tareas en este establecimiento.';
+    }
+    if (propuesta.estado === 'NO_ENCONTRADA') {
+      return 'No encontré una tarea pendiente con ese nombre. Indicame el título tal como aparece en la lista de tareas.';
+    }
+    if (propuesta.estado === 'REQUIERE_PRECISION') {
+      return `Encontré más de una coincidencia: ${propuesta.coincidencias.join(', ')}. Decime cuál querés marcar como hecha.`;
+    }
+    if (propuesta.estado === 'FALTAN_DATOS') {
+      return 'Decime qué tarea o trabajo querés marcar como hecho.';
+    }
+
+    return `Preparé el cierre de **${propuesta.tarea!.titulo}**. Revisalo y confirmá para marcarlo como hecho.`;
+  }
+
   private esPedidoDeCrearCampo(mensaje: string): boolean {
     const consulta = this.normalizar(mensaje);
     if (/^(como|donde|puedo|ayuda|explicame)\b/.test(consulta)) {
       return false;
     }
-    return /\bcampo\b/.test(consulta) && /\b(crea|crear|agrega|agregar|registra|registrar|alta|nuevo)\w*/.test(consulta);
+    const solicitaAlta = /\b(crea|crear|agrega|agregar|registra|registrar|alta|nuevo)\w*/.test(consulta);
+    const describeCampo = /\bcampo\b/.test(consulta)
+      || (/\blotes?\b/.test(consulta) && /\b(?:ha|hectareas?)\b/.test(consulta));
+    return solicitaAlta && describeCampo;
+  }
+
+  private esPedidoDeCompletarTarea(mensaje: string): boolean {
+    const consulta = this.normalizar(mensaje);
+    const mencionaTarea = /\b(tarea|trabajo|actividad)\b/.test(consulta);
+    const solicitaCompletar = /\b(marca|marcar|completa|completar|termina|terminar|finaliza|finalizar|hecha|hecho|realizada|realizado)\w*/.test(consulta);
+    return mencionaTarea && solicitaCompletar;
+  }
+
+  private extraerNombreTareaACompletar(mensaje: string): string | null {
+    const entreComillas = mensaje.match(/["']([^"']{3,255})["']/)?.[1];
+    if (entreComillas) return this.normalizar(entreComillas);
+
+    const consulta = this.normalizar(mensaje);
+    const coincidencia = consulta.match(
+      /\b(?:tarea|trabajo|actividad)\s+(?:llamada\s+)?(.+?)(?=\s+(?:como\s+)?(?:hecha|hecho|completada|completado|realizada|realizado|terminada|terminado)\b|$)/,
+    );
+    return this.limpiarNombre(coincidencia?.[1])
+      ? this.normalizar(coincidencia![1])
+      : null;
   }
 
   private esPedidoDeCrearTrabajo(mensaje: string): boolean {

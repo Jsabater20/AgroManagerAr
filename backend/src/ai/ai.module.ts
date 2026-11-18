@@ -10,10 +10,12 @@ import { AgroBotConsultasService } from './agrobot-consultas.service';
 import { AgroBotAccionesService } from './agrobot-acciones.service';
 import { CamposModule } from '../campos/campos.module';
 import { ActividadesModule } from '../actividades/actividades.module';
+import { TareasModule } from '../tareas/tareas.module';
+import { AgroBotLimitesService } from './agrobot-limites.service';
 
 @Module({
-  imports: [PrismaModule, PlanModule, OrganizationsModule, AlertasModule, ClimaModule, CamposModule, ActividadesModule],
+  imports: [PrismaModule, PlanModule, OrganizationsModule, AlertasModule, ClimaModule, CamposModule, ActividadesModule, TareasModule],
   controllers: [AiController],
-  providers: [AiService, AgroBotConsultasService, AgroBotAccionesService],
+  providers: [AiService, AgroBotConsultasService, AgroBotAccionesService, AgroBotLimitesService],
 })
 export class AiModule {}
