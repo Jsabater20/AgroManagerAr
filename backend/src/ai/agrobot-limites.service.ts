@@ -1,5 +1,11 @@
-import { Injectable, TooManyRequestsException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+
+class TooManyRequestsException extends HttpException {
+  constructor(message: string) {
+    super(message, HttpStatus.TOO_MANY_REQUESTS);
+  }
+}
 
 type ReservaUsoAgroBot = {
   fecha: Date;

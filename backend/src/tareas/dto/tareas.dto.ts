@@ -7,6 +7,7 @@
   IsString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { EstadoTarea } from '@prisma/client';
 
 enum TipoTarea {
   SIEMBRA = 'SIEMBRA',
@@ -17,13 +18,6 @@ enum TipoTarea {
   MANTENIMIENTO = 'MANTENIMIENTO',
   VETERINARIA = 'VETERINARIA',
   OTRO = 'OTRO',
-}
-
-enum EstadoTarea {
-  PENDIENTE = 'PENDIENTE',
-  EN_CURSO = 'EN_CURSO',
-  COMPLETADA = 'COMPLETADA',
-  CANCELADA = 'CANCELADA',
 }
 
 enum Prioridad {

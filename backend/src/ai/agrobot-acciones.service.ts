@@ -477,7 +477,11 @@ export class AgroBotAccionesService {
           estado: tarea.estado,
         })),
       ...trabajos
-        .filter((trabajo) => ![EstadoActividad.COMPLETADA, EstadoActividad.CANCELADA].includes(trabajo.estado))
+        .filter(
+          (trabajo) =>
+            trabajo.estado !== EstadoActividad.COMPLETADA &&
+            trabajo.estado !== EstadoActividad.CANCELADA,
+        )
         .map((trabajo) => ({
           id: trabajo.id,
           titulo: trabajo.titulo,
@@ -577,7 +581,10 @@ export class AgroBotAccionesService {
       return { id: actividad.id, titulo: actividad.titulo, origen: dto.origen };
     }
 
-    if ([EstadoActividad.PENDIENTE, EstadoActividad.PAUSADA].includes(actividad.estado)) {
+    if (
+      actividad.estado === EstadoActividad.PENDIENTE ||
+      actividad.estado === EstadoActividad.PAUSADA
+    ) {
       await this.actividadesService.cambiarEstado(
         organizacionId,
         actividad.id,
