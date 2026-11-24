@@ -22,6 +22,8 @@ import {
   type AgroBotReferencia,
   type ChatMessage,
   type PropuestaCrearCampoAgroBot,
+  type PropuestaCrearMaquinariaAgroBot,
+  type PropuestaCrearSiembraAgroBot,
   type PropuestaCompletarTareaAgroBot,
   type PropuestaCrearTrabajoAgroBot,
   type PropuestaAccionAgroBot,
@@ -126,6 +128,10 @@ export default function AiChat() {
       }
       if (propuestaPendiente.tipo === 'CREAR_CAMPO_CON_LOTES') {
         void confirmarPropuesta(indicePropuestaPendiente, propuestaPendiente);
+      } else if (propuestaPendiente.tipo === 'CREAR_MAQUINARIA') {
+        void confirmarMaquinaria(indicePropuestaPendiente, propuestaPendiente);
+      } else if (propuestaPendiente.tipo === 'CREAR_SIEMBRA') {
+        void confirmarSiembra(indicePropuestaPendiente, propuestaPendiente);
       } else if (propuestaPendiente.tipo === 'CREAR_TRABAJO') {
         void confirmarTrabajo(indicePropuestaPendiente, propuestaPendiente);
       } else {
@@ -242,6 +248,71 @@ export default function AiChat() {
           text: detalle || 'No pude crear el campo. Revisá los datos e intentá confirmar nuevamente.',
         },
       ]);
+    } finally {
+      setConfirmandoPropuesta(null);
+    }
+  };
+
+  const confirmarMaquinaria = async (
+    messageIndex: number,
+    propuesta: PropuestaCrearMaquinariaAgroBot,
+  ) => {
+    const { maquinaria } = propuesta;
+    if (!propuesta.sePuedeConfirmar || !maquinaria.nombre || !maquinaria.tipo) return;
+    setConfirmandoPropuesta(messageIndex);
+    try {
+      const resultado = await aiApi.confirmarCreacionMaquinaria({
+        nombre: maquinaria.nombre,
+        tipo: maquinaria.tipo,
+      });
+      setMessages((prev) => [
+        ...prev.map((message, index) => index === messageIndex ? { ...message, accion: null } : message),
+        {
+          role: 'model',
+          text: `Listo. Registré **${resultado.maquinaria.nombre}** en maquinarias.`,
+          referencias: [resultado.referencia],
+          basadaEnDatos: true,
+        },
+      ]);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      setMessages((prev) => [...prev, {
+        role: 'model',
+        text: Array.isArray(message) ? message.join(', ') : message || 'No pude registrar la maquinaria. Revisá los datos e intentá nuevamente.',
+      }]);
+    } finally {
+      setConfirmandoPropuesta(null);
+    }
+  };
+
+  const confirmarSiembra = async (
+    messageIndex: number,
+    propuesta: PropuestaCrearSiembraAgroBot,
+  ) => {
+    const { siembra } = propuesta;
+    if (!propuesta.sePuedeConfirmar || !siembra.lote || !siembra.cultivo || !siembra.fechaSiembra) return;
+    setConfirmandoPropuesta(messageIndex);
+    try {
+      const resultado = await aiApi.confirmarCreacionSiembra({
+        loteId: siembra.lote.id,
+        tipoCultivoId: siembra.cultivo.id,
+        fechaSiembra: siembra.fechaSiembra,
+      });
+      setMessages((prev) => [
+        ...prev.map((message, index) => index === messageIndex ? { ...message, accion: null } : message),
+        {
+          role: 'model',
+          text: `Listo. Registré la siembra de **${resultado.siembra.tipoCultivo.nombre}**.`,
+          referencias: [resultado.referencia],
+          basadaEnDatos: true,
+        },
+      ]);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      setMessages((prev) => [...prev, {
+        role: 'model',
+        text: Array.isArray(message) ? message.join(', ') : message || 'No pude registrar la siembra. Revisá los datos e intentá nuevamente.',
+      }]);
     } finally {
       setConfirmandoPropuesta(null);
     }
@@ -399,6 +470,37 @@ export default function AiChat() {
                           confirmando={confirmandoPropuesta === i}
                         />
                       )}
+                      {m.accion?.tipo === 'CREAR_MAQUINARIA' && (
+                        <PropuestaRegistroCard
+                          propuesta={m.accion as PropuestaCrearMaquinariaAgroBot}
+                          detalle={[
+                            m.accion.maquinaria.nombre ?? 'Nombre pendiente',
+                            m.accion.maquinaria.tipo?.replaceAll('_', ' ') ?? 'Tipo pendiente',
+                          ].join(' · ')}
+                          etiquetaConfirmar="Confirmar y registrar"
+                          procesando="Registrando..."
+                          onDescartar={() => descartarPropuesta(i)}
+                          onConfirmar={() => void confirmarMaquinaria(i, m.accion as PropuestaCrearMaquinariaAgroBot)}
+                          confirmando={confirmandoPropuesta === i}
+                        />
+                      )}
+                      {m.accion?.tipo === 'CREAR_SIEMBRA' && (
+                        <PropuestaRegistroCard
+                          propuesta={m.accion as PropuestaCrearSiembraAgroBot}
+                          detalle={[
+                            m.accion.siembra.cultivo?.nombre ?? 'Cultivo pendiente',
+                            m.accion.siembra.lote
+                              ? `${m.accion.siembra.lote.campoNombre} · ${m.accion.siembra.lote.nombre}`
+                              : 'Lote pendiente',
+                            m.accion.siembra.fechaSiembra ?? 'Fecha pendiente',
+                          ].join(' · ')}
+                          etiquetaConfirmar="Confirmar y registrar"
+                          procesando="Registrando..."
+                          onDescartar={() => descartarPropuesta(i)}
+                          onConfirmar={() => void confirmarSiembra(i, m.accion as PropuestaCrearSiembraAgroBot)}
+                          confirmando={confirmandoPropuesta === i}
+                        />
+                      )}
                       {m.accion?.tipo === 'COMPLETAR_TAREA' && (
                         <PropuestaCompletarTareaCard
                           propuesta={m.accion}
@@ -479,7 +581,7 @@ export default function AiChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && void send()}
-              placeholder="Preguntá sobre tu campo..."
+              placeholder="Preguntá o registrá una tarea, siembra o maquinaria"
               className="flex-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 outline-none focus:border-green-400 dark:text-white placeholder:text-gray-400"
               disabled={loading || confirmandoPropuesta !== null}
             />
@@ -511,7 +613,8 @@ const SUGGESTIONS = [
   '¿Qué tareas tengo pendientes?',
   '¿Qué trabajos están atrasados?',
   'Resumí mi establecimiento',
-  'Creame el campo Los Patitos de 200 ha, con dos lotes: Norte de 120 ha y Sur de 80 ha',
+  'Registrá una camioneta Toyota Hilux',
+  'Registrá una siembra de maíz en Lote Norte hoy',
 ];
 
 const OWNER_SUGGESTIONS = [
@@ -520,7 +623,8 @@ const OWNER_SUGGESTIONS = [
   '¿Qué trabajos están atrasados?',
   '¿Cuánto gasté este mes?',
   'Resumí mi establecimiento',
-  'Creame el campo Los Patitos de 200 ha, con dos lotes: Norte de 120 ha y Sur de 80 ha',
+  'Registrá una camioneta Toyota Hilux',
+  'Registrá una siembra de maíz en Lote Norte hoy',
 ];
 
 function PropuestaCompletarTareaCard({
@@ -575,6 +679,55 @@ function PropuestaCompletarTareaCard({
         <div className="flex gap-2">
           <button type="button" onClick={onDescartar} className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">Cancelar</button>
           {propuesta.sePuedeConfirmar && <button type="button" onClick={onConfirmar} disabled={confirmando} className="flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 font-semibold text-white hover:bg-emerald-500 disabled:opacity-60">{confirmando ? 'Marcando...' : 'Confirmar y marcar hecha'}</button>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PropuestaRegistroCard({
+  propuesta,
+  detalle,
+  etiquetaConfirmar,
+  procesando,
+  onDescartar,
+  onConfirmar,
+  confirmando,
+}: {
+  propuesta: PropuestaCrearMaquinariaAgroBot | PropuestaCrearSiembraAgroBot;
+  detalle: string;
+  etiquetaConfirmar: string;
+  procesando: string;
+  onDescartar: () => void;
+  onConfirmar: () => void;
+  confirmando: boolean;
+}) {
+  const lista = propuesta.estado === 'LISTA_PARA_CONFIRMAR';
+  return (
+    <section className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm dark:border-slate-600 dark:bg-slate-900">
+      <div className="flex items-start gap-2 border-b border-slate-200 px-3 py-2.5 dark:border-slate-700">
+        <div className="rounded-lg bg-emerald-100 p-1.5 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"><Database size={15} /></div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-slate-900 dark:text-white">{propuesta.titulo}</p>
+          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">Propuesta para {propuesta.lectura.organizacionNombre}</p>
+        </div>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${lista ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'}`}>
+          {lista ? 'Lista para confirmar' : propuesta.estado === 'SIN_PERMISO' ? 'Sin permiso' : 'Faltan datos'}
+        </span>
+      </div>
+      <div className="space-y-2.5 px-3 py-3 text-[11px]">
+        <div className="rounded-lg border border-slate-200 bg-white p-2.5 font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+          {detalle}
+        </div>
+        {propuesta.faltantes.length > 0 && (
+          <div className="rounded-lg bg-amber-50 px-2.5 py-2 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Para continuar necesito</p>
+            <ul className="mt-1 list-disc pl-4">{propuesta.faltantes.map((faltante) => <li key={faltante}>{faltante}</li>)}</ul>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button type="button" onClick={onDescartar} className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">Cancelar</button>
+          {propuesta.sePuedeConfirmar && <button type="button" onClick={onConfirmar} disabled={confirmando} className="flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 font-semibold text-white hover:bg-emerald-500 disabled:opacity-60">{confirmando ? procesando : etiquetaConfirmar}</button>}
         </div>
       </div>
     </section>

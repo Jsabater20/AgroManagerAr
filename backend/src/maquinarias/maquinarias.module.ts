@@ -9,5 +9,6 @@ import { OrganizationsModule } from '../organizations/organizations.module';
   imports: [PrismaModule, PlanModule, OrganizationsModule],
   controllers: [MaquinariasController],
   providers: [MaquinariasService],
+  exports: [MaquinariasService],
 })
 export class MaquinariasModule {}

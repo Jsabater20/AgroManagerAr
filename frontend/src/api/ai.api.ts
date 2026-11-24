@@ -69,6 +69,33 @@ export interface PropuestaCrearTrabajoAgroBot {
   lectura: { organizacionNombre: string; miembrosDisponibles: number };
 }
 
+export interface PropuestaCrearMaquinariaAgroBot {
+  tipo: 'CREAR_MAQUINARIA';
+  estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'SIN_PERMISO';
+  sePuedeConfirmar: boolean;
+  titulo: string;
+  maquinaria: {
+    nombre: string | null;
+    tipo: 'TRACTOR' | 'SEMBRADORA' | 'PULVERIZADORA' | 'COSECHADORA' | 'CAMIONETA' | 'MIXER' | 'ACOPLADO' | 'TOLVA' | 'HERRAMIENTA' | 'OTRO' | null;
+  };
+  faltantes: string[];
+  lectura: { organizacionNombre: string };
+}
+
+export interface PropuestaCrearSiembraAgroBot {
+  tipo: 'CREAR_SIEMBRA';
+  estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'SIN_PERMISO';
+  sePuedeConfirmar: boolean;
+  titulo: string;
+  siembra: {
+    lote: { id: number; nombre: string; campoNombre: string } | null;
+    cultivo: { id: number; nombre: string } | null;
+    fechaSiembra: string | null;
+  };
+  faltantes: string[];
+  lectura: { organizacionNombre: string; lotesDisponibles: number };
+}
+
 export interface PropuestaCompletarTareaAgroBot {
   tipo: 'COMPLETAR_TAREA';
   estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'NO_ENCONTRADA' | 'REQUIERE_PRECISION' | 'SIN_PERMISO';
@@ -88,6 +115,8 @@ export interface PropuestaCompletarTareaAgroBot {
 export type PropuestaAccionAgroBot =
   | PropuestaCrearCampoAgroBot
   | PropuestaCrearTrabajoAgroBot
+  | PropuestaCrearMaquinariaAgroBot
+  | PropuestaCrearSiembraAgroBot
   | PropuestaCompletarTareaAgroBot;
 
 export interface CampoCreadoDesdeAgroBot {
@@ -110,6 +139,18 @@ export interface TrabajoCreadoDesdeAgroBot {
 export interface TareaCompletadaDesdeAgroBot {
   id: number;
   tarea: { id: number; titulo: string; origen: 'TAREA_RURAL' | 'TRABAJO_EQUIPO' };
+  referencia: AgroBotReferencia;
+}
+
+export interface MaquinariaCreadaDesdeAgroBot {
+  id: number;
+  maquinaria: { id: number; nombre: string; tipo: string };
+  referencia: AgroBotReferencia;
+}
+
+export interface SiembraCreadaDesdeAgroBot {
+  id: number;
+  siembra: { id: number; fechaSiembra: string; tipoCultivo: { nombre: string } };
   referencia: AgroBotReferencia;
 }
 
@@ -140,6 +181,23 @@ export const aiApi = {
   }) =>
     api
       .post<TrabajoCreadoDesdeAgroBot>('/ai/acciones/crear-trabajo', input)
+      .then((r) => r.data),
+
+  confirmarCreacionMaquinaria: (input: {
+    nombre: string;
+    tipo: NonNullable<PropuestaCrearMaquinariaAgroBot['maquinaria']['tipo']>;
+  }) =>
+    api
+      .post<MaquinariaCreadaDesdeAgroBot>('/ai/acciones/crear-maquinaria', input)
+      .then((r) => r.data),
+
+  confirmarCreacionSiembra: (input: {
+    loteId: number;
+    tipoCultivoId: number;
+    fechaSiembra: string;
+  }) =>
+    api
+      .post<SiembraCreadaDesdeAgroBot>('/ai/acciones/crear-siembra', input)
       .then((r) => r.data),
 
   confirmarCompletarTarea: (input: {

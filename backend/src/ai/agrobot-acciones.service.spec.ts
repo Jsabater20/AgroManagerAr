@@ -213,6 +213,130 @@ describe('AgroBotAccionesService', () => {
     );
   });
 
+  it('guía la creación de un campo a partir de respuestas sucesivas', async () => {
+    const prisma = {
+      organizacion: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          id: 7,
+          nombre: 'Establecimiento Demo',
+          plan: 'PRO',
+          actividadPrincipal: 'MIXTA',
+          actividadesProductivas: [],
+        }),
+      },
+      campo: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const memberAccess = {
+      requireModule: jest.fn().mockResolvedValue({ esOwner: true }),
+    };
+    const service = new AgroBotAccionesService(prisma as any, memberAccess as any, {} as any, {} as any, {} as any);
+
+    const primerPaso = await service.prepararCreacionCampo(11, 7, 'Quiero crear un campo');
+    expect(primerPaso?.estado).toBe('FALTAN_DATOS');
+    expect(service.textoDePropuesta(primerPaso!)).toContain('¿qué nombre querés darle al campo?');
+
+    const propuesta = await service.prepararCreacionCampo(
+      11,
+      7,
+      'Mixta',
+      [
+        { role: 'user', text: 'Quiero crear un campo' },
+        { role: 'model', text: '¿Qué nombre querés darle al campo?' },
+        { role: 'user', text: 'Los Patitos' },
+        { role: 'model', text: '¿Cuántas hectáreas tiene?' },
+        { role: 'user', text: '200 ha' },
+        { role: 'model', text: 'Indicame los lotes.' },
+        { role: 'user', text: 'Norte 120 ha y Sur 80 ha' },
+      ],
+    );
+
+    expect(propuesta).toMatchObject({
+      estado: 'LISTA_PARA_CONFIRMAR',
+      sePuedeConfirmar: true,
+      campo: {
+        nombre: 'Los Patitos',
+        hectareas: 200,
+        actividadesDetectadas: ['AGRICULTURA', 'GANADERIA'],
+      },
+      lotes: [
+        { nombre: 'Norte', hectareas: 120 },
+        { nombre: 'Sur', hectareas: 80 },
+      ],
+    });
+  });
+
+  it('prepara el registro de una maquinaria o vehículo para confirmar', async () => {
+    const prisma = {
+      organizacion: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ nombre: 'Establecimiento Demo' }),
+      },
+    };
+    const memberAccess = { requireModule: jest.fn().mockResolvedValue({ esOwner: true }) };
+    const service = new AgroBotAccionesService(
+      prisma as any,
+      memberAccess as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const propuesta = await service.prepararCreacionMaquinaria(
+      11,
+      7,
+      'Registrá una camioneta Toyota Hilux',
+    );
+
+    expect(propuesta).toMatchObject({
+      estado: 'LISTA_PARA_CONFIRMAR',
+      sePuedeConfirmar: true,
+      maquinaria: { nombre: 'Toyota Hilux', tipo: 'CAMIONETA' },
+    });
+  });
+
+  it('prepara una siembra usando solo lotes y cultivos existentes', async () => {
+    const prisma = {
+      organizacion: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ nombre: 'Establecimiento Demo' }),
+      },
+      tipoCultivo: {
+        findMany: jest.fn().mockResolvedValue([{ id: 3, nombre: 'Maíz' }]),
+      },
+      lote: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 8, nombre: 'Norte', campo: { nombre: 'Las Meninas' } },
+        ]),
+      },
+    };
+    const memberAccess = { requireModule: jest.fn().mockResolvedValue({ esOwner: true }) };
+    const service = new AgroBotAccionesService(
+      prisma as any,
+      memberAccess as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const propuesta = await service.prepararCreacionSiembra(
+      11,
+      7,
+      'Registrá una siembra de maíz en el lote Norte hoy',
+    );
+
+    expect(propuesta).toMatchObject({
+      estado: 'LISTA_PARA_CONFIRMAR',
+      sePuedeConfirmar: true,
+      siembra: {
+        lote: { id: 8, nombre: 'Norte', campoNombre: 'Las Meninas' },
+        cultivo: { id: 3, nombre: 'Maíz' },
+      },
+    });
+    expect(propuesta?.siembra.fechaSiembra).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it('prepara el cierre de una tarea pendiente identificada por su nombre', async () => {
     const prisma = {
       organizacion: {

@@ -4,10 +4,11 @@ import { ChatMessageDto } from './dto/ai.dto';
 import { AgroBotConsultasService, AgroBotRespuesta } from './agrobot-consultas.service';
 import { AlertasService } from '../alertas/alertas.service';
 import { AgroBotAccionesService } from './agrobot-acciones.service';
-import { ConfirmarCrearCampoAgroBotDto } from './dto/confirmar-crear-campo.dto';
 import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
 import { ConfirmarCompletarTareaAgroBotDto } from './dto/confirmar-completar-tarea.dto';
 import { AgroBotLimitesService } from './agrobot-limites.service';
+import { ConfirmarCrearMaquinariaAgroBotDto } from './dto/confirmar-crear-maquinaria.dto';
+import { ConfirmarCrearSiembraAgroBotDto } from './dto/confirmar-crear-siembra.dto';
 
 const MODEL_NAME = 'gemini-2.5-flash-lite';
 
@@ -54,16 +55,48 @@ export class AiService {
       };
     }
 
-    const propuesta = await this.acciones.prepararCreacionCampo(
+    if (this.esSolicitudDeCrearCampo(message)) {
+      return {
+        texto: 'La creación de campos y lotes se realiza desde la sección **Campos**, para que puedas revisar su ubicación y estructura con calma. Desde AgroBot podés registrar tareas, maquinarias y siembras sobre los campos ya existentes.',
+        basadaEnDatos: true,
+      };
+    }
+
+    const propuestaMaquinaria = await this.acciones.prepararCreacionMaquinaria(
       userId,
       organizacionId,
       message,
+      history,
     );
-    if (propuesta) {
+    if (propuestaMaquinaria) {
       return {
-        texto: this.acciones.textoDePropuesta(propuesta),
+        texto: propuestaMaquinaria.sePuedeConfirmar
+          ? 'Preparé la maquinaria o vehículo para que lo revises y confirmes.'
+          : !propuestaMaquinaria.maquinaria.tipo
+            ? '¿Qué tipo querés registrar? Por ejemplo: tractor, camioneta, sembradora o pulverizadora.'
+            : 'Perfecto. ¿Con qué nombre querés identificarla? Por ejemplo: Toyota Hilux o Tractor John Deere 6120.',
         basadaEnDatos: true,
-        accion: propuesta,
+        accion: propuestaMaquinaria,
+      };
+    }
+
+    const propuestaSiembra = await this.acciones.prepararCreacionSiembra(
+      userId,
+      organizacionId,
+      message,
+      history,
+    );
+    if (propuestaSiembra) {
+      return {
+        texto: propuestaSiembra.sePuedeConfirmar
+          ? 'Preparé la siembra para que la revises y confirmes.'
+          : !propuestaSiembra.siembra.cultivo
+            ? '¿Qué cultivo vas a sembrar?'
+            : !propuestaSiembra.siembra.lote
+              ? '¿En cuál de tus lotes existentes se realizará la siembra?'
+              : '¿Qué fecha de siembra querés registrar? Podés indicar hoy, mañana o una fecha concreta.',
+        basadaEnDatos: true,
+        accion: propuestaSiembra,
       };
     }
 
@@ -152,14 +185,6 @@ export class AiService {
     }));
   }
 
-  async confirmarCreacionCampo(
-    userId: number,
-    organizacionId: number,
-    dto: ConfirmarCrearCampoAgroBotDto,
-  ) {
-    return this.acciones.confirmarCreacionCampo(userId, organizacionId, dto);
-  }
-
   async confirmarCreacionTrabajo(
     userId: number,
     organizacionId: number,
@@ -174,5 +199,30 @@ export class AiService {
     dto: ConfirmarCompletarTareaAgroBotDto,
   ) {
     return this.acciones.confirmarCompletarTarea(userId, organizacionId, dto);
+  }
+
+  async confirmarCreacionMaquinaria(
+    userId: number,
+    organizacionId: number,
+    dto: ConfirmarCrearMaquinariaAgroBotDto,
+  ) {
+    return this.acciones.confirmarCreacionMaquinaria(userId, organizacionId, dto);
+  }
+
+  async confirmarCreacionSiembra(
+    userId: number,
+    organizacionId: number,
+    dto: ConfirmarCrearSiembraAgroBotDto,
+  ) {
+    return this.acciones.confirmarCreacionSiembra(userId, organizacionId, dto);
+  }
+
+  private esSolicitudDeCrearCampo(mensaje: string) {
+    const consulta = mensaje
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+    return /\b(crea|crear|agrega|agregar|registra|registrar|alta|nuevo)\w*/.test(consulta)
+      && /\bcampo\b/.test(consulta);
   }
 }

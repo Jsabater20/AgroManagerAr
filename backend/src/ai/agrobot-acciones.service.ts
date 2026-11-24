@@ -8,6 +8,12 @@ import { EstadoActividad, EstadoTarea, Prioridad, TipoRecursoActividad } from '@
 import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
 import { ConfirmarCompletarTareaAgroBotDto } from './dto/confirmar-completar-tarea.dto';
 import { TareasService } from '../tareas/tareas.service';
+import type { ChatMessageDto } from './dto/ai.dto';
+import { MaquinariasService } from '../maquinarias/maquinarias.service';
+import { SiembrasService } from '../siembras/siembras.service';
+import { TipoMaquinaria } from '../maquinarias/dto/maquinarias.dto';
+import { ConfirmarCrearMaquinariaAgroBotDto } from './dto/confirmar-crear-maquinaria.dto';
+import { ConfirmarCrearSiembraAgroBotDto } from './dto/confirmar-crear-siembra.dto';
 
 export type CampoContextoAgroBot = {
   id: number;
@@ -76,6 +82,33 @@ export type PropuestaCrearTrabajoAgroBot = {
   lectura: { organizacionNombre: string; miembrosDisponibles: number };
 };
 
+export type PropuestaCrearMaquinariaAgroBot = {
+  tipo: 'CREAR_MAQUINARIA';
+  estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'SIN_PERMISO';
+  sePuedeConfirmar: boolean;
+  titulo: string;
+  maquinaria: {
+    nombre: string | null;
+    tipo: TipoMaquinaria | null;
+  };
+  faltantes: string[];
+  lectura: { organizacionNombre: string };
+};
+
+export type PropuestaCrearSiembraAgroBot = {
+  tipo: 'CREAR_SIEMBRA';
+  estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'SIN_PERMISO';
+  sePuedeConfirmar: boolean;
+  titulo: string;
+  siembra: {
+    lote: { id: number; nombre: string; campoNombre: string } | null;
+    cultivo: { id: number; nombre: string } | null;
+    fechaSiembra: string | null;
+  };
+  faltantes: string[];
+  lectura: { organizacionNombre: string; lotesDisponibles: number };
+};
+
 export type PropuestaCompletarTareaAgroBot = {
   tipo: 'COMPLETAR_TAREA';
   estado: 'LISTA_PARA_CONFIRMAR' | 'FALTAN_DATOS' | 'NO_ENCONTRADA' | 'REQUIERE_PRECISION' | 'SIN_PERMISO';
@@ -95,6 +128,8 @@ export type PropuestaCompletarTareaAgroBot = {
 export type PropuestaAccionAgroBot =
   | PropuestaCrearCampoAgroBot
   | PropuestaCrearTrabajoAgroBot
+  | PropuestaCrearMaquinariaAgroBot
+  | PropuestaCrearSiembraAgroBot
   | PropuestaCompletarTareaAgroBot;
 
 const PALABRAS_CANTIDAD: Record<string, number> = {
@@ -124,6 +159,8 @@ export class AgroBotAccionesService {
     private readonly camposService: CamposService,
     private readonly actividadesService: ActividadesService,
     private readonly tareasService: TareasService,
+    private readonly maquinariasService: MaquinariasService,
+    private readonly siembrasService: SiembrasService,
   ) {}
 
   async obtenerContextoCampos(
@@ -207,14 +244,17 @@ export class AgroBotAccionesService {
     usuarioId: number,
     organizacionId: number,
     mensaje: string,
+    historial: ChatMessageDto[] = [],
   ): Promise<PropuestaCrearCampoAgroBot | null> {
-    if (!this.esPedidoDeCrearCampo(mensaje)) {
+    const solicitud = this.obtenerSolicitudCampo(historial, mensaje);
+    if (!solicitud) {
       return null;
     }
 
     const contexto = await this.obtenerContextoCampos(usuarioId, organizacionId);
-    const campo = this.extraerCampo(mensaje);
-    const lotes = this.extraerLotes(mensaje);
+    const { campo, indiceHectareas } = this.extraerCampoDeSolicitud(solicitud);
+    const lotes = this.extraerLotesDeSolicitud(solicitud, indiceHectareas);
+    const mensajeCompleto = solicitud.join('\n');
     const faltantes: string[] = [];
     const advertencias: string[] = [];
 
@@ -226,7 +266,7 @@ export class AgroBotAccionesService {
         titulo: 'No tenes acceso para gestionar campos',
         campo: {
           ...campo,
-          actividadesDetectadas: this.extraerActividades(mensaje),
+          actividadesDetectadas: this.extraerActividades(mensajeCompleto),
         },
         lotes,
         faltantes: [],
@@ -248,7 +288,10 @@ export class AgroBotAccionesService {
       faltantes.push('las hectáreas totales del campo');
     }
 
-    const cantidadLotesSolicitada = this.extraerCantidadLotesSolicitada(mensaje);
+    const cantidadLotesSolicitada = this.extraerCantidadLotesSolicitada(mensajeCompleto);
+    if (!lotes.length) {
+      faltantes.push('al menos un lote con su nombre y hectáreas');
+    }
     if (cantidadLotesSolicitada && lotes.length < cantidadLotesSolicitada) {
       const restantes = cantidadLotesSolicitada - lotes.length;
       faltantes.push(
@@ -294,7 +337,10 @@ export class AgroBotAccionesService {
       }
     }
 
-    const actividadesDetectadas = this.extraerActividades(mensaje);
+    const actividadesDetectadas = this.extraerActividades(mensajeCompleto);
+    if (!actividadesDetectadas.length) {
+      faltantes.push('la actividad del campo: agricultura, ganadería o mixta');
+    }
     if (actividadesDetectadas.length) {
       advertencias.push(
         `Se reconoció actividad ${actividadesDetectadas.join(' y ').toLocaleLowerCase('es-AR')}. El campo se creará con sus datos básicos; la actividad productiva se manejará desde la configuración correspondiente.`,
@@ -432,6 +478,150 @@ export class AgroBotAccionesService {
       fechaInicio: dto.fechaInicio,
       prioridad: dto.prioridad,
     }, usuarioId, undefined, dto.idempotencyKey);
+  }
+
+  async prepararCreacionMaquinaria(
+    usuarioId: number,
+    organizacionId: number,
+    mensaje: string,
+    historial: ChatMessageDto[] = [],
+  ): Promise<PropuestaCrearMaquinariaAgroBot | null> {
+    const solicitud = this.obtenerSolicitudDesdeHistorial(
+      historial,
+      mensaje,
+      (texto) => this.esPedidoDeCrearMaquinaria(texto),
+    );
+    if (!solicitud) return null;
+    const mensajeCompleto = solicitud.join('\n');
+
+    const [acceso, organizacion] = await Promise.all([
+      this.memberAccessService
+        .requireModule(usuarioId, organizacionId, 'Maquinarias')
+        .catch(() => null),
+      this.prisma.organizacion.findUniqueOrThrow({
+        where: { id: organizacionId },
+        select: { nombre: true },
+      }),
+    ]);
+    const lectura = { organizacionNombre: organizacion.nombre };
+    if (!acceso) {
+      return {
+        tipo: 'CREAR_MAQUINARIA',
+        estado: 'SIN_PERMISO',
+        sePuedeConfirmar: false,
+        titulo: 'No tenés acceso para registrar maquinarias',
+        maquinaria: { nombre: null, tipo: null },
+        faltantes: [],
+        lectura,
+      };
+    }
+
+    const tipo = this.extraerTipoMaquinaria(mensajeCompleto);
+    const nombre = this.extraerNombreMaquinaria(mensajeCompleto, tipo);
+    const faltantes = [
+      ...(tipo ? [] : ['el tipo de maquinaria o vehículo']),
+      ...(nombre ? [] : ['el nombre para identificarla']),
+    ];
+
+    return {
+      tipo: 'CREAR_MAQUINARIA',
+      estado: faltantes.length ? 'FALTAN_DATOS' : 'LISTA_PARA_CONFIRMAR',
+      sePuedeConfirmar: !faltantes.length,
+      titulo: nombre ? `Registrar ${nombre}` : 'Registrar maquinaria o vehículo',
+      maquinaria: { nombre, tipo },
+      faltantes,
+      lectura,
+    };
+  }
+
+  async confirmarCreacionMaquinaria(
+    usuarioId: number,
+    organizacionId: number,
+    dto: ConfirmarCrearMaquinariaAgroBotDto,
+  ) {
+    return this.maquinariasService.create(usuarioId, organizacionId, dto);
+  }
+
+  async prepararCreacionSiembra(
+    usuarioId: number,
+    organizacionId: number,
+    mensaje: string,
+    historial: ChatMessageDto[] = [],
+  ): Promise<PropuestaCrearSiembraAgroBot | null> {
+    const solicitud = this.obtenerSolicitudDesdeHistorial(
+      historial,
+      mensaje,
+      (texto) => this.esPedidoDeCrearSiembra(texto),
+    );
+    if (!solicitud) return null;
+    const mensajeCompleto = solicitud.join('\n');
+
+    const [acceso, organizacion, cultivos] = await Promise.all([
+      this.memberAccessService
+        .requireModule(usuarioId, organizacionId, 'Siembras')
+        .catch(() => null),
+      this.prisma.organizacion.findUniqueOrThrow({
+        where: { id: organizacionId },
+        select: { nombre: true },
+      }),
+      this.prisma.tipoCultivo.findMany({
+        select: { id: true, nombre: true },
+        orderBy: { nombre: 'asc' },
+      }),
+    ]);
+
+    if (!acceso) {
+      return {
+        tipo: 'CREAR_SIEMBRA',
+        estado: 'SIN_PERMISO',
+        sePuedeConfirmar: false,
+        titulo: 'No tenés acceso para registrar siembras',
+        siembra: { lote: null, cultivo: null, fechaSiembra: null },
+        faltantes: [],
+        lectura: { organizacionNombre: organizacion.nombre, lotesDisponibles: 0 },
+      };
+    }
+
+    const lotes = await this.obtenerLotesParaSiembra(
+      organizacionId,
+      acceso.esOwner,
+      acceso.usuarioOrganizacionId,
+    );
+    const consulta = this.normalizar(mensajeCompleto);
+    const lote = lotes
+      .sort((a, b) => b.nombre.length - a.nombre.length)
+      .find((item) => consulta.includes(this.normalizar(item.nombre))) ?? null;
+    const cultivo = cultivos
+      .sort((a, b) => b.nombre.length - a.nombre.length)
+      .find((item) => consulta.includes(this.normalizar(item.nombre))) ?? null;
+    const fechaSiembra = this.extraerFechaTrabajo(consulta);
+    const faltantes = [
+      ...(lote ? [] : ['el lote existente donde se realizará']),
+      ...(cultivo ? [] : ['el cultivo a sembrar']),
+      ...(fechaSiembra ? [] : ['la fecha de siembra (por ejemplo, hoy, mañana o 25/11/2026)']),
+    ];
+
+    return {
+      tipo: 'CREAR_SIEMBRA',
+      estado: faltantes.length ? 'FALTAN_DATOS' : 'LISTA_PARA_CONFIRMAR',
+      sePuedeConfirmar: !faltantes.length,
+      titulo: cultivo && lote ? `Registrar siembra de ${cultivo.nombre}` : 'Registrar una siembra',
+      siembra: {
+        lote: lote ? { id: lote.id, nombre: lote.nombre, campoNombre: lote.campo.nombre } : null,
+        cultivo,
+        fechaSiembra,
+      },
+      faltantes,
+      lectura: { organizacionNombre: organizacion.nombre, lotesDisponibles: lotes.length },
+    };
+  }
+
+  async confirmarCreacionSiembra(
+    usuarioId: number,
+    organizacionId: number,
+    dto: ConfirmarCrearSiembraAgroBotDto,
+  ) {
+    return this.siembrasService.create(dto, usuarioId, organizacionId);
   }
 
   async prepararCompletarTarea(
@@ -634,6 +824,37 @@ export class AgroBotAccionesService {
       return 'No puedo preparar este alta porque no tenés habilitado el módulo Campos en este establecimiento.';
     }
 
+    if (!propuesta.campo.nombre) {
+      return [
+        'Para crear un campo voy a pedirte estos datos:',
+        '1. Nombre del campo.',
+        '2. Hectáreas totales.',
+        '3. Lotes: nombre y hectáreas de cada uno.',
+        '4. Actividad: agricultura, ganadería o mixta.',
+        '',
+        'Empecemos: ¿qué nombre querés darle al campo?',
+      ].join('\n');
+    }
+
+    if (!propuesta.campo.hectareas) {
+      return `Perfecto, anoté **${propuesta.campo.nombre}**. ¿Cuántas hectáreas tiene en total?`;
+    }
+
+    if (!propuesta.lotes.length || propuesta.lotes.some((lote) => !lote.nombre || !lote.hectareas)) {
+      return [
+        `Bien, el campo **${propuesta.campo.nombre}** tendrá **${propuesta.campo.hectareas} ha**.`,
+        'Ahora indicame los lotes con su nombre y hectáreas.',
+        'Por ejemplo: `Norte 120 ha y Sur 80 ha`.',
+      ].join('\n\n');
+    }
+
+    if (!propuesta.campo.actividadesDetectadas.length) {
+      return [
+        'Ya tengo el campo y sus lotes.',
+        'Por último, ¿qué actividad desarrolla: **agricultura**, **ganadería** o **mixta**?',
+      ].join('\n\n');
+    }
+
     const campo = propuesta.campo.nombre ?? 'sin nombre definido';
     const hectareas = propuesta.campo.hectareas
       ? `${propuesta.campo.hectareas} ha`
@@ -685,6 +906,177 @@ export class AgroBotAccionesService {
     const describeCampo = /\bcampo\b/.test(consulta)
       || (/\blotes?\b/.test(consulta) && /\b(?:ha|hectareas?)\b/.test(consulta));
     return solicitaAlta && describeCampo;
+  }
+
+  private esPedidoDeCrearMaquinaria(mensaje: string): boolean {
+    const consulta = this.normalizar(mensaje);
+    const solicitaAlta = /\b(crea|crear|agrega|agregar|registra|registrar|alta|nuevo)\w*/.test(consulta);
+    const mencionaEquipo = /\b(maquinaria|vehiculo|camioneta|pickup|tractor|sembradora|pulverizadora|cosechadora|mixer|acoplado|tolva|herramienta)\b/.test(consulta);
+    return solicitaAlta && mencionaEquipo;
+  }
+
+  private esPedidoDeCrearSiembra(mensaje: string): boolean {
+    const consulta = this.normalizar(mensaje);
+    return /\b(crea|crear|agrega|agregar|registra|registrar|carga|cargar)\w*/.test(consulta)
+      && /\b(siembra|sembrar|sembrado)\b/.test(consulta);
+  }
+
+  private extraerTipoMaquinaria(mensaje: string): TipoMaquinaria | null {
+    const consulta = this.normalizar(mensaje);
+    if (/\btractor\b/.test(consulta)) return TipoMaquinaria.TRACTOR;
+    if (/\bsembradora\b/.test(consulta)) return TipoMaquinaria.SEMBRADORA;
+    if (/\bpulverizadora\b/.test(consulta)) return TipoMaquinaria.PULVERIZADORA;
+    if (/\bcosechadora\b/.test(consulta)) return TipoMaquinaria.COSECHADORA;
+    if (/\b(camioneta|pickup|camion)\b/.test(consulta)) return TipoMaquinaria.CAMIONETA;
+    if (/\bmixer\b/.test(consulta)) return TipoMaquinaria.MIXER;
+    if (/\bacoplado\b/.test(consulta)) return TipoMaquinaria.ACOPLADO;
+    if (/\btolva\b/.test(consulta)) return TipoMaquinaria.TOLVA;
+    if (/\bherramienta\b/.test(consulta)) return TipoMaquinaria.HERRAMIENTA;
+    return null;
+  }
+
+  private extraerNombreMaquinaria(
+    mensaje: string,
+    tipo: TipoMaquinaria | null,
+  ): string | null {
+    const explicito = mensaje.match(/(?:llamada|llamado|nombre(?:\s+es|:))\s+(.+)/i)?.[1];
+    if (explicito) return this.limpiarNombre(explicito);
+    if (!tipo) return null;
+
+    const patronesPorTipo: Record<TipoMaquinaria, RegExp> = {
+      [TipoMaquinaria.TRACTOR]: /\btractor\s+(.+)/i,
+      [TipoMaquinaria.SEMBRADORA]: /\bsembradora\s+(.+)/i,
+      [TipoMaquinaria.PULVERIZADORA]: /\bpulverizadora\s+(.+)/i,
+      [TipoMaquinaria.COSECHADORA]: /\bcosechadora\s+(.+)/i,
+      [TipoMaquinaria.CAMIONETA]: /\b(?:camioneta|pickup|camion)\s+(.+)/i,
+      [TipoMaquinaria.MIXER]: /\bmixer\s+(.+)/i,
+      [TipoMaquinaria.ACOPLADO]: /\bacoplado\s+(.+)/i,
+      [TipoMaquinaria.TOLVA]: /\btolva\s+(.+)/i,
+      [TipoMaquinaria.HERRAMIENTA]: /\bherramienta\s+(.+)/i,
+      [TipoMaquinaria.OTRO]: /$^/,
+    };
+    const coincidencia = mensaje.match(patronesPorTipo[tipo])?.[1];
+    if (!coincidencia) return null;
+
+    return this.limpiarNombre(
+      coincidencia.replace(/\b(?:para|en|del|de la)\s+(?:la\s+)?(?:organizacion|empresa|estancia|campo)\b.*$/i, ''),
+    );
+  }
+
+  private async obtenerLotesParaSiembra(
+    organizacionId: number,
+    esOwner: boolean,
+    usuarioOrganizacionId?: number,
+  ) {
+    if (!esOwner && !usuarioOrganizacionId) return [];
+    return this.prisma.lote.findMany({
+      where: {
+        campo: {
+          organizacionId,
+          ...(esOwner
+            ? {}
+            : {
+                AsignacionCampo: {
+                  some: { usuarioOrganizacionId, activo: true },
+                },
+              }),
+        },
+      },
+      select: {
+        id: true,
+        nombre: true,
+        campo: { select: { nombre: true } },
+      },
+      orderBy: [{ campo: { nombre: 'asc' } }, { nombre: 'asc' }],
+    });
+  }
+
+  private obtenerSolicitudCampo(
+    historial: ChatMessageDto[],
+    mensaje: string,
+  ): string[] | null {
+    return this.obtenerSolicitudDesdeHistorial(
+      historial,
+      mensaje,
+      (texto) => this.esPedidoDeCrearCampo(texto),
+    );
+  }
+
+  private obtenerSolicitudDesdeHistorial(
+    historial: ChatMessageDto[],
+    mensaje: string,
+    esInicio: (texto: string) => boolean,
+  ): string[] | null {
+    const mensajesUsuario = [
+      ...historial.filter((item) => item.role === 'user').map((item) => item.text),
+      mensaje,
+    ];
+    let indiceInicio = -1;
+    for (let indice = mensajesUsuario.length - 1; indice >= 0; indice -= 1) {
+      if (esInicio(mensajesUsuario[indice])) {
+        indiceInicio = indice;
+        break;
+      }
+    }
+    if (indiceInicio < 0) return null;
+
+    return mensajesUsuario.slice(indiceInicio);
+  }
+
+  private extraerCampoDeSolicitud(mensajes: string[]) {
+    const campoInicial = this.extraerCampo(mensajes[0]);
+    let nombre = campoInicial.nombre;
+    let hectareas = campoInicial.hectareas;
+    let indiceNombre = nombre ? 0 : -1;
+    let indiceHectareas = hectareas ? 0 : -1;
+
+    for (let indice = 1; indice < mensajes.length; indice += 1) {
+      if (!nombre) {
+        const nombreDetectado = this.extraerNombreCampoRespuesta(mensajes[indice]);
+        if (nombreDetectado) {
+          nombre = nombreDetectado;
+          indiceNombre = indice;
+          continue;
+        }
+      }
+      if (!hectareas && indice > indiceNombre) {
+        const superficie = this.extraerHectareas(mensajes[indice]);
+        if (superficie) {
+          hectareas = superficie;
+          indiceHectareas = indice;
+        }
+      }
+    }
+
+    return {
+      campo: { nombre, hectareas },
+      indiceHectareas,
+    };
+  }
+
+  private extraerNombreCampoRespuesta(mensaje: string): string | null {
+    const explicito = mensaje.match(
+      /(?:se\s+llama|nombre(?:\s+del\s+campo)?\s*(?:es|:)?|campo\s+(?:llamado|llamada))\s+(.+)/i,
+    )?.[1];
+    if (explicito) return this.limpiarNombre(explicito);
+
+    const consulta = this.normalizar(mensaje);
+    if (
+      !consulta ||
+      /\b(?:ha|hectarea|lote|agricultur|ganader|mixto|mixta|sin\s+lotes)\b/.test(consulta) ||
+      /\d/.test(consulta)
+    ) {
+      return null;
+    }
+    return this.limpiarNombre(mensaje);
+  }
+
+  private extraerLotesDeSolicitud(
+    mensajes: string[],
+    indiceHectareas: number,
+  ): LotePropuestoAgroBot[] {
+    const inicio = indiceHectareas > 0 ? indiceHectareas + 1 : 0;
+    return mensajes.slice(inicio).flatMap((mensaje) => this.extraerLotes(mensaje));
   }
 
   private esPedidoDeCompletarTarea(mensaje: string): boolean {
@@ -771,7 +1163,10 @@ export class AgroBotAccionesService {
       /\b(?:con\s+)?(?:(?:\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+)?lotes?\s*(?::|=)?\s*(.+?)(?=$|[.;]|\s*,?\s*(?:que\s+sea|actividad|mixto|mixta|para)\b)/i,
     );
     if (!coincidencia?.[1]) {
-      return [];
+      return mensaje
+        .split(/\s*(?:,|\by\b|\be\b)\s*/i)
+        .map((detalle) => this.extraerLote(detalle))
+        .filter((lote) => lote.nombre && lote.hectareas);
     }
 
     return coincidencia[1]
@@ -807,8 +1202,10 @@ export class AgroBotAccionesService {
     const actividades: string[] = [];
     if (/\bagricultur/.test(consulta)) actividades.push('AGRICULTURA');
     if (/\bganader/.test(consulta)) actividades.push('GANADERIA');
-    if (/\bmixto|mixta\b/.test(consulta) && !actividades.length) actividades.push('MIXTA');
-    return actividades;
+    if (/\bmixto|mixta\b/.test(consulta)) {
+      actividades.push('AGRICULTURA', 'GANADERIA');
+    }
+    return [...new Set(actividades)];
   }
 
   private extraerHectareas(texto: string): number | null {

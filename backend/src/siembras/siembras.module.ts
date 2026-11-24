@@ -8,5 +8,6 @@ import { OrganizationsModule } from '../organizations/organizations.module';
   imports: [PlanModule, OrganizationsModule],
   providers: [SiembrasService],
   controllers: [SiembrasController],
+  exports: [SiembrasService],
 })
 export class SiembrasModule {}

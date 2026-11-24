@@ -5,9 +5,10 @@ import { OrganizationGuard } from '../organizations/organization.guard';
 import { AiService } from './ai.service';
 import { PlanService } from '../plan/plan.service';
 import { AiChatDto } from './dto/ai.dto';
-import { ConfirmarCrearCampoAgroBotDto } from './dto/confirmar-crear-campo.dto';
 import { ConfirmarCrearTrabajoAgroBotDto } from './dto/confirmar-crear-trabajo.dto';
 import { ConfirmarCompletarTareaAgroBotDto } from './dto/confirmar-completar-tarea.dto';
+import { ConfirmarCrearMaquinariaAgroBotDto } from './dto/confirmar-crear-maquinaria.dto';
+import { ConfirmarCrearSiembraAgroBotDto } from './dto/confirmar-crear-siembra.dto';
 import { Auditar } from '../audit/decorators/audit.decorator';
 import type { Request } from 'express';
 
@@ -42,28 +43,6 @@ export class AiController {
     };
   }
 
-  @Post('acciones/crear-campo')
-  @Auditar('crear_campo_desde_agrobot', 'Campo')
-  async confirmarCreacionCampo(
-    @Req() req: AuthRequest,
-    @Body() dto: ConfirmarCrearCampoAgroBotDto,
-  ) {
-    await this.planService.checkProAccess(req.organizacionId, 'AgroBot IA');
-    const campo = await this.aiService.confirmarCreacionCampo(
-      req.user.id,
-      req.organizacionId,
-      dto,
-    );
-    return {
-      id: campo.id,
-      campo,
-      referencia: {
-        etiqueta: 'Ver campos',
-        href: `/org/${req.organizacionId}/campos`,
-      },
-    };
-  }
-
   @Post('acciones/crear-trabajo')
   async confirmarCreacionTrabajo(
     @Req() req: AuthRequest,
@@ -79,6 +58,45 @@ export class AiController {
       id: trabajo.id,
       trabajo,
       referencia: { etiqueta: 'Ver trabajos', href: `/org/${req.organizacionId}/tareas` },
+    };
+  }
+
+  @Post('acciones/crear-maquinaria')
+  @Auditar('crear_maquinaria_desde_agrobot', 'Maquinaria')
+  async confirmarCreacionMaquinaria(
+    @Req() req: AuthRequest,
+    @Body() dto: ConfirmarCrearMaquinariaAgroBotDto,
+  ) {
+    await this.planService.checkProAccess(req.organizacionId, 'AgroBot IA');
+    await this.planService.checkMaquinariasLimit(req.organizacionId);
+    const maquinaria = await this.aiService.confirmarCreacionMaquinaria(
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
+    return {
+      id: maquinaria.id,
+      maquinaria,
+      referencia: { etiqueta: 'Ver maquinarias', href: `/org/${req.organizacionId}/maquinarias` },
+    };
+  }
+
+  @Post('acciones/crear-siembra')
+  @Auditar('crear_siembra_desde_agrobot', 'Siembra')
+  async confirmarCreacionSiembra(
+    @Req() req: AuthRequest,
+    @Body() dto: ConfirmarCrearSiembraAgroBotDto,
+  ) {
+    await this.planService.checkProAccess(req.organizacionId, 'AgroBot IA');
+    const siembra = await this.aiService.confirmarCreacionSiembra(
+      req.user.id,
+      req.organizacionId,
+      dto,
+    );
+    return {
+      id: siembra.id,
+      siembra,
+      referencia: { etiqueta: 'Ver siembras', href: `/org/${req.organizacionId}/siembras` },
     };
   }
 
