@@ -51,7 +51,11 @@ const descargarCsv = (solicitudes: SolicitudAgroManagerDigital[]) => {
     ['ID', (s) => s.id], ['Fecha de recepción', (s) => fechaHora(s.createdAt)], ['Estado', (s) => estadoLabel[s.estado]],
     ['Nombre', (s) => s.nombre], ['Establecimiento', (s) => s.establecimiento], ['Email', (s) => s.email],
     ['Teléfono', (s) => s.telefono], ['Provincia', (s) => s.provincia], ['Localidad', (s) => s.localidad],
-    ['Actividad', (s) => s.actividad], ['Servicio solicitado', (s) => s.servicio], ['Tiene sitio web', (s) => s.tieneSitioWeb ? 'Sí' : 'No'],
+    ['Tipo de proyecto', (s) => s.tipoProyecto], ['Actividad', (s) => s.actividad], ['Servicio solicitado', (s) => s.servicio], ['Tiene sitio web', (s) => s.tieneSitioWeb ? 'Sí' : 'No'],
+    ['Información que quiere publicar', (s) => s.informacionPublicar.join(', ')], ['Necesita catálogo', (s) => s.requiereCatalogo ? 'Sí' : 'No'],
+    ['Administra contenido', (s) => s.administraContenido ? 'Sí' : 'No'], ['Tiene logo/identidad', (s) => s.tieneIdentidadVisual ? 'Sí' : 'No'],
+    ['Tiene dominio', (s) => s.tieneDominioPropio ? 'Sí' : 'No'], ['Necesita mantenimiento', (s) => s.requiereMantenimiento ? 'Sí' : 'No'],
+    ['Página de referencia', (s) => s.referenciaUrl], ['Funciones personalizadas', (s) => s.funcionalidadesPersonalizadas],
     ['Descripción', (s) => s.descripcion], ['Presupuesto estimado', (s) => s.presupuesto], ['Fecha deseada', (s) => s.fechaInicio],
     ['Comentarios', (s) => s.comentarios], ['Presupuesto enviado', (s) => s.presupuestoEnviado],
     ['Notas internas', (s) => s.observacionesInternas],
@@ -213,7 +217,7 @@ export default function AdminDigitalPage() {
                   <tr key={solicitud.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-800/70">
                     <td className="px-5 py-4"><p className="font-semibold text-slate-900 dark:text-white">{solicitud.establecimiento}</p><p className="mt-1 text-xs text-slate-500">{solicitud.nombre} · {solicitud.localidad}, {solicitud.provincia}</p></td>
                     <td className="px-5 py-4"><a className="text-emerald-700 hover:underline dark:text-emerald-300" href={`mailto:${solicitud.email}`}>{solicitud.email}</a><p className="mt-1 text-xs text-slate-500">{solicitud.telefono}</p></td>
-                    <td className="px-5 py-4"><p className="font-medium text-slate-800 dark:text-slate-200">{solicitud.servicio}</p><p className="mt-1 text-xs text-slate-500">{solicitud.actividad}</p></td>
+                    <td className="px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">{solicitud.tipoProyecto === 'ESTABLECIMIENTO' ? 'Establecimiento' : 'Actividad comercial/profesional'}</p><p className="mt-1 font-medium text-slate-800 dark:text-slate-200">{solicitud.servicio}</p><p className="mt-1 text-xs text-slate-500">{solicitud.actividad}</p></td>
                     <td className="px-5 py-4"><span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${estadoColor[solicitud.estado]}`}>{estadoLabel[solicitud.estado]}</span></td>
                     <td className="px-5 py-4 text-xs text-slate-500">{fechaHora(solicitud.createdAt)}</td>
                     <td className="px-5 py-4 text-right"><button type="button" onClick={() => abrirSolicitud(solicitud)} className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Ver consulta</button></td>
@@ -243,12 +247,21 @@ export default function AdminDigitalPage() {
               <Dato etiqueta="Teléfono" valor={seleccionada.telefono} />
               <Dato etiqueta="Ubicación" valor={`${seleccionada.localidad}, ${seleccionada.provincia}`} />
               <Dato etiqueta="Actividad" valor={seleccionada.actividad} />
+              <Dato etiqueta="Tipo de proyecto" valor={seleccionada.tipoProyecto === 'ESTABLECIMIENTO' ? 'Página para un establecimiento' : 'Web para actividad profesional o comercial'} />
               <Dato etiqueta="Servicio solicitado" valor={seleccionada.servicio} />
               <Dato etiqueta="Sitio web actual" valor={seleccionada.tieneSitioWeb ? 'Sí' : 'No'} />
+              <Dato etiqueta="Información a publicar" valor={seleccionada.informacionPublicar.join(', ') || 'No especificada'} />
+              <Dato etiqueta="Catálogo" valor={seleccionada.requiereCatalogo ? 'Sí' : 'No'} />
+              <Dato etiqueta="Administrar contenido" valor={seleccionada.administraContenido ? 'Sí' : 'No'} />
+              <Dato etiqueta="Logo e identidad visual" valor={seleccionada.tieneIdentidadVisual ? 'Sí' : 'No'} />
+              <Dato etiqueta="Dominio propio" valor={seleccionada.tieneDominioPropio ? 'Sí' : 'No'} />
+              <Dato etiqueta="Mantenimiento o soporte" valor={seleccionada.requiereMantenimiento ? 'Sí' : 'No'} />
+              <Dato etiqueta="Página de referencia" valor={seleccionada.referenciaUrl || 'No informada'} />
               <Dato etiqueta="Presupuesto estimado" valor={seleccionada.presupuesto || 'No informado'} />
               <Dato etiqueta="Fecha deseada" valor={seleccionada.fechaInicio || 'No informada'} />
             </div>
             <div className="mt-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Qué necesita</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800 dark:text-slate-200">{seleccionada.descripcion}</p>{seleccionada.comentarios && <p className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">{seleccionada.comentarios}</p>}</div>
+            {seleccionada.funcionalidadesPersonalizadas && <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900/60 dark:bg-indigo-950/40"><p className="text-xs font-bold uppercase tracking-wide text-indigo-800 dark:text-indigo-200">Funciones personalizadas solicitadas</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800 dark:text-slate-200">{seleccionada.funcionalidadesPersonalizadas}</p></div>}
 
             <label className="mt-5 block text-sm font-semibold text-slate-800 dark:text-slate-100">Avance de la consulta
               <select value={seleccionada.estado} onChange={(event) => actualizarMutation.mutate({ id: seleccionada.id, datos: { estado: event.target.value as EstadoSolicitudDigital } })} disabled={actualizarMutation.isPending} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-900">

@@ -24,3 +24,24 @@ if (!html.includes('rel="canonical"')) {
 
 await mkdir(dirname(routeIndex), { recursive: true });
 await writeFile(routeIndex, html, 'utf8');
+
+const demos = [
+  ['agricola', 'Establecimiento agrícola'],
+  ['cabana', 'Cabaña ganadera'],
+  ['contratista', 'Contratista rural'],
+  ['profesional', 'Profesional agropecuario'],
+  ['comercio', 'Comercio de insumos'],
+];
+
+for (const [slug, nombre] of demos) {
+  const url = `${canonical}/demos/${slug}`;
+  const titleDemo = `${nombre} | Demo ficticia · AgroManager Digital`;
+  const descriptionDemo = `Explorá el ejemplo ficticio e interactivo de ${nombre.toLowerCase()} creado por AgroManager Digital.`;
+  let htmlDemo = await readFile(builtIndex, 'utf8');
+  htmlDemo = htmlDemo.replace(/<title>[\s\S]*?<\/title>/, `<title>${titleDemo}</title>`);
+  htmlDemo = htmlDemo.replace(/<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${descriptionDemo}" />`);
+  htmlDemo = htmlDemo.replace('</head>', `    <meta name="robots" content="noindex,follow" />\n    <link rel="canonical" href="${url}" />\n  </head>`);
+  const demoIndex = resolve(root, `dist/soluciones-digitales/demos/${slug}/index.html`);
+  await mkdir(dirname(demoIndex), { recursive: true });
+  await writeFile(demoIndex, htmlDemo, 'utf8');
+}

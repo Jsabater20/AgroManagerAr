@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 import { TipoEventoAgroManagerDigital } from '@prisma/client';
 
 export class CrearSolicitudDigitalDto {
@@ -10,8 +10,17 @@ export class CrearSolicitudDigitalDto {
   @IsString() @IsNotEmpty() @MaxLength(100) localidad!: string;
   @IsString() @IsNotEmpty() @MaxLength(100) actividad!: string;
   @IsString() @IsNotEmpty() @MaxLength(80) servicio!: string;
+  @IsOptional() @IsIn(['ESTABLECIMIENTO', 'PROFESIONAL_COMERCIAL']) tipoProyecto?: string;
   @IsBoolean() tieneSitioWeb!: boolean;
   @IsString() @IsNotEmpty() @MaxLength(3000) descripcion!: string;
+  @IsOptional() @IsArray() @ArrayMaxSize(12) @IsString({ each: true }) @MaxLength(80, { each: true }) informacionPublicar?: string[];
+  @IsOptional() @IsBoolean() requiereCatalogo?: boolean;
+  @IsOptional() @IsBoolean() administraContenido?: boolean;
+  @IsOptional() @IsBoolean() tieneIdentidadVisual?: boolean;
+  @IsOptional() @IsBoolean() tieneDominioPropio?: boolean;
+  @IsOptional() @IsBoolean() requiereMantenimiento?: boolean;
+  @IsOptional() @IsUrl({ require_protocol: true }) @MaxLength(500) referenciaUrl?: string;
+  @IsOptional() @IsString() @MaxLength(3000) funcionalidadesPersonalizadas?: string;
   @IsOptional() @IsString() @MaxLength(120) presupuesto?: string;
   @IsOptional() @IsString() @MaxLength(100) fechaInicio?: string;
   @IsOptional() @IsString() @MaxLength(2000) comentarios?: string;

@@ -61,6 +61,7 @@ const HOME_EXPLORER_LINKS = [
   { href: '/precios', label: 'Planes', detail: 'Compará Free, Pro y Empresa', icon: Zap },
   { href: '/demo', label: 'Demo personal', detail: 'Recorré la plataforma', icon: CheckCircle2 },
   { href: '/demo/empresa', label: 'Demo Empresa', detail: 'Conocé la gestión multi-campo', icon: Building2 },
+  { href: '/soluciones-digitales#presupuesto', label: 'Cotizá software', detail: 'Una solución para tu actividad', icon: Bot },
 ];
 
 const FEATURES = [
@@ -453,7 +454,7 @@ export default function HomePage() {
 
       {/* ── FEATURES ─────────────────────────────────────────────── */}
       <nav aria-label="Explorá AgroManager AR" className="relative z-10 -mt-7 px-4">
-        <div className="mx-auto grid max-w-5xl gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto grid max-w-5xl gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-5">
           {HOME_EXPLORER_LINKS.map(({ href, label, detail, icon: Icon }) => (
             <Link key={href} to={href} className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white"><Icon size={18} /></span>
@@ -500,6 +501,17 @@ export default function HomePage() {
             <Link to="/demo/empresa" className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white transition hover:bg-emerald-800"><Building2 size={18} />Ver Demo Empresa</Link>
             <Link to="/precios#empresa" className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 py-3 font-bold text-slate-800 transition hover:bg-slate-50">Ver plan Empresa <ArrowRight size={17} /></Link>
           </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-12 sm:py-16">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-7 text-white shadow-lg sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">AgroManager Digital</p>
+            <h2 className="mt-2 text-2xl font-black sm:text-3xl">¿Necesitás una página o un software pensado para tu actividad?</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">Desarrollamos páginas web y soluciones a medida para productores, empresas y profesionales del agro. Contanos tu idea y te preparamos una cotización según lo que necesitás.</p>
+          </div>
+          <Link to="/soluciones-digitales#presupuesto" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white transition hover:bg-emerald-400">Pedir cotización <ArrowRight size={17} /></Link>
         </div>
       </section>
 

@@ -81,6 +81,7 @@ import AlertasPage from './pages/alertas/AlertasPage';
 import CentroAtencionPage from './pages/atencion/CentroAtencionPage';
 import NovedadesPage from './pages/novedades/NovedadesPage';
 import SolucionesDigitalesPage from './pages/soluciones-digitales/SolucionesDigitalesPage';
+import DigitalDemoPage from './pages/soluciones-digitales/DigitalDemoPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -147,6 +148,7 @@ export default function App() {
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
           <Route path="/soluciones-digitales" element={<SolucionesDigitalesPage />} />
+          <Route path="/soluciones-digitales/demos/:tipo" element={<DigitalDemoPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/demo" element={<DemoPersonalEntryPage />} />
           <Route path="/demo/empresa" element={<DemoEmpresaEntryPage />} />

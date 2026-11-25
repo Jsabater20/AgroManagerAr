@@ -1499,8 +1499,17 @@ model SolicitudAgroManagerDigital {
   localidad             String
   actividad             String
   servicio              String
+  tipoProyecto          String                         @default("ESTABLECIMIENTO")
   tieneSitioWeb         Boolean
   descripcion           String                         @db.Text
+  informacionPublicar   String[]                       @default([])
+  requiereCatalogo      Boolean                        @default(false)
+  administraContenido   Boolean                        @default(false)
+  tieneIdentidadVisual  Boolean                        @default(false)
+  tieneDominioPropio    Boolean                        @default(false)
+  requiereMantenimiento Boolean                        @default(false)
+  referenciaUrl         String?
+  funcionalidadesPersonalizadas String?                 @db.Text
   presupuesto           String?
   fechaInicio           String?
   comentarios           String?                        @db.Text

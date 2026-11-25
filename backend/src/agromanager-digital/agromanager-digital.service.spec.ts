@@ -72,6 +72,34 @@ describe('AgroManagerDigitalService', () => {
     expect(mailer.enviarCorreo.mock.calls[0][0].html).toContain('Ana &lt;Productora&gt;');
   });
 
+  it('guarda preferencias de identidad, contenido y funciones a medida', async () => {
+    await service.crear({
+      ...solicitudDto,
+      tipoProyecto: 'PROFESIONAL_COMERCIAL',
+      informacionPublicar: ['Trayectoria', 'Servicios'],
+      requiereCatalogo: true,
+      administraContenido: true,
+      tieneIdentidadVisual: true,
+      tieneDominioPropio: false,
+      requiereMantenimiento: true,
+      referenciaUrl: 'https://referencia.example.com',
+      funcionalidadesPersonalizadas: 'Panel para administrar el catálogo',
+    } as any);
+
+    expect(prisma.solicitudAgroManagerDigital.create.mock.calls[0][0].data).toMatchObject({
+      tipoProyecto: 'PROFESIONAL_COMERCIAL',
+      informacionPublicar: ['Trayectoria', 'Servicios'],
+      requiereCatalogo: true,
+      administraContenido: true,
+      tieneIdentidadVisual: true,
+      tieneDominioPropio: false,
+      requiereMantenimiento: true,
+      referenciaUrl: 'https://referencia.example.com',
+      funcionalidadesPersonalizadas: 'Panel para administrar el catálogo',
+    });
+    expect(mailer.enviarCorreo.mock.calls[0][0].html).toContain('Panel para administrar el catálogo');
+  });
+
   it('mantiene la solicitud aunque fallen ambos correos', async () => {
     mailer.enviarCorreo.mockRejectedValue(new Error('Resend no disponible'));
 

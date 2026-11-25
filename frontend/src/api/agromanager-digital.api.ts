@@ -28,8 +28,17 @@ export interface SolicitudAgroManagerDigital {
   localidad: string;
   actividad: string;
   servicio: string;
+  tipoProyecto: 'ESTABLECIMIENTO' | 'PROFESIONAL_COMERCIAL';
   tieneSitioWeb: boolean;
   descripcion: string;
+  informacionPublicar: string[];
+  requiereCatalogo: boolean;
+  administraContenido: boolean;
+  tieneIdentidadVisual: boolean;
+  tieneDominioPropio: boolean;
+  requiereMantenimiento: boolean;
+  referenciaUrl: string | null;
+  funcionalidadesPersonalizadas: string | null;
   presupuesto: string | null;
   fechaInicio: string | null;
   comentarios: string | null;

@@ -76,7 +76,16 @@ export class AgroManagerDigitalService {
         email: dto.email.trim().toLowerCase(), telefono: dto.telefono.trim(),
         provincia: dto.provincia.trim(), localidad: dto.localidad.trim(),
         actividad: dto.actividad.trim(), servicio: dto.servicio.trim(),
+        tipoProyecto: dto.tipoProyecto ?? 'ESTABLECIMIENTO',
         tieneSitioWeb: dto.tieneSitioWeb, descripcion: dto.descripcion.trim(),
+        informacionPublicar: dto.informacionPublicar ?? [],
+        requiereCatalogo: dto.requiereCatalogo ?? false,
+        administraContenido: dto.administraContenido ?? false,
+        tieneIdentidadVisual: dto.tieneIdentidadVisual ?? false,
+        tieneDominioPropio: dto.tieneDominioPropio ?? false,
+        requiereMantenimiento: dto.requiereMantenimiento ?? false,
+        referenciaUrl: dto.referenciaUrl?.trim() || null,
+        funcionalidadesPersonalizadas: dto.funcionalidadesPersonalizadas?.trim() || null,
         presupuesto: dto.presupuesto?.trim() || null, fechaInicio: dto.fechaInicio?.trim() || null,
         comentarios: dto.comentarios?.trim() || null, consienteContacto: true,
       },
@@ -88,7 +97,7 @@ export class AgroManagerDigitalService {
         await this.mailer.enviarCorreo({
           email: adminEmail,
           asunto: `Nueva consulta AgroManager Digital #${solicitud.id}`,
-          html: `<h2>Nueva solicitud AgroManager Digital</h2><p><b>${this.escape(solicitud.nombre)}</b> · ${this.escape(solicitud.establecimiento)}</p><p>${this.escape(solicitud.email)} · ${this.escape(solicitud.telefono)}</p><p>${this.escape(solicitud.actividad)} · ${this.escape(solicitud.servicio)}</p><p>${this.escape(solicitud.localidad)}, ${this.escape(solicitud.provincia)}</p><p>${this.escape(solicitud.descripcion)}</p>`,
+          html: `<h2>Nueva solicitud AgroManager Digital</h2><p><b>${this.escape(solicitud.nombre)}</b> · ${this.escape(solicitud.establecimiento)}</p><p>${this.escape(solicitud.email)} · ${this.escape(solicitud.telefono)}</p><p>${this.escape(solicitud.actividad)} · ${this.escape(solicitud.servicio)}</p><p>${this.escape(solicitud.localidad)}, ${this.escape(solicitud.provincia)}</p><p>${this.escape(solicitud.descripcion)}</p><p>Tipo de proyecto: ${this.escape(dto.tipoProyecto ?? 'ESTABLECIMIENTO')}</p><p>Quiere publicar: ${this.escape((dto.informacionPublicar ?? []).join(', ') || 'No especificado')}</p><p>Catálogo: ${dto.requiereCatalogo ? 'sí' : 'no'} · Administración de contenido: ${dto.administraContenido ? 'sí' : 'no'} · Identidad visual: ${dto.tieneIdentidadVisual ? 'sí' : 'no'} · Dominio propio: ${dto.tieneDominioPropio ? 'sí' : 'no'} · Mantenimiento: ${dto.requiereMantenimiento ? 'sí' : 'no'}</p><p>Referencia: ${this.escape(dto.referenciaUrl || 'No informada')}</p><p>Funciones personalizadas: ${this.escape(dto.funcionalidadesPersonalizadas || 'No informadas')}</p>`,
         });
       } catch (error) { this.logger.error(`No se pudo notificar la solicitud #${solicitud.id}`, error); }
     } else this.logger.warn('DIGITAL_LEADS_ADMIN_EMAIL no configurado; la solicitud quedó guardada en el panel.');
