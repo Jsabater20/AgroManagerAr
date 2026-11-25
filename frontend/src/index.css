@@ -428,3 +428,23 @@ html.dark {
   & [class*="hover:text-red-600"]:hover,
   & [class*="hover:text-red-800"]:hover { color: #fecdd3; }
 }
+
+html.dark .digital-demo .bg-white {
+  background-color: #ffffff;
+}
+
+html.dark .digital-demo .text-slate-700 {
+  color: #334155;
+}
+
+html.dark .digital-demo .text-slate-950:hover {
+  color: #0f172a;
+}
+
+html.dark .digital-demo .bg-amber-100 {
+  background-color: #fef3c7;
+}
+
+html.dark .digital-demo .text-amber-950 {
+  color: #451a03;
+}

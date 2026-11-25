@@ -103,7 +103,7 @@ export default function DigitalDemoPage() {
 
   const { identidad } = demo;
   return (
-    <main className="min-h-screen" style={{ backgroundColor: identidad.superficie, color: identidad.texto } as CSSProperties}>
+    <main className="digital-demo min-h-screen" style={{ backgroundColor: identidad.superficie, color: identidad.texto } as CSSProperties}>
       <div className="sticky top-0 z-30 border-b border-black/10 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <Link to="/soluciones-digitales" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-950"><ArrowLeft size={17} /> AgroManager Digital</Link>
