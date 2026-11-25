@@ -9,6 +9,7 @@ import { queryClient } from './lib/queryClient';
 import PrivateRoute from './components/layout/PrivateRoute';
 import Layout from './components/layout/Layout';
 import HomePage from './pages/home/HomePage';
+import FuncionesPage from './pages/funciones/FuncionesPage';
 import ContactoPage from './pages/contacto/ContactoPage';
 import SobreNosotrosPage from './pages/sobre-nosotros/SobreNosotrosPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -141,6 +142,7 @@ export default function App() {
         <Toaster position="top-right" />
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/funciones" element={<FuncionesPage />} />
           <Route path="/precios" element={<PreciosPage />} />
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />

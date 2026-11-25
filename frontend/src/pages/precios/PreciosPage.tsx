@@ -262,7 +262,7 @@ export default function PreciosPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white md:col-span-2">
+        <div id="empresa" className="rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white md:col-span-2">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
             <div>
               <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-emerald-950">PARA GRUPOS AGROPECUARIOS</span>

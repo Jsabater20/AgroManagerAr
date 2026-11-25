@@ -4,7 +4,9 @@ import { Sprout, Menu, X } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Inicio' },
-  { href: '/precios', label: 'Precios' },
+  { href: '/funciones', label: 'Funciones' },
+  { href: '/precios', label: 'Planes' },
+  { href: '/#empresas', label: 'Empresas' },
   { href: '/soluciones-digitales', label: 'Soluciones digitales' },
   { href: '/contacto', label: 'Contacto' },
   { href: '/sobre-nosotros', label: 'Sobre nosotros' },
@@ -32,7 +34,7 @@ export default function PublicNav() {
               key={l.href}
               to={l.href}
               className={`text-sm font-medium transition-colors ${
-                pathname === l.href
+                pathname === l.href || (l.href === '/#empresas' && pathname === '/')
                   ? 'text-green-700'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
@@ -76,8 +78,8 @@ export default function PublicNav() {
               key={l.href}
               to={l.href}
               onClick={() => setOpen(false)}
-              className={`block text-sm font-medium py-1 ${
-                pathname === l.href ? 'text-green-700' : 'text-gray-700'
+            className={`block text-sm font-medium py-1 ${
+              pathname === l.href || (l.href === '/#empresas' && pathname === '/') ? 'text-green-700' : 'text-gray-700'
               }`}
             >
               {l.label}

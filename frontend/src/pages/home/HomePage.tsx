@@ -17,7 +17,6 @@ import {
   Camera,
   Building2,
   BarChart3,
-  Calculator,
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
@@ -58,10 +57,10 @@ const PRO_FEATURES = [
 
 /* ─── FEATURE CARDS ──────────────────────────────────────────────── */
 const HOME_EXPLORER_LINKS = [
-  { href: '#calculadora', label: 'Calculá insumos', detail: 'Probá una estimación', icon: Calculator },
-  { href: '#actividades', label: 'Elegí tu actividad', detail: 'Conocé el módulo ideal', icon: Sprout },
-  { href: '#recorrido', label: 'Mirá cómo funciona', detail: 'Seguí el paso a paso', icon: CheckCircle2 },
-  { href: '#planes', label: 'Encontrá tu plan', detail: 'Recibí una recomendación', icon: Zap },
+  { href: '/funciones', label: 'Funciones', detail: 'Explorá qué podés gestionar', icon: Sprout },
+  { href: '/precios', label: 'Planes', detail: 'Compará Free, Pro y Empresa', icon: Zap },
+  { href: '/demo', label: 'Demo personal', detail: 'Recorré la plataforma', icon: CheckCircle2 },
+  { href: '/demo/empresa', label: 'Demo Empresa', detail: 'Conocé la gestión multi-campo', icon: Building2 },
 ];
 
 const FEATURES = [
@@ -456,16 +455,56 @@ export default function HomePage() {
       <nav aria-label="Explorá AgroManager AR" className="relative z-10 -mt-7 px-4">
         <div className="mx-auto grid max-w-5xl gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-4">
           {HOME_EXPLORER_LINKS.map(({ href, label, detail, icon: Icon }) => (
-            <a key={href} href={href} className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
+            <Link key={href} to={href} className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white"><Icon size={18} /></span>
               <span className="min-w-0">
                 <span className="block text-sm font-bold text-slate-900">{label}</span>
                 <span className="mt-0.5 block truncate text-xs text-slate-500">{detail}</span>
               </span>
-            </a>
+            </Link>
           ))}
         </div>
       </nav>
+
+      <section className="px-4 py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="max-w-2xl">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-700">Una plataforma, lo importante a mano</p>
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Organizá el trabajo y entendé mejor qué pasa en tu campo.</h2>
+            <p className="mt-4 text-base leading-relaxed text-slate-600">Reuní campos, producción, equipo y números en un mismo lugar. Empezá por lo que necesitás y sumá herramientas a medida que crece tu operación.</p>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {[
+              { title: 'Gestioná el día a día', text: 'Campos, lotes, cultivos, animales, maquinaria y tareas organizados.' },
+              { title: 'Trabajá en equipo', text: 'Asigná trabajos y definí qué información necesita ver cada persona.' },
+              { title: 'Tomá decisiones con contexto', text: 'Consultá producción, clima, costos y reportes según tu plan.' },
+            ].map(({ title, text }) => (
+              <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="font-bold text-slate-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{text}</p>
+              </article>
+            ))}
+          </div>
+          <Link to="/funciones" className="mt-6 inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800">Conocer todas las funciones <ArrowRight size={17} /></Link>
+        </div>
+      </section>
+
+      <section id="empresas" className="bg-slate-50 px-4 py-14 sm:py-16">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Para empresas agropecuarias</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Varios establecimientos, cada uno con su información ordenada.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">El owner puede consultar una vista general y decidir quién accede a cada organización. Los equipos trabajan con la información de su establecimiento.</p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
+            <Link to="/demo/empresa" className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white transition hover:bg-emerald-800"><Building2 size={18} />Ver Demo Empresa</Link>
+            <Link to="/precios#empresa" className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 py-3 font-bold text-slate-800 transition hover:bg-slate-50">Ver plan Empresa <ArrowRight size={17} /></Link>
+          </div>
+        </div>
+      </section>
+
+      {false && (
+        <>
 
       <section className="py-24 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
@@ -780,6 +819,9 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA FINAL ────────────────────────────────────────────── */}
+        </>
+      )}
+
       <section className="relative overflow-hidden bg-gray-950 text-white py-24 px-4">
         <div
           className="absolute inset-0 opacity-30"
