@@ -217,7 +217,7 @@ export default function AdminDigitalPage() {
                   <tr key={solicitud.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-800/70">
                     <td className="px-5 py-4"><p className="font-semibold text-slate-900 dark:text-white">{solicitud.establecimiento}</p><p className="mt-1 text-xs text-slate-500">{solicitud.nombre} · {solicitud.localidad}, {solicitud.provincia}</p></td>
                     <td className="px-5 py-4"><a className="text-emerald-700 hover:underline dark:text-emerald-300" href={`mailto:${solicitud.email}`}>{solicitud.email}</a><p className="mt-1 text-xs text-slate-500">{solicitud.telefono}</p></td>
-                    <td className="px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">{solicitud.tipoProyecto === 'ESTABLECIMIENTO' ? 'Establecimiento' : 'Actividad comercial/profesional'}</p><p className="mt-1 font-medium text-slate-800 dark:text-slate-200">{solicitud.servicio}</p><p className="mt-1 text-xs text-slate-500">{solicitud.actividad}</p></td>
+                    <td className="px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">{solicitud.tipoProyecto === 'ESTABLECIMIENTO' ? 'Establecimiento' : solicitud.tipoProyecto === 'SOFTWARE_A_MEDIDA' ? 'Software a medida' : 'Actividad comercial/profesional'}</p><p className="mt-1 font-medium text-slate-800 dark:text-slate-200">{solicitud.servicio}</p><p className="mt-1 text-xs text-slate-500">{solicitud.actividad}</p></td>
                     <td className="px-5 py-4"><span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${estadoColor[solicitud.estado]}`}>{estadoLabel[solicitud.estado]}</span></td>
                     <td className="px-5 py-4 text-xs text-slate-500">{fechaHora(solicitud.createdAt)}</td>
                     <td className="px-5 py-4 text-right"><button type="button" onClick={() => abrirSolicitud(solicitud)} className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Ver consulta</button></td>
@@ -247,7 +247,7 @@ export default function AdminDigitalPage() {
               <Dato etiqueta="Teléfono" valor={seleccionada.telefono} />
               <Dato etiqueta="Ubicación" valor={`${seleccionada.localidad}, ${seleccionada.provincia}`} />
               <Dato etiqueta="Actividad" valor={seleccionada.actividad} />
-              <Dato etiqueta="Tipo de proyecto" valor={seleccionada.tipoProyecto === 'ESTABLECIMIENTO' ? 'Página para un establecimiento' : 'Web para actividad profesional o comercial'} />
+              <Dato etiqueta="Tipo de proyecto" valor={seleccionada.tipoProyecto === 'ESTABLECIMIENTO' ? 'Página para un establecimiento' : seleccionada.tipoProyecto === 'SOFTWARE_A_MEDIDA' ? 'Software o sistema de gestión a medida' : 'Web para actividad profesional o comercial'} />
               <Dato etiqueta="Servicio solicitado" valor={seleccionada.servicio} />
               <Dato etiqueta="Sitio web actual" valor={seleccionada.tieneSitioWeb ? 'Sí' : 'No'} />
               <Dato etiqueta="Información a publicar" valor={seleccionada.informacionPublicar.join(', ') || 'No especificada'} />

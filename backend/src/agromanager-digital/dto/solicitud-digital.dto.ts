@@ -10,7 +10,7 @@ export class CrearSolicitudDigitalDto {
   @IsString() @IsNotEmpty() @MaxLength(100) localidad!: string;
   @IsString() @IsNotEmpty() @MaxLength(100) actividad!: string;
   @IsString() @IsNotEmpty() @MaxLength(80) servicio!: string;
-  @IsOptional() @IsIn(['ESTABLECIMIENTO', 'PROFESIONAL_COMERCIAL']) tipoProyecto?: string;
+  @IsOptional() @IsIn(['ESTABLECIMIENTO', 'PROFESIONAL_COMERCIAL', 'SOFTWARE_A_MEDIDA']) tipoProyecto?: string;
   @IsBoolean() tieneSitioWeb!: boolean;
   @IsString() @IsNotEmpty() @MaxLength(3000) descripcion!: string;
   @IsOptional() @IsArray() @ArrayMaxSize(12) @IsString({ each: true }) @MaxLength(80, { each: true }) informacionPublicar?: string[];

@@ -6,8 +6,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const builtIndex = resolve(root, 'dist/index.html');
 const routeIndex = resolve(root, 'dist/soluciones-digitales/index.html');
 const canonical = 'https://www.agromanagerar.com/soluciones-digitales';
-const title = 'Desarrollo web para el agro | AgroManager Digital';
-const description = 'Páginas web y soluciones digitales para productores, empresas y profesionales del campo argentino.';
+const title = 'AgroManager Digital | Desarrollo web y software a medida para el agro';
+const description = 'Páginas web y sistemas de gestión personalizados para establecimientos, empresas y profesionales del agro argentino.';
 
 let html = await readFile(builtIndex, 'utf8');
 html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`);

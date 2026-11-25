@@ -28,7 +28,7 @@ export interface SolicitudAgroManagerDigital {
   localidad: string;
   actividad: string;
   servicio: string;
-  tipoProyecto: 'ESTABLECIMIENTO' | 'PROFESIONAL_COMERCIAL';
+  tipoProyecto: 'ESTABLECIMIENTO' | 'PROFESIONAL_COMERCIAL' | 'SOFTWARE_A_MEDIDA';
   tieneSitioWeb: boolean;
   descripcion: string;
   informacionPublicar: string[];
