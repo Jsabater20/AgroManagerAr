@@ -56,34 +56,6 @@ export class GanadoController {
     return this.ganadoService.findAll(req.user.id, req.organizacionId);
   }
 
-  @Get('lotes')
-  findAllLotes(@Request() req: AuthRequest) {
-    return this.ganadoService.findAllLotes(req.user.id, req.organizacionId);
-  }
-
-  @Post('lotes')
-  createLote(@Body() dto: CreateLoteGanaderoDto, @Request() req: AuthRequest) {
-    return this.ganadoService.createLote(dto, req.user.id, req.organizacionId);
-  }
-
-  @Post('lotes/:id/registros')
-  addRegistroLote(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreateRegistroLoteGanaderoDto,
-    @Request() req: AuthRequest,
-  ) {
-    return this.ganadoService.addRegistroLote(id, dto, req.user.id, req.organizacionId);
-  }
-
-  @Patch('lotes/:id/cerrar')
-  cerrarLote(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CerrarLoteGanaderoDto,
-    @Request() req: AuthRequest,
-  ) {
-    return this.ganadoService.cerrarLote(id, dto, req.user.id, req.organizacionId);
-  }
-
   @Delete('lotes/:id')
   removeLote(@Param('id', ParseIntPipe) id: number, @Request() req: AuthRequest) {
     return this.ganadoService.removeLote(id, req.user.id, req.organizacionId);

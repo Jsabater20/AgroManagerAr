@@ -4,16 +4,10 @@ import { Sprout, Menu, X } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Inicio' },
-<<<<<<< HEAD
   { href: '/funcionalidades', label: 'Funcionalidades' },
   { href: '/planes', label: 'Planes' },
   { href: '/para-empresas', label: 'Empresas' },
-=======
-  { href: '/funciones', label: 'Funciones' },
-  { href: '/precios', label: 'Planes' },
-  { href: '/#empresas', label: 'Empresas' },
   { href: '/soluciones-digitales', label: 'Soluciones digitales' },
->>>>>>> develop
   { href: '/contacto', label: 'Contacto' },
   { href: '/sobre-nosotros', label: 'Sobre nosotros' },
 ];

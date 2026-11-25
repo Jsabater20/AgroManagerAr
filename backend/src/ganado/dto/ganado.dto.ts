@@ -81,11 +81,7 @@ export class CreateAnimalDto {
   observaciones?: string;
 
   @IsOptional()
-<<<<<<< HEAD
   @IsInt()
-=======
-  @IsNumber()
->>>>>>> develop
   @Min(1)
   @Type(() => Number)
   loteGanaderoId?: number;
@@ -116,11 +112,7 @@ export class UpdateAnimalDto {
   observaciones?: string;
 
   @IsOptional()
-<<<<<<< HEAD
   @IsInt()
-=======
-  @IsNumber()
->>>>>>> develop
   @Min(1)
   @Type(() => Number)
   loteGanaderoId?: number;
@@ -155,7 +147,6 @@ export class CreateRegistroPesoDto {
 }
 
 export class CreateLoteGanaderoDto {
-<<<<<<< HEAD
   @IsString()
   @IsNotEmpty()
   nombre!: string;
@@ -233,28 +224,4 @@ export class CerrarLoteGanaderoDto {
   @Min(0)
   @Type(() => Number)
   precioVentaTotal?: number;
-=======
-  @IsString() @IsNotEmpty() nombre!: string;
-  @IsEnum(SistemaLoteGanadero) sistema!: SistemaLoteGanadero;
-  @IsNumber() @Min(1) @Type(() => Number) cantidadInicial!: number;
-  @IsDateString() fechaIngreso!: string;
-  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) pesoPromedioIngresoKg?: number;
-  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) costoCompraTotal?: number;
-  @IsOptional() @IsString() ubicacion?: string;
-  @IsOptional() @IsString() observaciones?: string;
-}
-
-export class CreateRegistroLoteGanaderoDto {
-  @IsDateString() fecha!: string;
-  @IsNumber() @Min(0) @Type(() => Number) cantidadActual!: number;
-  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) pesoPromedioKg?: number;
-  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) alimentoKg?: number;
-  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) bajas?: number;
-  @IsOptional() @IsString() observaciones?: string;
-}
-
-export class CerrarLoteGanaderoDto {
-  @IsDateString() fechaEgreso!: string;
-  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) precioVentaTotal?: number;
->>>>>>> develop
 }

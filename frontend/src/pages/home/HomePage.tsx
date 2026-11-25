@@ -17,11 +17,8 @@ import {
   Camera,
   Building2,
   BarChart3,
-<<<<<<< HEAD
   Calculator,
   ClipboardCheck,
-=======
->>>>>>> develop
 } from 'lucide-react';
 import PublicNav from '../../components/layout/PublicNav';
 import PublicFooter from '../../components/layout/PublicFooter';
@@ -58,18 +55,15 @@ const PRO_FEATURES = [
 
 /* ─── FEATURE CARDS ──────────────────────────────────────────────── */
 const HOME_EXPLORER_LINKS = [
-<<<<<<< HEAD
   { href: '/funcionalidades#calculadora', label: 'Calculá insumos', detail: 'Probá una estimación', icon: Calculator },
   { href: '/funcionalidades#actividades', label: 'Elegí tu actividad', detail: 'Conocé el módulo ideal', icon: Sprout },
   { href: '/funcionalidades#recorrido', label: 'Mirá cómo funciona', detail: 'Seguí el paso a paso', icon: CheckCircle2 },
   { href: '/planes', label: 'Encontrá tu plan', detail: 'Recibí una recomendación', icon: Zap },
-=======
   { href: '/funciones', label: 'Funciones', detail: 'Explorá qué podés gestionar', icon: Sprout },
   { href: '/precios', label: 'Planes', detail: 'Compará Free, Pro y Empresa', icon: Zap },
   { href: '/demo', label: 'Demo personal', detail: 'Recorré la plataforma', icon: CheckCircle2 },
   { href: '/demo/empresa', label: 'Demo Empresa', detail: 'Conocé la gestión multi-campo', icon: Building2 },
   { href: '/soluciones-digitales#presupuesto', label: 'Cotizá software', detail: 'Una solución para tu actividad', icon: Bot },
->>>>>>> develop
 ];
 
 const FEATURES = [

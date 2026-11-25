@@ -45,10 +45,7 @@ export class YerbaService {
   async createCuadro(dto: CreateCuadroYerbaDto, usuarioId: number, organizacionId: number) {
     await this.requireAccess(usuarioId, organizacionId);
     await this.validarUbicacion(dto.campoId, dto.loteId, usuarioId, organizacionId);
-<<<<<<< HEAD
     await this.planService.checkCuadrosYerbaLimit(organizacionId);
-    return this.prisma.cuadroYerba.create({ data: { organizacionId, usuarioId, campoId: dto.campoId, loteId: dto.loteId, nombre: dto.nombre.trim(), superficieHa: dto.superficieHa, edadPlantacion: dto.edadPlantacion, observaciones: dto.observaciones?.trim() || null }, include: { campo: { select: { id: true, nombre: true } }, lote: { select: { id: true, nombre: true } }, cosechas: true } });
-=======
     return this.prisma.cuadroYerba.create({
       data: {
         organizacionId,
@@ -63,18 +60,16 @@ export class YerbaService {
       include: {
         campo: { select: { id: true, nombre: true } },
         lote: { select: { id: true, nombre: true } },
-        cosechas: { include: { usuario: { select: { id: true, nombre: true, apellido: true } } } },
+        cosechas: {
+          include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
+        },
       },
     });
->>>>>>> develop
   }
 
   async createCosecha(cuadroId: number, dto: CreateCosechaYerbaDto, usuarioId: number, organizacionId: number) {
     await this.findOne(cuadroId, usuarioId, organizacionId);
-<<<<<<< HEAD
     await this.planService.checkCosechasYerbaLimit(organizacionId, cuadroId);
-    return this.prisma.cosechaYerba.create({ data: { cuadroId, usuarioId, fechaCosecha: new Date(dto.fechaCosecha), kgHojaVerde: dto.kgHojaVerde, kgCanchada: dto.kgCanchada, jornales: dto.jornales, observaciones: dto.observaciones?.trim() || null } });
-=======
     return this.prisma.cosechaYerba.create({
       data: {
         cuadroId,
@@ -87,7 +82,6 @@ export class YerbaService {
       },
       include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
     });
->>>>>>> develop
   }
 
   async removeCosecha(id: number, usuarioId: number, organizacionId: number) {

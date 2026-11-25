@@ -82,12 +82,9 @@ import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
 import AlertasPage from './pages/alertas/AlertasPage';
 import CentroAtencionPage from './pages/atencion/CentroAtencionPage';
 import NovedadesPage from './pages/novedades/NovedadesPage';
-<<<<<<< HEAD
 import DesuscribirNovedadesPage from './pages/novedades/DesuscribirNovedadesPage';
-=======
 import SolucionesDigitalesPage from './pages/soluciones-digitales/SolucionesDigitalesPage';
 import DigitalDemoPage from './pages/soluciones-digitales/DigitalDemoPage';
->>>>>>> develop
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -149,15 +146,11 @@ export default function App() {
         <Toaster position="top-right" />
         <Routes>
           <Route path="/" element={<HomePage />} />
-<<<<<<< HEAD
           <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
           <Route path="/planes" element={<PreciosPage />} />
           <Route path="/precios" element={<Navigate to="/planes" replace />} />
           <Route path="/para-empresas" element={<EmpresasPublicPage />} />
-=======
           <Route path="/funciones" element={<FuncionesPage />} />
-          <Route path="/precios" element={<PreciosPage />} />
->>>>>>> develop
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
           <Route path="/soluciones-digitales" element={<SolucionesDigitalesPage />} />

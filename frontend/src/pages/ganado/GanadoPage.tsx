@@ -11,15 +11,9 @@ import { ganadoApi } from '../../api/ganado.api';
 import type {
   Animal, CreateAnimalDto, CreatePrenezDto,
   Especie, Sexo, CategoriaAnimal, EstadoPrenez,
-<<<<<<< HEAD
   RegistroPeso, CreateRegistroPesoDto, LoteGanadero,
   SistemaLoteGanadero, CreateLoteGanaderoDto,
   CreateRegistroLoteGanaderoDto, CerrarLoteGanaderoDto,
-=======
-  RegistroPeso, CreateRegistroPesoDto,
-  CerrarLoteGanaderoDto, CreateLoteGanaderoDto,
-  CreateRegistroLoteGanaderoDto, LoteGanadero, SistemaLoteGanadero,
->>>>>>> develop
 } from '../../api/types';
 import { EvidenceAction } from '../../components/evidencias/EvidenceAction';
 
@@ -177,23 +171,18 @@ export default function GanadoPage() {
   const [filterEspecie, setFilterEspecie]   = useState<Especie | ''>('');
   const [filterSexo, setFilterSexo]         = useState<Sexo | ''>('');
   const [page, setPage]                     = useState(1);
-  const [showLoteModal, setShowLoteModal]   = useState(false);
-  const [loteForm, setLoteForm]             = useState<CreateLoteGanaderoDto>(createEmptyLote);
   const [registroTarget, setRegistroTarget] = useState<LoteGanadero | null>(null);
   const [registroForm, setRegistroForm]     = useState<CreateRegistroLoteGanaderoDto>(createEmptyRegistro);
   const [cierreTarget, setCierreTarget]     = useState<LoteGanadero | null>(null);
   const [cierreForm, setCierreForm]         = useState<CerrarLoteGanaderoDto>(createEmptyCierre);
 
   const { data: animales, isLoading } = useQuery({ queryKey: ['ganado'], queryFn: () => ganadoApi.getAll() });
-<<<<<<< HEAD
   const { data: lotesGanaderos = [], isLoading: lotesGanaderosLoading } = useQuery({
     queryKey: ['ganado-lotes', organizacionId],
-=======
-  const { data: lotes = [], isLoading: lotesLoading } = useQuery({
-    queryKey: ['ganado-lotes'],
->>>>>>> develop
     queryFn: ganadoApi.getLotes,
   });
+  const lotes = lotesGanaderos;
+  const lotesLoading = lotesGanaderosLoading;
 
   const { data: pesosData = [], isLoading: pesosLoading } = useQuery({
     queryKey: ['ganado-pesos', pesosTarget?.id],
@@ -295,8 +284,8 @@ export default function GanadoPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ganado-lotes'] });
       toast.success('Control de lote registrado');
-      setRegistroTarget(null);
-      setRegistroForm(createEmptyRegistro());
+      setRegistroLoteTarget(null);
+      setRegistroLoteForm(emptyRegistroLoteGanadero);
     },
     onError: () => toast.error('No se pudo registrar el control'),
   });
@@ -306,8 +295,8 @@ export default function GanadoPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ganado-lotes'] });
       toast.success('Lote cerrado');
-      setCierreTarget(null);
-      setCierreForm(createEmptyCierre());
+      setCierreLoteTarget(null);
+      setCierreLoteForm(emptyCierreLote);
     },
     onError: () => toast.error('No se pudo cerrar el lote'),
   });
@@ -327,39 +316,6 @@ export default function GanadoPage() {
       toast.success('Estado actualizado');
     },
     onError: () => toast.error('Error al actualizar el estado'),
-  });
-
-  const createLoteMutation = useMutation({
-    mutationFn: ganadoApi.createLote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ganado-lotes', organizacionId] });
-      toast.success('Lote ganadero creado');
-      setShowLoteModal(false);
-      setLoteForm(emptyLoteGanadero);
-    },
-    onError: () => toast.error('No se pudo crear el lote ganadero'),
-  });
-
-  const addRegistroLoteMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: number; dto: CreateRegistroLoteGanaderoDto }) => ganadoApi.addRegistroLote(id, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ganado-lotes', organizacionId] });
-      toast.success('Control del lote registrado');
-      setRegistroLoteTarget(null);
-      setRegistroLoteForm(emptyRegistroLoteGanadero);
-    },
-    onError: () => toast.error('No se pudo registrar el control'),
-  });
-
-  const cerrarLoteMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: number; dto: CerrarLoteGanaderoDto }) => ganadoApi.cerrarLote(id, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ganado-lotes', organizacionId] });
-      toast.success('Lote ganadero cerrado');
-      setCierreLoteTarget(null);
-      setCierreLoteForm(emptyCierreLote);
-    },
-    onError: () => toast.error('No se pudo cerrar el lote'),
   });
 
   const removeLoteMutation = useMutation({
@@ -382,17 +338,10 @@ export default function GanadoPage() {
           <h1 className="text-2xl font-bold text-gray-900">Ganadería</h1>
           <p className="text-gray-500 mt-1 text-sm">Registro de animales y seguimiento de preñez</p>
         </div>
-<<<<<<< HEAD
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setShowLoteModal(true)}
             className="flex items-center gap-2 border border-green-700 bg-white px-4 py-2.5 rounded-lg text-sm font-medium text-green-800 transition-colors hover:bg-green-50 dark:bg-slate-900 dark:text-green-300 dark:hover:bg-green-500/10">
             <Plus size={16} />Nuevo rodeo o lote
-=======
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowLoteModal(true)}
-            className="flex items-center gap-2 bg-amber-700 hover:bg-amber-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-            <Boxes size={16} />Nuevo lote
->>>>>>> develop
           </button>
           <button onClick={() => setShowModal(true)}
             className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
@@ -443,7 +392,7 @@ export default function GanadoPage() {
       </section>
 
       {/* Filtros */}
-      <section className="mb-8 rounded-2xl border border-amber-100 bg-amber-50/40 p-5">
+      <section className="hidden mb-8 rounded-2xl border border-amber-100 bg-amber-50/40 p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -711,7 +660,7 @@ export default function GanadoPage() {
       {registroLoteTarget && (
         <Modal title={`Registrar control — ${registroLoteTarget.nombre}`} onClose={() => setRegistroLoteTarget(null)}>
           <p className="mb-5 text-sm text-gray-500 dark:text-slate-300">Actualizá los datos reales del rodeo. El último control se mostrará como estado actual.</p>
-          <form onSubmit={(e) => { e.preventDefault(); addRegistroLoteMutation.mutate({ id: registroLoteTarget.id, dto: { ...registroLoteForm, cantidadActual: Number(registroLoteForm.cantidadActual) } }); }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); registrarLoteMutation.mutate({ id: registroLoteTarget.id, dto: { ...registroLoteForm, cantidadActual: Number(registroLoteForm.cantidadActual) } }); }} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Fecha *">
                 <input required type="date" value={registroLoteForm.fecha} onChange={(e) => setRegistroLoteForm({ ...registroLoteForm, fecha: e.target.value })} className="input" />
@@ -734,7 +683,7 @@ export default function GanadoPage() {
             <Field label="Observaciones">
               <textarea rows={2} value={registroLoteForm.observaciones ?? ''} onChange={(e) => setRegistroLoteForm({ ...registroLoteForm, observaciones: e.target.value })} className="input resize-none" placeholder="Opcional" />
             </Field>
-            <ModalActions onCancel={() => setRegistroLoteTarget(null)} loading={addRegistroLoteMutation.isPending} label="Guardar control" />
+            <ModalActions onCancel={() => setRegistroLoteTarget(null)} loading={registrarLoteMutation.isPending} label="Guardar control" />
           </form>
         </Modal>
       )}
@@ -981,7 +930,7 @@ export default function GanadoPage() {
           </form>
         </Modal>
       )}
-      {showLoteModal && (
+      {false && showLoteModal && (
         <Modal title="Nuevo lote ganadero" onClose={() => { setShowLoteModal(false); setLoteForm(createEmptyLote()); }}>
           <p className="mb-4 text-sm text-gray-500">
             Crea un grupo para seguir cria propia, invernada comprada o feedlot.
@@ -1040,8 +989,8 @@ export default function GanadoPage() {
         </Modal>
       )}
 
-      {registroTarget && (
-        <Modal title={'Registrar control - ' + registroTarget.nombre} onClose={() => setRegistroTarget(null)}>
+      {false && registroTarget && (
+        <Modal title={'Registrar control - ' + registroTarget!.nombre} onClose={() => setRegistroTarget(null)}>
           <p className="mb-4 text-sm text-gray-500">
             Actualiza las cabezas, el peso promedio y los datos operativos del grupo.
           </p>
@@ -1049,7 +998,7 @@ export default function GanadoPage() {
             onSubmit={(event) => {
               event.preventDefault();
               registrarLoteMutation.mutate({
-                id: registroTarget.id,
+                id: registroTarget!.id,
                 dto: { ...registroForm, cantidadActual: Number(registroForm.cantidadActual) },
               });
             }}
@@ -1092,15 +1041,15 @@ export default function GanadoPage() {
         </Modal>
       )}
 
-      {cierreTarget && (
-        <Modal title={'Cerrar lote - ' + cierreTarget.nombre} onClose={() => setCierreTarget(null)}>
+      {false && cierreTarget && (
+        <Modal title={'Cerrar lote - ' + cierreTarget!.nombre} onClose={() => setCierreTarget(null)}>
           <p className="mb-4 text-sm text-gray-500">
             Conservamos el historial del lote para que puedas revisar su resultado mas adelante.
           </p>
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              cerrarLoteMutation.mutate({ id: cierreTarget.id, dto: cierreForm });
+              cerrarLoteMutation.mutate({ id: cierreTarget!.id, dto: cierreForm });
             }}
             className="space-y-4"
           >
