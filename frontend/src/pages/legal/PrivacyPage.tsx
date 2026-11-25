@@ -101,9 +101,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-base font-semibold text-gray-900 mb-2">8. Cookies</h2>
               <p>
-                AgroManager AR no utiliza cookies de seguimiento ni publicidad. Únicamente
-                se almacena en el almacenamiento local del navegador el token de sesión
-                y preferencias de UI.
+                AgroManager AR no utiliza cookies de seguimiento ni publicidad. En la página pública de AgroManager Digital registramos eventos básicos de uso —visitas, clics en presupuesto o WhatsApp e inicio o envío del formulario— para conocer el interés y mejorar esa sección. Guardamos el tipo de evento, el dominio de referencia, etiquetas UTM de campaña si están presentes y la fecha; no copiamos los datos del formulario, no guardamos direcciones IP ni la URL completa de origen. Los valores UTM se depuran para descartar direcciones de email y teléfonos; al crear enlaces de campaña, no se deben incluir datos personales. Estos registros se eliminan al cumplir un año. También se almacena en el navegador el token de sesión y preferencias de interfaz.
               </p>
             </section>
 

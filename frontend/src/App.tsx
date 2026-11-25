@@ -39,6 +39,7 @@ import PreciosPage from './pages/precios/PreciosPage';
 import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
 import AdminEmpresasPage from './pages/admin/AdminEmpresasPage';
+import AdminDigitalPage from './pages/admin/AdminDigitalPage';
 import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
@@ -78,6 +79,7 @@ import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
 import AlertasPage from './pages/alertas/AlertasPage';
 import CentroAtencionPage from './pages/atencion/CentroAtencionPage';
 import NovedadesPage from './pages/novedades/NovedadesPage';
+import SolucionesDigitalesPage from './pages/soluciones-digitales/SolucionesDigitalesPage';
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -142,6 +144,7 @@ export default function App() {
           <Route path="/precios" element={<PreciosPage />} />
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
+          <Route path="/soluciones-digitales" element={<SolucionesDigitalesPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/demo" element={<DemoPersonalEntryPage />} />
           <Route path="/demo/empresa" element={<DemoEmpresaEntryPage />} />
@@ -213,6 +216,7 @@ export default function App() {
               <Route path="/novedades" element={<NovedadesPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
+              <Route path="/admin/digital" element={<AdminDigitalPage />} />
             </Route>
           </Route>
 

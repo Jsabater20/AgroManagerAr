@@ -853,6 +853,18 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 px-4 py-14 text-white">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">AgroManager Digital</p>
+            <h2 className="mt-2 text-2xl font-black">Tu actividad también puede tener su propio espacio en internet.</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">Conocé soluciones web para productores, empresas y profesionales del agro.</p>
+          </div>
+          <Link to="/soluciones-digitales" className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white transition hover:bg-emerald-400">
+            Conocé las soluciones <ArrowRight size={17} />
+          </Link>
+        </div>
+      </section>
       <PublicFooter />
     </div>
   );

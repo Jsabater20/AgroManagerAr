@@ -5,6 +5,7 @@ import { Sprout, Menu, X } from 'lucide-react';
 const links = [
   { href: '/', label: 'Inicio' },
   { href: '/precios', label: 'Precios' },
+  { href: '/soluciones-digitales', label: 'Soluciones digitales' },
   { href: '/contacto', label: 'Contacto' },
   { href: '/sobre-nosotros', label: 'Sobre nosotros' },
 ];
