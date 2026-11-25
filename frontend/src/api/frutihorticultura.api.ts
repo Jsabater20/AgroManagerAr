@@ -21,6 +21,7 @@ export interface CosechaFrutihorticola {
   kgDescarte: number;
   destino?: string | null;
   observaciones?: string | null;
+  usuario?: { id: number; nombre: string; apellido?: string };
 }
 
 export interface CultivoFrutihorticola {

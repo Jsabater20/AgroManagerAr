@@ -2,6 +2,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsEnum,
+  IsArray,
   IsOptional,
   IsString,
   Max,
@@ -9,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NivelRiesgoHidrico } from '@prisma/client';
+import { ActividadProductiva, NivelRiesgoHidrico } from '@prisma/client';
 
 export class CreateCampoDto {
   @IsNotEmpty({ message: 'El nombre es requerido' })
@@ -51,6 +52,11 @@ export class CreateCampoDto {
   @IsString()
   @MaxLength(120)
   localidad?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(ActividadProductiva, { each: true })
+  actividades?: ActividadProductiva[];
 }
 
 export class UpdateCampoDto {
@@ -95,6 +101,11 @@ export class UpdateCampoDto {
   @IsString()
   @MaxLength(120)
   localidad?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(ActividadProductiva, { each: true })
+  actividades?: ActividadProductiva[];
 }
 
 export class CreateLoteDto {

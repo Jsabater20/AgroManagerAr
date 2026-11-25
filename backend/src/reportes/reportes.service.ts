@@ -33,6 +33,27 @@ type ContextoReportes = {
   campoIds?: number[];
 };
 
+type CostosComparables = {
+  reales: number;
+  estimados: number;
+  realPorHa: number | null;
+} | null;
+
+type DestinoComparable = {
+  id: number;
+  nombre: string;
+  hectareas: number;
+  cosechaKg: number;
+  costos: CostosComparables;
+};
+
+type LoteComparable = DestinoComparable & {
+  campo: { id: number; nombre: string };
+  rendimientoPromedioKgHa: number | null;
+};
+
+type CampaniaComparable = DestinoComparable;
+
 @Injectable()
 export class ReportesService {
   constructor(
@@ -311,14 +332,7 @@ export class ReportesService {
       }
     }
 
-    const desglose = {
-      organizacion,
-      periodo: this.serializarPeriodo(periodo),
-      alcance: {
-        campoIds: contexto.campoIds ?? null,
-        incluyeCostos: contexto.puedeVerFinanzas,
-      },
-      lotes: lotes.map((lote) => {
+    const lotesDesglose: LoteComparable[] = lotes.map((lote) => {
         const cosecha = cosechasPorLote.get(lote.id);
         const costosLote = costosPorLote.get(lote.id) ?? { reales: 0, estimados: 0 };
         const cultivos = [...new Set(lote.siembras.map((siembra) => siembra.tipoCultivo.nombre))];
@@ -341,8 +355,8 @@ export class ReportesService {
             realPorHa: lote.hectareas ? this.redondear(costosLote.reales / lote.hectareas) : null,
           } : null,
         };
-      }),
-      campanias: campanias.map((campania) => {
+      });
+    const campaniasDesglose: CampaniaComparable[] = campanias.map((campania) => {
         const costosCampania = costosPorCampania.get(campania.id) ?? { reales: 0, estimados: 0 };
         const loteIds = new Set(campania.siembras.map((siembra) => siembra.lote.id));
         const hectareas = [...loteIds].reduce((total, loteId) => {
@@ -366,7 +380,21 @@ export class ReportesService {
             realPorHa: hectareas ? this.redondear(costosCampania.reales / hectareas) : null,
           } : null,
         };
-      }),
+      });
+    const desglose = {
+      organizacion,
+      periodo: this.serializarPeriodo(periodo),
+      alcance: {
+        campoIds: contexto.campoIds ?? null,
+        incluyeCostos: contexto.puedeVerFinanzas,
+      },
+      comparativa: this.crearComparativaDesglose(
+        lotesDesglose,
+        campaniasDesglose,
+        contexto.puedeVerFinanzas,
+      ),
+      lotes: lotesDesglose,
+      campanias: campaniasDesglose,
     };
     await this.registrarHistorial(
       usuarioId,
@@ -441,6 +469,97 @@ export class ReportesService {
         estimados: 'Los costos estimados no modifican el saldo: sirven como referencia de desvíos.',
         periodo: 'El informe utiliza períodos cerrados en horario de Argentina.',
       },
+    };
+  }
+
+  private crearComparativaDesglose(
+    lotes: LoteComparable[],
+    campanias: CampaniaComparable[],
+    incluyeCostos: boolean,
+  ) {
+    const rendimientos = lotes.filter(
+      (lote) => lote.rendimientoPromedioKgHa !== null,
+    );
+    const mejorRendimiento = [...rendimientos].sort(
+      (primero, segundo) => (segundo.rendimientoPromedioKgHa ?? 0) - (primero.rendimientoPromedioKgHa ?? 0),
+    )[0];
+    const menorRendimiento = rendimientos.length > 1
+      ? [...rendimientos].sort(
+        (primero, segundo) => (primero.rendimientoPromedioKgHa ?? 0) - (segundo.rendimientoPromedioKgHa ?? 0),
+      )[0]
+      : undefined;
+
+    return {
+      lotes: {
+        ...this.resumirDestinosComparables(lotes, incluyeCostos),
+        rendimientoPromedioKgHa: rendimientos.length
+          ? this.redondear(rendimientos.reduce((total, lote) => total + (lote.rendimientoPromedioKgHa ?? 0), 0) / rendimientos.length)
+          : null,
+        mejorRendimiento: mejorRendimiento
+          ? this.referenciaDestino(mejorRendimiento, mejorRendimiento.rendimientoPromedioKgHa ?? 0)
+          : null,
+        menorRendimiento: menorRendimiento
+          ? this.referenciaDestino(menorRendimiento, menorRendimiento.rendimientoPromedioKgHa ?? 0)
+          : null,
+      },
+      campanias: this.resumirDestinosComparables(campanias, incluyeCostos),
+    };
+  }
+
+  private resumirDestinosComparables<T extends DestinoComparable>(
+    destinos: T[],
+    incluyeCostos: boolean,
+  ) {
+    const conCosecha = destinos.filter((destino) => destino.cosechaKg > 0);
+    const mejorCosecha = [...conCosecha].sort((primero, segundo) => segundo.cosechaKg - primero.cosechaKg)[0];
+    const conCostos = destinos.filter((destino) => destino.costos && (destino.costos.reales > 0 || destino.costos.estimados > 0));
+    const mayorCostoPorHa = [...conCostos]
+      .filter((destino) => destino.costos?.realPorHa !== null)
+      .sort((primero, segundo) => (segundo.costos?.realPorHa ?? 0) - (primero.costos?.realPorHa ?? 0))[0];
+    const valorMayorCostoPorHa = mayorCostoPorHa?.costos?.realPorHa ?? null;
+    const conDesvio = conCostos
+      .filter((destino) => (destino.costos?.estimados ?? 0) > 0 && (destino.costos?.reales ?? 0) > (destino.costos?.estimados ?? 0))
+      .map((destino) => ({
+        destino,
+        porcentaje: ((destino.costos!.reales - destino.costos!.estimados) / destino.costos!.estimados) * 100,
+      }))
+      .sort((primero, segundo) => segundo.porcentaje - primero.porcentaje)[0];
+    const superficieConCostos = conCostos.reduce((total, destino) => total + destino.hectareas, 0);
+    const reales = conCostos.reduce((total, destino) => total + (destino.costos?.reales ?? 0), 0);
+    const estimados = conCostos.reduce((total, destino) => total + (destino.costos?.estimados ?? 0), 0);
+
+    return {
+      destinos: destinos.length,
+      conCosecha: conCosecha.length,
+      cosechaKg: this.redondear(conCosecha.reduce((total, destino) => total + destino.cosechaKg, 0)),
+      mejorCosecha: mejorCosecha ? this.referenciaDestino(mejorCosecha, mejorCosecha.cosechaKg) : null,
+      costos: incluyeCostos && conCostos.length
+        ? {
+          reales: this.redondear(reales),
+          estimados: this.redondear(estimados),
+          realPorHa: superficieConCostos ? this.redondear(reales / superficieConCostos) : null,
+          mayorCostoPorHa: mayorCostoPorHa && valorMayorCostoPorHa !== null
+            ? this.referenciaDestino(mayorCostoPorHa, valorMayorCostoPorHa)
+            : null,
+          mayorDesvio: conDesvio
+            ? {
+              ...this.referenciaDestino(conDesvio.destino, conDesvio.porcentaje),
+              reales: this.redondear(conDesvio.destino.costos!.reales),
+              estimados: this.redondear(conDesvio.destino.costos!.estimados),
+            }
+            : null,
+        }
+        : null,
+    };
+  }
+
+  private referenciaDestino(destino: DestinoComparable, valor: number) {
+    const lote = destino as LoteComparable;
+    return {
+      id: destino.id,
+      nombre: destino.nombre,
+      campoNombre: lote.campo?.nombre ?? null,
+      valor: this.redondear(valor),
     };
   }
 

@@ -43,7 +43,10 @@ export class FrutihorticulturaService {
       include: {
         campo: { select: { id: true, nombre: true } },
         lote: { select: { id: true, nombre: true } },
-        cosechas: { orderBy: { fechaCosecha: 'desc' } },
+        cosechas: {
+          include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
+          orderBy: { fechaCosecha: 'desc' },
+        },
       },
       orderBy: [{ estado: 'asc' }, { fechaInicio: 'desc' }],
     });
@@ -56,7 +59,10 @@ export class FrutihorticulturaService {
       include: {
         campo: { select: { id: true, nombre: true } },
         lote: { select: { id: true, nombre: true } },
-        cosechas: { orderBy: { fechaCosecha: 'desc' } },
+        cosechas: {
+          include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
+          orderBy: { fechaCosecha: 'desc' },
+        },
       },
     });
     if (!cultivo) throw new NotFoundException('Cultivo frutihorticola no encontrado');
@@ -105,7 +111,7 @@ export class FrutihorticulturaService {
       include: {
         campo: { select: { id: true, nombre: true } },
         lote: { select: { id: true, nombre: true } },
-        cosechas: true,
+      cosechas: { include: { usuario: { select: { id: true, nombre: true, apellido: true } } } },
       },
     });
   }
@@ -133,7 +139,10 @@ export class FrutihorticulturaService {
       include: {
         campo: { select: { id: true, nombre: true } },
         lote: { select: { id: true, nombre: true } },
-        cosechas: { orderBy: { fechaCosecha: 'desc' } },
+        cosechas: {
+          include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
+          orderBy: { fechaCosecha: 'desc' },
+        },
       },
     });
   }
@@ -166,6 +175,7 @@ export class FrutihorticulturaService {
         destino: dto.destino?.trim() || null,
         observaciones: dto.observaciones?.trim() || null,
       },
+      include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
     });
   }
 

@@ -18,6 +18,7 @@ export class AvicolaService {
       where: { organizacionId },
       include: {
         registros: {
+          include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
           orderBy: { fecha: 'desc' },
           take: 30,
         },
@@ -66,7 +67,7 @@ export class AvicolaService {
         capacidad: dto.capacidad,
         observaciones: dto.observaciones?.trim() || null,
       },
-      include: { registros: true },
+      include: { registros: { include: { usuario: { select: { id: true, nombre: true, apellido: true } } } } },
     });
   }
 
@@ -106,6 +107,7 @@ export class AvicolaService {
         pesoPromedioGr: dto.pesoPromedioGr,
         observaciones: dto.observaciones?.trim() || null,
       },
+      include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
     });
   }
 
@@ -123,6 +125,6 @@ export class AvicolaService {
   }
 
   private requireAccess(usuarioId: number, organizacionId: number) {
-    return this.memberAccessService.requireModule(usuarioId, organizacionId, 'GanaderÃ­a');
+    return this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
   }
 }

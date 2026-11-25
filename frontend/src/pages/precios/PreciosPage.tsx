@@ -276,8 +276,13 @@ export default function PreciosPage() {
           </div>
         </div>
 
+<<<<<<< HEAD
         <div className="relative rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white shadow-lg shadow-emerald-950/20">
           <div className="flex flex-col gap-6">
+=======
+        <div id="empresa" className="rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white md:col-span-2">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+>>>>>>> develop
             <div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-500 px-3 py-1 text-xs font-bold text-white"><Building2 size={13} /> PARA GRUPOS AGROPECUARIOS</span>
               <h2 className="mt-4 text-2xl font-bold">Plan Empresa</h2>

@@ -28,11 +28,18 @@ export const ganadoApi = {
   removePeso: (pesoId: number): Promise<void> => api.delete(`/ganado/pesos/${pesoId}`).then(r => r.data),
   getLotes: (): Promise<LoteGanadero[]> => api.get('/ganado/lotes').then(r => r.data),
   createLote: (dto: CreateLoteGanaderoDto): Promise<LoteGanadero> => api.post('/ganado/lotes', dto).then(r => r.data),
+<<<<<<< HEAD
   addRegistroLote: (id: number, dto: CreateRegistroLoteGanaderoDto): Promise<RegistroLoteGanadero> =>
     api.post(`/ganado/lotes/${id}/registros`, dto).then(r => r.data),
   cerrarLote: (id: number, dto: CerrarLoteGanaderoDto): Promise<LoteGanadero> =>
     api.patch(`/ganado/lotes/${id}/cerrar`, dto).then(r => r.data),
   removeLote: (id: number): Promise<void> => api.delete(`/ganado/lotes/${id}`).then(r => r.data),
+=======
+  registrarLote: (id: number, dto: CreateRegistroLoteGanaderoDto): Promise<RegistroLoteGanadero> =>
+    api.post('/ganado/lotes/' + id + '/registros', dto).then(r => r.data),
+  cerrarLote: (id: number, dto: CerrarLoteGanaderoDto): Promise<LoteGanadero> =>
+    api.patch('/ganado/lotes/' + id + '/cerrar', dto).then(r => r.data),
+>>>>>>> develop
 };
 
 

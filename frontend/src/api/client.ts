@@ -31,6 +31,7 @@ api.interceptors.request.use((config) => {
     !config.url?.includes('/auth/') &&
     !config.url?.includes('/users/') &&
     !config.url?.includes('/organizaciones') &&
+    !config.url?.includes('/agromanager-digital') &&
     !config.url?.includes('/novedades')
   ) {
     config.params = config.params || {};

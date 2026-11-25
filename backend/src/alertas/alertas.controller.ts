@@ -25,6 +25,14 @@ export class AlertasController {
     );
   }
 
+  @Get('centro-atencion')
+  centroAtencion(@Request() req: AuthRequest) {
+    return this.alertasService.obtenerCentroAtencion(
+      req.user.id,
+      req.organizacionId,
+    );
+  }
+
   @Get('preferencias')
   obtenerPreferencias(@Request() req: AuthRequest) {
     return this.alertasService.obtenerPreferencias(req.user.id, req.organizacionId);

@@ -12,6 +12,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DemoGuard } from '../auth/demo.guard';
 import { OrganizationGuard } from '../organizations/organization.guard';
+import { Auditar } from '../audit/decorators/audit.decorator';
 import { FrutihorticulturaService } from './frutihorticultura.service';
 import {
   CreateCosechaFrutihorticolaDto,
@@ -40,11 +41,13 @@ export class FrutihorticulturaController {
   }
 
   @Post()
+  @Auditar('crear_cultivo_frutihorticola', 'CultivoFrutihorticola')
   create(@Body() dto: CreateCultivoFrutihorticolaDto, @Request() req: AuthRequest) {
     return this.service.create(dto, req.user.id, req.organizacionId);
   }
 
   @Patch(':id')
+  @Auditar('actualizar_cultivo_frutihorticola', 'CultivoFrutihorticola')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCultivoFrutihorticolaDto,
@@ -54,6 +57,7 @@ export class FrutihorticulturaController {
   }
 
   @Post(':id/cosechas')
+  @Auditar('registrar_cosecha_frutihorticola', 'CosechaFrutihorticola')
   addCosecha(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateCosechaFrutihorticolaDto,

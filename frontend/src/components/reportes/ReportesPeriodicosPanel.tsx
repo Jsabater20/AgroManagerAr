@@ -5,9 +5,12 @@ import {
   CheckCircle2,
   CircleAlert,
   CloudRain,
+  Copy,
   Download,
+  ListChecks,
   LockKeyhole,
   RefreshCw,
+  Share2,
   Sparkles,
   TrendingUp,
   Wrench,
@@ -18,6 +21,10 @@ import {
   type TipoReportePeriodico,
 } from '../../api/reportes.api';
 import { descargarReportePeriodicoPdf } from '../../utils/reportes-pdf';
+import {
+  crearResumenEjecutivoParaCompartir,
+  obtenerAccionesRecomendadas,
+} from '../../utils/resumen-ejecutivo';
 
 const formatoPesos = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -88,6 +95,40 @@ function AnalisisInteligente({ reporte }: { reporte: ReportePeriodico }) {
   );
 }
 
+function ResumenEjecutivo({ reporte }: { reporte: ReportePeriodico }) {
+  const [estado, setEstado] = useState<string | null>(null);
+  const acciones = obtenerAccionesRecomendadas(reporte);
+  const textoParaCompartir = crearResumenEjecutivoParaCompartir(reporte);
+
+  const copiar = async () => {
+    if (!navigator.clipboard) {
+      setEstado('Tu navegador no permite copiar automáticamente. Descargá el PDF para compartirlo.');
+      return;
+    }
+    await navigator.clipboard.writeText(textoParaCompartir);
+    setEstado('Resumen copiado. Ya podés pegarlo en WhatsApp, email o donde prefieras.');
+  };
+
+  const compartir = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Informe ${reporte.tipo.toLowerCase()} · ${reporte.organizacion.nombre}`,
+          text: textoParaCompartir,
+        });
+        setEstado('Resumen compartido.');
+        return;
+      }
+      await copiar();
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setEstado('No pudimos abrir las opciones para compartir. Probá copiar el resumen.');
+    }
+  };
+
+  return <section className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm dark:border-emerald-900/70 dark:bg-emerald-950/20"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="flex gap-3"><span className="rounded-xl bg-emerald-700 p-2 text-white"><ListChecks size={19} /></span><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-300">Informe ejecutivo</p><h3 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">Lo importante para decidir y comunicar</h3><p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-300">Una síntesis del período para compartir sin dar acceso a tu cuenta ni exponer información adicional.</p></div></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void copiar()} className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-800 dark:bg-slate-900 dark:text-emerald-300"><Copy size={15} /> Copiar resumen</button><button type="button" onClick={() => void compartir()} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"><Share2 size={15} /> Compartir</button></div></div><div className="mt-4 grid gap-3 lg:grid-cols-[1.05fr_.95fr]"><div className="rounded-lg border border-emerald-100 bg-white/80 p-3 dark:border-emerald-900/60 dark:bg-slate-900/75"><p className="text-sm font-semibold text-slate-900 dark:text-white">Estado del período</p><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{reporte.resumenInteligente?.resumen ?? reporte.resumen[0] ?? 'Informe disponible para revisar.'}</p></div><div className="rounded-lg border border-emerald-100 bg-white/80 p-3 dark:border-emerald-900/60 dark:bg-slate-900/75"><p className="text-sm font-semibold text-slate-900 dark:text-white">Próximos pasos</p>{acciones.length ? <ul className="mt-2 space-y-1.5">{acciones.map((accion) => <li key={accion} className="flex gap-2 text-sm leading-5 text-slate-600 dark:text-slate-300"><CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-600" />{accion}</li>)}</ul> : <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">No hay prioridades críticas registradas para este período.</p>}</div></div>{estado && <p className="mt-3 text-xs font-medium text-emerald-800 dark:text-emerald-200">{estado}</p>}</section>;
+}
+
 function SeguimientoHidrico({ reporte }: { reporte: ReportePeriodico }) {
   const { resumen, campos } = reporte.riesgoHidrico;
   const haySeguimiento = resumen.alertasActivas || resumen.accionesPendientes || resumen.altoRiesgo || resumen.sinPerfil;
@@ -131,6 +172,7 @@ function Resultado({ reporte }: { reporte: ReportePeriodico }) {
           <Download size={16} /> Descargar PDF
         </button>
       </div>
+      <ResumenEjecutivo reporte={reporte} />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metrica etiqueta="Trabajos completados" valor={reporte.actividad.completadas} detalle={`${reporte.actividad.pendientes} pendientes`} />
         <Metrica etiqueta="Trabajos vencidos" valor={reporte.actividad.vencidas} detalle="Revisá las prioridades del equipo" tono={reporte.actividad.vencidas ? 'rose' : 'blue'} />

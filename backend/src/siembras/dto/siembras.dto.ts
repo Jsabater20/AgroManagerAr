@@ -31,6 +31,11 @@ export class CreateSiembraDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  campaniaId?: number;
 }
 
 export class UpdateSiembraDto {
@@ -51,6 +56,11 @@ export class UpdateSiembraDto {
   @IsOptional()
   @IsEnum(EstadoSiembra)
   estado?: EstadoSiembra;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  campaniaId?: number;
 }
 
 export class CreateCosechaDto {

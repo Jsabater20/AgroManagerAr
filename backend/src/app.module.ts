@@ -44,6 +44,7 @@ import { ReportesModule } from './reportes/reportes.module';
 import { PromocionesModule } from './promociones/promociones.module';
 import { ClimaModule } from './clima/clima.module';
 import { NovedadesModule } from './novedades/novedades.module';
+import { AgroManagerDigitalModule } from './agromanager-digital/agromanager-digital.module';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { NovedadesModule } from './novedades/novedades.module';
     PromocionesModule,
     ClimaModule,
     NovedadesModule,
+    AgroManagerDigitalModule,
   ],
   controllers: [AppController],
   providers: [

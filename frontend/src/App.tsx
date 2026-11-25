@@ -9,6 +9,7 @@ import { queryClient } from './lib/queryClient';
 import PrivateRoute from './components/layout/PrivateRoute';
 import Layout from './components/layout/Layout';
 import HomePage from './pages/home/HomePage';
+import FuncionesPage from './pages/funciones/FuncionesPage';
 import ContactoPage from './pages/contacto/ContactoPage';
 import SobreNosotrosPage from './pages/sobre-nosotros/SobreNosotrosPage';
 import FuncionalidadesPage from './pages/funcionalidades/FuncionalidadesPage';
@@ -41,6 +42,7 @@ import PreciosPage from './pages/precios/PreciosPage';
 import PerfilPage from './pages/perfil/PerfilPage';
 import AdminPage from './pages/admin/AdminPage';
 import AdminEmpresasPage from './pages/admin/AdminEmpresasPage';
+import AdminDigitalPage from './pages/admin/AdminDigitalPage';
 import SuscripcionExitosaPage from './pages/plan/SuscripcionExitosaPage';
 import AuditoriaPage from './pages/organizaciones/AuditoriaPage';
 import PermisosTemporalesPage from './pages/organizaciones/PermisosTemporalesPage';
@@ -78,8 +80,14 @@ import GanaderiaCalculatorPage from './pages/calculos/GanaderiaCalculatorPage';
 import EconomicosCalculatorPage from './pages/calculos/EconomicosCalculatorPage';
 import HistorialCalculosPage from './pages/calculos/HistorialCalculosPage';
 import AlertasPage from './pages/alertas/AlertasPage';
+import CentroAtencionPage from './pages/atencion/CentroAtencionPage';
 import NovedadesPage from './pages/novedades/NovedadesPage';
+<<<<<<< HEAD
 import DesuscribirNovedadesPage from './pages/novedades/DesuscribirNovedadesPage';
+=======
+import SolucionesDigitalesPage from './pages/soluciones-digitales/SolucionesDigitalesPage';
+import DigitalDemoPage from './pages/soluciones-digitales/DigitalDemoPage';
+>>>>>>> develop
 
 export default function App() {
   const { token, setAuth, setIsLoading, logout } = useAuthStore();
@@ -141,12 +149,19 @@ export default function App() {
         <Toaster position="top-right" />
         <Routes>
           <Route path="/" element={<HomePage />} />
+<<<<<<< HEAD
           <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
           <Route path="/planes" element={<PreciosPage />} />
           <Route path="/precios" element={<Navigate to="/planes" replace />} />
           <Route path="/para-empresas" element={<EmpresasPublicPage />} />
+=======
+          <Route path="/funciones" element={<FuncionesPage />} />
+          <Route path="/precios" element={<PreciosPage />} />
+>>>>>>> develop
           <Route path="/contacto" element={<ContactoPage />} />
           <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
+          <Route path="/soluciones-digitales" element={<SolucionesDigitalesPage />} />
+          <Route path="/soluciones-digitales/demos/:tipo" element={<DigitalDemoPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/demo" element={<DemoPersonalEntryPage />} />
           <Route path="/demo/empresa" element={<DemoEmpresaEntryPage />} />
@@ -165,6 +180,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/org/:orgId/dashboard" element={<DashboardPage />} />
               <Route path="/org/:orgId/alertas" element={<AlertasPage />} />
+              <Route path="/org/:orgId/atencion" element={<CentroAtencionPage />} />
               <Route path="/org/:orgId/campos" element={<CamposPage />} />
               <Route path="/org/:orgId/campos/:id" element={<CampoDetailPage />} />
               <Route path="/org/:orgId/campos/:campoId/lotes/:loteId" element={<LoteDetailPage />} />
@@ -218,6 +234,7 @@ export default function App() {
               <Route path="/novedades" element={<NovedadesPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
+              <Route path="/admin/digital" element={<AdminDigitalPage />} />
             </Route>
           </Route>
 

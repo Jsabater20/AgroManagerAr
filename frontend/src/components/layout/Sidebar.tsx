@@ -25,6 +25,7 @@ import {
   Shield,
   ChevronDown,
   Calculator,
+  BellRing,
   Sparkles,
 } from 'lucide-react';
 import type { ElementType } from 'react';
@@ -41,10 +42,12 @@ interface NavItem {
   label: string;
   icon: ElementType;
   modulo: string | null;
+  soloOwner?: boolean;
 }
 
 const navItems: NavItem[] = [
   { to: (id) => `/org/${id}/dashboard`, label: 'Dashboard', icon: LayoutDashboard, modulo: 'Dashboard' },
+  { to: (id) => `/org/${id}/atencion`, label: 'Atención', icon: BellRing, modulo: 'Dashboard', soloOwner: true },
   { to: (id) => `/org/${id}/campos`, label: 'Campos', icon: Map, modulo: 'Campos' },
   { to: (id) => `/org/${id}/cultivos`, label: 'Cultivos', icon: Leaf, modulo: 'Cultivos' },
   { to: (id) => `/org/${id}/frutihorticultura`, label: 'Frutihorticultura', icon: Apple, modulo: 'Cultivos' },
@@ -103,7 +106,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     ? []
     : canManageMembers
     ? navItems
-    : navItems.filter((item) => item.modulo !== null && modulosHabilitados.has(item.modulo));
+    : navItems.filter((item) => item.modulo !== null && !item.soloOwner && modulosHabilitados.has(item.modulo));
   const empresasQuery = useQuery({
     queryKey: ['empresas-mias'],
     queryFn: empresasApi.listarMias,

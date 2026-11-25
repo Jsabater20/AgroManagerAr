@@ -9,6 +9,7 @@ import {
   EstadoActividad,
   EstadoChecklistPreventivoHidrico,
   Prioridad,
+  Prisma,
   TipoRecursoActividad,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -115,7 +116,7 @@ export class CamposService {
 
     return this.prisma.campo.findMany({
       where: whereClause,
-      include: { lotes: true, usuario: true },
+      include: { lotes: true, usuario: true, actividadesProductivas: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -133,6 +134,7 @@ export class CamposService {
           },
         },
         usuario: true,
+        actividadesProductivas: true,
       },
     });
     if (!campo) throw new NotFoundException('Campo no encontrado');
@@ -146,10 +148,111 @@ export class CamposService {
   async create(dto: CreateCampoDto, usuarioId: number, organizacionId: number) {
     await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Campos');
     await this.planService.checkCamposLimit(organizacionId);
+    const { actividades, ...datosCampo } = dto;
     const campo = await this.prisma.campo.create({
-      data: { ...dto, usuarioId, organizacionId },
-      include: { lotes: true, usuario: true },
+      data: {
+        ...datosCampo,
+        usuarioId,
+        organizacionId,
+        ...(actividades?.length
+          ? { actividadesProductivas: { create: [...new Set(actividades)].map((tipoActividad) => ({ tipoActividad })) } }
+          : {}),
+      },
+      include: { lotes: true, usuario: true, actividadesProductivas: true },
     });
+    await this.referidosService.marcarPrimerCampoCreado(usuarioId);
+    return campo;
+  }
+
+  async createConLotes(
+    dto: CreateCampoDto,
+    lotes: CreateLoteDto[],
+    usuarioId: number,
+    organizacionId: number,
+    idempotencyKey?: string,
+  ) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Campos');
+
+    if (idempotencyKey) {
+      const existente = await this.prisma.campo.findUnique({
+        where: { agroBotIdempotencyKey: idempotencyKey },
+        include: { lotes: { orderBy: { nombre: 'asc' } }, usuario: true },
+      });
+      if (existente) {
+        if (existente.organizacionId !== organizacionId || existente.usuarioId !== usuarioId) {
+          throw new ForbiddenException('La clave de confirmación ya fue utilizada');
+        }
+        return existente;
+      }
+    }
+
+    const { actividades, ...datosCampo } = dto;
+    const nombreCampo = datosCampo.nombre.trim();
+    const lotesNormalizados = lotes.map((lote) => ({
+      nombre: lote.nombre.trim(),
+      hectareas: lote.hectareas,
+    }));
+    const nombresLotes = lotesNormalizados.map((lote) =>
+      this.normalizarNombreRegistro(lote.nombre),
+    );
+
+    if (new Set(nombresLotes).size !== nombresLotes.length) {
+      throw new BadRequestException('Los lotes deben tener nombres distintos');
+    }
+
+    const hectareasLotes = lotesNormalizados.reduce(
+      (total, lote) => total + lote.hectareas,
+      0,
+    );
+    if (lotesNormalizados.length && Math.abs(hectareasLotes - datosCampo.hectareas) > 0.01) {
+      throw new BadRequestException(
+        'La superficie de los lotes debe coincidir con la superficie total del campo',
+      );
+    }
+
+    await this.planService.checkCamposLimit(organizacionId);
+    if (lotesNormalizados.length) {
+      await this.planService.checkLotesLimit(organizacionId, lotesNormalizados.length);
+    }
+
+    const camposExistentes = await this.prisma.campo.findMany({
+      where: { organizacionId },
+      select: { nombre: true },
+    });
+    if (
+      camposExistentes.some(
+        (campo) =>
+          this.normalizarNombreRegistro(campo.nombre) ===
+          this.normalizarNombreRegistro(nombreCampo),
+      )
+    ) {
+      throw new BadRequestException('Ya existe un campo con ese nombre en la organización');
+    }
+
+    const campo = await this.prisma.$transaction(async (tx) => {
+      const creado = await tx.campo.create({
+        data: {
+          ...datosCampo,
+          nombre: nombreCampo,
+          usuarioId,
+          organizacionId,
+          agroBotIdempotencyKey: idempotencyKey,
+          ...(actividades?.length ? { actividadesProductivas: { create: [...new Set(actividades)].map((tipoActividad) => ({ tipoActividad })) } } : {}),
+        },
+      });
+
+      if (lotesNormalizados.length) {
+        await tx.lote.createMany({
+          data: lotesNormalizados.map((lote) => ({ ...lote, campoId: creado.id })),
+        });
+      }
+
+      return tx.campo.findUniqueOrThrow({
+        where: { id: creado.id },
+        include: { lotes: { orderBy: { nombre: 'asc' } }, usuario: true },
+      });
+    });
+
     await this.referidosService.marcarPrimerCampoCreado(usuarioId);
     return campo;
   }
@@ -161,10 +264,21 @@ export class CamposService {
     organizacionId: number,
   ) {
     await this.findOne(id, usuarioId, organizacionId);
+    const { actividades, ...datosCampo } = dto;
     return this.prisma.campo.update({
       where: { id },
-      data: dto,
-      include: { lotes: true, usuario: true },
+      data: {
+        ...datosCampo,
+        ...(actividades !== undefined
+          ? {
+              actividadesProductivas: {
+                deleteMany: {},
+                create: [...new Set(actividades)].map((tipoActividad) => ({ tipoActividad })),
+              },
+            }
+          : {}),
+      },
+      include: { lotes: true, usuario: true, actividadesProductivas: true },
     });
   }
 
@@ -1035,6 +1149,15 @@ export class CamposService {
     const titulo = valor.trim();
     if (!titulo) throw new BadRequestException('El título de la acción es requerido');
     return titulo;
+  }
+
+  private normalizarNombreRegistro(valor: string) {
+    return valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('es-AR')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private normalizarTextoOpcional(valor?: string | null) {

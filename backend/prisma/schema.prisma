@@ -70,6 +70,10 @@ model Usuario {
   notificaciones                    Notificacion[]
   lecturasAlertas                   AlertaLectura[]
   preferenciasAlertas               PreferenciaAlerta[]
+  usoAgroBotIa                      UsoAgroBotIa[]
+  siembrasRegistradas               Siembra[]                         @relation("siembra_usuario")
+  cosechasRegistradas               Cosecha[]                         @relation("cosecha_usuario")
+  aplicacionesInsumoRegistradas     AplicacionInsumo[]                @relation("aplicacion_insumo_usuario")
   calculosGuardados                 CalculoGuardado[]
   costosProductivosCreados          CostoProductivo[]                @relation("costo_productivo_creador")
   preferenciasReportes              PreferenciaReporte[]
@@ -285,8 +289,22 @@ model Campo {
   perfilRiesgoHidrico     PerfilRiesgoHidricoCampo?
   checklistHidrico        ChecklistPreventivoHidrico[]
   umbralAlertaHidrica     UmbralAlertaHidricaCampo?
+  agroBotIdempotencyKey   String?                   @unique
+  actividadesProductivas  CampoActividadProductiva[]
 
   @@index([organizacionId])
+}
+
+model CampoActividadProductiva {
+  id            Int                 @id @default(autoincrement())
+  campoId       Int
+  tipoActividad ActividadProductiva
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  campo         Campo               @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
+  @@unique([campoId, tipoActividad])
+  @@index([tipoActividad])
 }
 
 model Lote {
@@ -323,6 +341,7 @@ model Siembra {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   campaniaId        Int?
+  usuarioId         Int?
   aplicaciones      AplicacionInsumo[]
   cosechas          Cosecha[]
   movimentos        MovimientoFinanciero[]
@@ -330,6 +349,9 @@ model Siembra {
   campania          Campania?              @relation(fields: [campaniaId], references: [id])
   lote              Lote                   @relation(fields: [loteId], references: [id])
   tipoCultivo       TipoCultivo            @relation(fields: [tipoCultivoId], references: [id])
+  registradaPor     Usuario?               @relation("siembra_usuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
 }
 
 model Cosecha {
@@ -342,7 +364,11 @@ model Cosecha {
   observaciones   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  usuarioId       Int?
   siembra         Siembra  @relation(fields: [siembraId], references: [id])
+  registradaPor   Usuario? @relation("cosecha_usuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
 }
 
 model CultivoFrutihorticola {
@@ -457,8 +483,12 @@ model AplicacionInsumo {
   observaciones String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  usuarioId     Int?
   insumo        Insumo   @relation(fields: [insumoId], references: [id])
   siembra       Siembra  @relation(fields: [siembraId], references: [id])
+  registradaPor Usuario? @relation("aplicacion_insumo_usuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
 }
 
 model Animal {
@@ -515,9 +545,12 @@ model TareaRural {
   fechaLimite     DateTime?
   repetir         RepetirTarea  @default(UNICA)
   organizacionId  Int?
+  tareaOrigenId   Int?          @unique
   campo           Campo?        @relation(fields: [campoId], references: [id])
   organizacion    Organizacion? @relation(fields: [organizacionId], references: [id])
   usuario         Usuario       @relation(fields: [usuarioId], references: [id])
+  tareaOrigen     TareaRural?   @relation("tareas_recurrentes", fields: [tareaOrigenId], references: [id], onDelete: SetNull)
+  tareasDerivadas TareaRural[]  @relation("tareas_recurrentes")
 
   @@index([organizacionId])
 }
@@ -782,6 +815,7 @@ model Organizacion {
   perfilesRiesgoHidrico     PerfilRiesgoHidricoCampo[]
   checklistHidrico          ChecklistPreventivoHidrico[]
   umbralesAlertaHidrica     UmbralAlertaHidricaCampo[]
+  usoAgroBotIa              UsoAgroBotIa[]
 
   @@index([propietarioId])
   @@index([actividadPrincipal])
@@ -1253,6 +1287,7 @@ model ActividadMiembro {
   prioridad Prioridad       @default(MEDIA)
 
   activo Boolean @default(true)
+  agroBotIdempotencyKey String? @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1270,6 +1305,21 @@ model ActividadMiembro {
   @@index([creadoPorId])
   @@index([calculoOrigenId])
   @@index([organizacionId, activo])
+}
+
+model UsoAgroBotIa {
+  id             Int          @id @default(autoincrement())
+  usuarioId      Int
+  organizacionId Int
+  fecha          DateTime
+  consultas      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, organizacionId, fecha])
+  @@index([organizacionId, fecha])
 }
 
 model CostoProductivo {
@@ -1439,6 +1489,74 @@ model ArchivoEvidencia {
   @@index([evidenciaId])
 }
 
+model SolicitudAgroManagerDigital {
+  id                    Int                            @id @default(autoincrement())
+  nombre                String
+  establecimiento      String
+  email                 String
+  telefono              String
+  provincia             String
+  localidad             String
+  actividad             String
+  servicio              String
+  tipoProyecto          String                         @default("ESTABLECIMIENTO")
+  tieneSitioWeb         Boolean
+  descripcion           String                         @db.Text
+  informacionPublicar   String[]                       @default([])
+  requiereCatalogo      Boolean                        @default(false)
+  administraContenido   Boolean                        @default(false)
+  tieneIdentidadVisual  Boolean                        @default(false)
+  tieneDominioPropio    Boolean                        @default(false)
+  requiereMantenimiento Boolean                        @default(false)
+  referenciaUrl         String?
+  funcionalidadesPersonalizadas String?                 @db.Text
+  presupuesto           String?
+  fechaInicio           String?
+  comentarios           String?                        @db.Text
+  consienteContacto     Boolean                        @default(false)
+  estado                EstadoSolicitudDigital         @default(NUEVA)
+  observacionesInternas String?                        @db.Text
+  presupuestoEnviado    String?                        @db.Text
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+  seguimientos          SeguimientoSolicitudDigital[]
+
+  @@index([estado, createdAt])
+  @@index([email])
+}
+
+model SeguimientoSolicitudDigital {
+  id            Int                         @id @default(autoincrement())
+  solicitudId   Int
+  administrador String
+  detalle       String                      @db.Text
+  createdAt     DateTime                    @default(now())
+  solicitud     SolicitudAgroManagerDigital @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  @@index([solicitudId, createdAt])
+}
+
+model EventoAgroManagerDigital {
+  id        Int                        @id @default(autoincrement())
+  tipo      TipoEventoAgroManagerDigital
+  origen    String?                    @db.VarChar(120)
+  medio     String?                    @db.VarChar(120)
+  campania  String?                    @db.VarChar(120)
+  createdAt DateTime                   @default(now())
+
+  @@index([tipo, createdAt])
+  @@index([origen, createdAt])
+  @@index([campania, createdAt])
+}
+
+enum TipoEventoAgroManagerDigital {
+  VISITA
+  CLICK_PRESUPUESTO
+  CLICK_WHATSAPP
+  FORMULARIO_INICIADO
+  FORMULARIO_ENVIADO
+}
+
 enum Rol {
   ADMIN
   OPERADOR
@@ -1452,6 +1570,18 @@ enum PlanTipo {
 enum EstadoNovedadProducto {
   BORRADOR
   PUBLICADA
+}
+
+enum EstadoSolicitudDigital {
+  NUEVA
+  CONTACTADO
+  EN_EVALUACION
+  PRESUPUESTO_ENVIADO
+  EN_NEGOCIACION
+  PROYECTO_CONFIRMADO
+  EN_DESARROLLO
+  FINALIZADO
+  ARCHIVADO
 }
 
 enum CategoriaNovedadProducto {

@@ -13,9 +13,13 @@ import {
   CreatePrenezDto,
   UpdatePrenezEstadoDto,
   CreateRegistroPesoDto,
+<<<<<<< HEAD
   CreateLoteGanaderoDto,
   CreateRegistroLoteGanaderoDto,
   CerrarLoteGanaderoDto,
+=======
+  CreateLoteGanaderoDto, CreateRegistroLoteGanaderoDto, CerrarLoteGanaderoDto,
+>>>>>>> develop
 } from './dto/ganado.dto';
 
 const GESTATION_DAYS: Record<string, number> = {
@@ -39,9 +43,69 @@ export class GanadoService {
     await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
     return this.prisma.animal.findMany({
       where: { organizacionId },
-      include: { preneces: { orderBy: { createdAt: 'desc' } } },
+      include: {
+        preneces: { orderBy: { createdAt: 'desc' } },
+        loteGanadero: { select: { id: true, nombre: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  private async validarLoteGanadero(loteGanaderoId: number, organizacionId: number) {
+    const lote = await this.prisma.loteGanadero.findFirst({
+      where: { id: loteGanaderoId, organizacionId, estado: 'ACTIVO' },
+      select: { id: true },
+    });
+    if (!lote) throw new NotFoundException('Lote ganadero activo no encontrado');
+  }
+
+  async listarLotes(usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    return this.prisma.loteGanadero.findMany({
+      where: { organizacionId },
+      include: {
+        registros: {
+          include: { usuario: { select: { id: true, nombre: true, apellido: true } } },
+          orderBy: { fecha: 'desc' },
+          take: 5,
+        },
+        _count: { select: { animales: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async crearLote(dto: CreateLoteGanaderoDto, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    return this.prisma.loteGanadero.create({
+      data: {
+        ...dto,
+        nombre: dto.nombre.trim(),
+        fechaIngreso: new Date(dto.fechaIngreso),
+        cantidadActual: dto.cantidadInicial,
+        usuarioId,
+        organizacionId,
+      },
+      include: { registros: true, _count: { select: { animales: true } } },
+    });
+  }
+
+  async registrarLote(id: number, dto: CreateRegistroLoteGanaderoDto, usuarioId: number, organizacionId: number) {
+    const lote = await this.prisma.loteGanadero.findFirst({ where: { id, organizacionId, estado: 'ACTIVO' } });
+    if (!lote) throw new NotFoundException('Lote ganadero activo no encontrado');
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    return this.prisma.$transaction(async (tx) => {
+      const registro = await tx.registroLoteGanadero.create({ data: { ...dto, fecha: new Date(dto.fecha), alimentoKg: dto.alimentoKg ?? 0, bajas: dto.bajas ?? 0, loteGanaderoId: id, usuarioId } });
+      await tx.loteGanadero.update({ where: { id }, data: { cantidadActual: dto.cantidadActual, pesoPromedioActualKg: dto.pesoPromedioKg ?? lote.pesoPromedioActualKg } });
+      return registro;
+    });
+  }
+
+  async cerrarLote(id: number, dto: CerrarLoteGanaderoDto, usuarioId: number, organizacionId: number) {
+    await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
+    const lote = await this.prisma.loteGanadero.findFirst({ where: { id, organizacionId, estado: 'ACTIVO' }, select: { id: true } });
+    if (!lote) throw new NotFoundException('Lote ganadero activo no encontrado');
+    return this.prisma.loteGanadero.update({ where: { id }, data: { estado: 'CERRADO', fechaEgreso: new Date(dto.fechaEgreso), precioVentaTotal: dto.precioVentaTotal } });
   }
 
   async findOne(id: number, usuarioId: number, organizacionId: number) {
@@ -58,11 +122,15 @@ export class GanadoService {
   async create(dto: CreateAnimalDto, usuarioId: number, organizacionId: number) {
     await this.memberAccessService.requireModule(usuarioId, organizacionId, 'Ganadería');
     await this.planService.checkAnimalesLimit(organizacionId);
+<<<<<<< HEAD
     const loteGanaderoId = await this.validarLoteGanadero(
       dto.loteGanaderoId,
       dto.especie,
       organizacionId,
     );
+=======
+    if (dto.loteGanaderoId) await this.validarLoteGanadero(dto.loteGanaderoId, organizacionId);
+>>>>>>> develop
     return this.prisma.animal.create({
       data: {
         nombre: dto.nombre,
@@ -74,11 +142,12 @@ export class GanadoService {
           ? new Date(dto.fechaNacimiento)
           : undefined,
         observaciones: dto.observaciones,
+        loteGanaderoId: dto.loteGanaderoId,
         usuarioId,
         organizacionId,
         loteGanaderoId,
       },
-      include: { preneces: true },
+      include: { preneces: true, loteGanadero: { select: { id: true, nombre: true } } },
     });
   }
 
@@ -88,12 +157,17 @@ export class GanadoService {
     usuarioId: number,
     organizacionId: number,
   ) {
+<<<<<<< HEAD
     const animal = await this.findOne(id, usuarioId, organizacionId);
     const loteGanaderoId = await this.validarLoteGanadero(
       dto.loteGanaderoId,
       animal.especie,
       organizacionId,
     );
+=======
+    await this.findOne(id, usuarioId, organizacionId);
+    if (dto.loteGanaderoId) await this.validarLoteGanadero(dto.loteGanaderoId, organizacionId);
+>>>>>>> develop
     return this.prisma.animal.update({
       where: { id },
       data: {
@@ -104,9 +178,13 @@ export class GanadoService {
           ? new Date(dto.fechaNacimiento)
           : undefined,
         observaciones: dto.observaciones,
+<<<<<<< HEAD
         loteGanaderoId,
+=======
+        loteGanaderoId: dto.loteGanaderoId,
+>>>>>>> develop
       },
-      include: { preneces: true },
+      include: { preneces: true, loteGanadero: { select: { id: true, nombre: true } } },
     });
   }
 

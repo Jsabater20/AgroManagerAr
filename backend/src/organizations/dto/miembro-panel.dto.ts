@@ -16,6 +16,10 @@ export class MiembroPanelDto {
   };
   email: string;
   rol: string;
+  cargo: string;
+  cargoPersonalizado?: string | null;
+  responsable?: { id: number; nombre: string; apellido: string } | null;
+  personasACargo: number;
   activo: boolean;
   fechaIncorporacion: string;
   actividades: ActivityCountDto;

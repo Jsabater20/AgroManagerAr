@@ -207,6 +207,13 @@ export default function AdminPage() {
             <Building2 size={16} />
             Empresas
           </Link>
+          <Link
+            to="/admin/digital"
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-100"
+          >
+            <Building2 size={16} />
+            AgroManager Digital
+          </Link>
           {misOrganizaciones.length > 0 && (
             <button
               type="button"

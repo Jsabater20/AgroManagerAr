@@ -10,6 +10,7 @@ import { siembrasApi } from '../../api/siembras.api';
 import { camposApi } from '../../api/campos.api';
 import { cultivosApi } from '../../api/cultivos.api';
 import { insumosApi } from '../../api/insumos.api';
+import { campaniasApi } from '../../api/campanias.api';
 import type {
   CreateSiembraDto, CreateCosechaDto, CreateAplicacionDto,
   EstadoSiembra, Siembra,
@@ -58,6 +59,12 @@ export default function SiembrasPage() {
   const { data: campos = [] as any[] } = useQuery({ queryKey: ['campos', orgId], queryFn: () => camposApi.getAll() });
   const { data: cultivos = [] as any[] } = useQuery({ queryKey: ['cultivos', orgId], queryFn: () => cultivosApi.getAll() });
   const { data: insumos = [] as any[] } = useQuery({ queryKey: ['insumos', orgId], queryFn: () => insumosApi.getAll() });
+  const { data: campanias = [] } = useQuery({
+    queryKey: ['campanias', orgId],
+    queryFn: campaniasApi.getAll,
+    enabled: showModal,
+    retry: false,
+  });
 
   const lotesDisponibles = campos?.find((c: any) => c.id === selectedCampoId)?.lotes ?? [];
 
@@ -78,7 +85,7 @@ export default function SiembrasPage() {
       toast.success('Siembra registrada');
       setShowModal(false); setForm(emptyForm); setSelectedCampoId(0);
     },
-    onError: () => toast.error('Error al registrar la siembra'),
+    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Error al registrar la siembra'),
   });
 
   const estadoMutation = useMutation({
@@ -182,7 +189,11 @@ export default function SiembrasPage() {
                       <td className="px-5 py-3.5 font-medium text-gray-900">
                         {s.lote?.campo?.nombre ?? '-'}<span className="text-gray-400 font-normal"> / {s.lote?.nombre ?? '-'}</span>
                       </td>
-                      <td className="px-5 py-3.5 text-gray-700">{s.tipoCultivo?.nombre ?? '-'}</td>
+                      <td className="px-5 py-3.5 text-gray-700">
+                        {s.tipoCultivo?.nombre ?? '-'}
+                        {s.campania && <p className="mt-0.5 text-xs text-amber-700">{s.campania.nombre}</p>}
+                        {s.registradaPor && <p className="mt-0.5 text-xs text-gray-400">Registrado por {[s.registradaPor.nombre, s.registradaPor.apellido].filter(Boolean).join(' ')}</p>}
+                      </td>
                       <td className="px-5 py-3.5 text-gray-600">{formatDate(s.fechaSiembra)}</td>
                       <td className="px-5 py-3.5 text-gray-600">{s.densidad ? `${s.densidad} kg/ha` : '-'}</td>
                       <td className="px-5 py-3.5 text-gray-600">
@@ -261,6 +272,16 @@ export default function SiembrasPage() {
                 {cultivos?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </Field>
+            {campanias.length > 0 && (
+              <Field label="Campania agricola">
+                <select value={form.campaniaId ?? ''} onChange={(e) => setForm({ ...form, campaniaId: e.target.value ? Number(e.target.value) : undefined })} className="input">
+                  <option value="">Sin campania</option>
+                  {campanias.map((campania) => (
+                    <option key={campania.id} value={campania.id}>{campania.nombre}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <Field label="Fecha de siembra *">
               <input required type="date" value={form.fechaSiembra} onChange={(e) => setForm({ ...form, fechaSiembra: e.target.value })} className="input" />
             </Field>

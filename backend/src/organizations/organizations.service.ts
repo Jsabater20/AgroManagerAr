@@ -582,31 +582,40 @@ export class OrganizationsService {
         VisibilidadModulo: {
           select: { moduloNombre: true, activo: true },
         },
+        responsable: {
+          select: {
+            id: true,
+            usuario: { select: { nombre: true, apellido: true } },
+          },
+        },
+        _count: { select: { equipoACargo: true } },
       },
     });
 
-    const miembrosPanelPromises = miembros.map(async (m) => {
-      // Contar actividades por estado
-      const actividades = await this.prisma.tareaRural.groupBy({
-        by: ['estado'],
-        where: {
-          usuarioId: m.usuarioId,
-          organizacionId: orgId,
-        },
-        _count: true,
-      });
-
-      const activityCount: ActivityCountDto = {
+    const actividadesAgrupadas = await this.prisma.actividadMiembro.groupBy({
+      by: ['usuarioOrganizacionId', 'estado'],
+      where: { organizacionId: orgId, activo: true },
+      _count: true,
+    });
+    const actividadesPorMiembro = new Map<number, ActivityCountDto>();
+    for (const actividad of actividadesAgrupadas) {
+      const resumen = actividadesPorMiembro.get(actividad.usuarioOrganizacionId) ?? {
         pendientes: 0,
         enProgreso: 0,
         completadas: 0,
       };
+      if (actividad.estado === 'PENDIENTE') resumen.pendientes = actividad._count;
+      if (actividad.estado === 'EN_PROGRESO') resumen.enProgreso = actividad._count;
+      if (actividad.estado === 'COMPLETADA') resumen.completadas = actividad._count;
+      actividadesPorMiembro.set(actividad.usuarioOrganizacionId, resumen);
+    }
 
-      actividades.forEach((a: any) => {
-        if (a.estado === 'PENDIENTE') activityCount.pendientes = a._count;
-        if (a.estado === 'EN_PROGRESO') activityCount.enProgreso = a._count;
-        if (a.estado === 'COMPLETADA') activityCount.completadas = a._count;
-      });
+    const miembrosPanelPromises = miembros.map(async (m) => {
+      const activityCount = actividadesPorMiembro.get(m.id) ?? {
+        pendientes: 0,
+        enProgreso: 0,
+        completadas: 0,
+      };
 
       return {
         id: m.id,
@@ -620,6 +629,16 @@ export class OrganizationsService {
         },
         email: m.usuario.email,
         rol: m.roles,
+        cargo: m.cargo,
+        cargoPersonalizado: m.cargoPersonalizado,
+        responsable: m.responsable
+          ? {
+              id: m.responsable.id,
+              nombre: m.responsable.usuario.nombre,
+              apellido: m.responsable.usuario.apellido,
+            }
+          : null,
+        personasACargo: m._count.equipoACargo,
         activo: m.activo,
         fechaIncorporacion: m.fechaInvitacion?.toISOString() || '',
         actividades: activityCount,
