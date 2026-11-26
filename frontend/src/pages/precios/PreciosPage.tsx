@@ -288,41 +288,39 @@ export default function PreciosPage() {
         </div>
 
         <div id="empresa" className="flex h-full flex-col rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
-            <div>
+            <div className="order-1">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-500 px-3 py-1 text-xs font-bold text-white"><Building2 size={13} /> PARA GRUPOS AGROPECUARIOS</span>
               <h2 className="mt-4 text-2xl font-bold">Plan Empresa</h2>
               <p className="mt-2 max-w-2xl text-emerald-100">Para empresas agropecuarias y grupos con múltiples establecimientos.</p>
               <p className="mt-4 text-3xl font-bold">$69.990 <span className="text-base font-normal text-emerald-200">/ mes</span></p>
               <p className="mt-1 text-sm text-emerald-200">Plan estándar para hasta 3 establecimientos. Desde el cuarto, cotización personalizada.</p>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="order-3 grid w-full grid-cols-3 gap-2">
               <a
                 href={EMPRESA_STANDARD_PAYMENT_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="order-2 rounded-xl bg-emerald-500 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-emerald-400"
+                className="order-2 flex min-h-14 items-center justify-center rounded-xl bg-emerald-500 px-2 py-3 text-center text-xs font-bold leading-tight text-white transition hover:bg-emerald-400"
               >
-                2. Pagar plan hasta 3
+                2. Pagar hasta 3
               </a>
               <Link
                 to="/register"
-                className="order-1 rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+                className="order-1 flex min-h-14 items-center justify-center rounded-xl bg-white px-2 py-3 text-center text-xs font-semibold leading-tight text-emerald-900 transition hover:bg-emerald-50"
               >
-                1. Registrar mi empresa
+                1. Crear cuenta
               </Link>
               <a
                 href={WHATSAPP_BUSINESS_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300/40 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+                className="order-3 flex min-h-14 items-center justify-center gap-1 rounded-xl border border-emerald-300/40 px-2 py-3 text-center text-xs font-semibold leading-tight text-white transition hover:bg-white/10"
               >
                 <MessageCircle size={16} />
                 Más de 3: cotizar
               </a>
             </div>
-          </div>
-          <div className="mt-6 grid gap-3 text-sm">
+          <div className="order-2 mt-6 grid gap-3 text-sm sm:grid-cols-2">
             {['Todo Pro incluido', 'Dashboard consolidado', 'Personal y permisos avanzados', 'Auditoria y exportaciones'].map((beneficio) => (
               <span key={beneficio} className="flex items-center gap-2 text-emerald-100"><Check size={16} className="text-emerald-300" />{beneficio}</span>
             ))}
