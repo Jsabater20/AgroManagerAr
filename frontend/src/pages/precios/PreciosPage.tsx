@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, Check, X, Zap, Sprout, AlertCircle, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Building2, Check, X, Zap, Sprout, AlertCircle, MessageCircle } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth.store';
@@ -139,8 +139,19 @@ export default function PreciosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {!token && <PublicNav />}
-      <div className="max-w-5xl mx-auto px-4 py-10">
+      <PublicNav />
+      <div className="mx-auto max-w-7xl px-4 py-5">
+      <div className="mb-5">
+        <button
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1);
+            else navigate(token && activeOrgId ? `/org/${activeOrgId}/dashboard` : '/');
+          }}
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+        >
+          <ArrowLeft size={17} /> Volver
+        </button>
+      </div>
       {/* Header */}
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-3">Planes y suscripciones</h1>
@@ -170,9 +181,9 @@ export default function PreciosPage() {
       </div>
 
       {/* Plans grid */}
-      <div className="grid gap-6 mb-10 lg:grid-cols-3">
+      <div className="mb-10 grid items-stretch gap-6 lg:grid-cols-3">
         {/* Free */}
-        <div className={`rounded-2xl border-2 p-6 ${!isPro ? 'border-green-500 bg-white' : 'border-gray-200 bg-white shadow-sm'}`}>
+        <div className={`flex h-full flex-col rounded-2xl border-2 p-6 ${!isPro ? 'border-green-500 bg-white' : 'border-gray-200 bg-white shadow-sm'}`}>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl font-bold text-gray-900">Free</h2>
             {!isPro && <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">Tu plan</span>}
@@ -192,7 +203,7 @@ export default function PreciosPage() {
         </div>
 
         {/* Pro */}
-        <div className={`rounded-2xl border-2 p-6 relative ${isPro ? 'border-green-500 bg-white' : 'border-gray-200 bg-white'}`}>
+        <div className={`relative flex h-full flex-col rounded-2xl border-2 p-6 ${isPro ? 'border-green-500 bg-white' : 'border-gray-200 bg-white'}`}>
           <div className="absolute -top-3 left-6">
             <span className="bg-green-600 text-white text-xs px-3 py-1 rounded-full font-medium">Recomendado</span>
           </div>
@@ -276,7 +287,7 @@ export default function PreciosPage() {
           </div>
         </div>
 
-        <div id="empresa" className="rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white md:col-span-2">
+        <div id="empresa" className="flex h-full flex-col rounded-2xl border-2 border-emerald-700 bg-emerald-950 p-6 text-white">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
             <div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-500 px-3 py-1 text-xs font-bold text-white"><Building2 size={13} /> PARA GRUPOS AGROPECUARIOS</span>
@@ -345,7 +356,7 @@ export default function PreciosPage() {
       </div>
 
       {/* Back button */}
-      <div className="mt-8 text-center">
+      <div className="hidden mt-8 text-center">
         <button onClick={() => navigate(activeOrgId ? `/org/${activeOrgId}/dashboard` : '/')} className="text-sm text-gray-500 hover:text-gray-700">
           ← Volver al dashboard
         </button>
@@ -397,7 +408,7 @@ export default function PreciosPage() {
         </div>
       )}
     </div>
-      {!token && <PublicFooter />}
+      <PublicFooter />
     </div>
   );
 }
